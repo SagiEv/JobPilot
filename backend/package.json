@@ -1,0 +1,30 @@
+{
+  "name": "jobpilot-backend",
+  "version": "1.0.0",
+  "description": "JobPilot API Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "job",
+    "tracking",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.4.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "puppeteer": "^24.42.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>JobPilot — Career Command Center</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#1a6cf5;--accent-dark:#0d47b5;--accent-light:#e8f0fe;
+  --bg:#fff;--bg2:#f6f7f9;--bg3:#eef0f4;
+  --t1:#111318;--t2:#5a6073;--t3:#9499ae;
+  --border:rgba(0,0,0,.10);--border2:rgba(0,0,0,.18);
+  --r:8px;--r-lg:12px;
+  --success-bg:#e1f5ee;--success-c:#0f6e56;
+  --warn-bg:#fff3cd;--warn-c:#7d5a00;
+  --danger-bg:#fce8e8;--danger-c:#a32d2d;
+  --info-bg:#e8f0fe;--info-c:#1a6cf5;
+  --neutral-bg:#f1efe8;--neutral-c:#5f5e5a;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--t1);font-size:14px;line-height:1.5}
+.app{display:flex;height:100vh;min-height:600px}
+.sidebar{width:210px;min-width:210px;background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{font-size:16px;font-weight:700;letter-spacing:-.4px}
+.logo-sub{font-size:11px;color:var(--t3);margin-top:3px}
+.nav{flex:1;padding:10px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:13px;color:var(--t2);border-left:2.5px solid transparent;transition:background .12s,color .12s;user-select:none}
+.nav-item:hover{color:var(--t1);background:var(--bg2)}
+.nav-item.active{color:var(--accent);background:var(--accent-light);border-left-color:var(--accent);font-weight:600}
+.nav-item svg{flex-shrink:0;opacity:.65}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--t3)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:13px 22px;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-actions{display:flex;gap:8px}
+.btn{font-size:12px;padding:6px 13px;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg);color:var(--t1);cursor:pointer;font-family:inherit;transition:background .12s;font-weight:500}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent-dark)}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-sm{font-size:11px;padding:4px 10px}
+.content{flex:1;overflow:hidden}
+.section{display:none;height:100%;overflow-y:auto}
+.section.active{display:block}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px}
+.card-title{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+.field-group{margin-bottom:12px}
+.field-label{font-size:11px;color:var(--t3);margin-bottom:5px;font-weight:500}
+.field-input{width:100%;font-size:13px;padding:7px 11px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;transition:border-color .15s}
+.field-input:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239499ae'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
+.textarea{width:100%;min-height:100px;font-size:12px;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;resize:vertical;transition:border-color .15s}
+.textarea:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+.cv-drop{border:1.5px dashed var(--border2);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;font-size:12px;color:var(--t2);transition:border-color .15s,color .15s}
+.cv-drop:hover{border-color:var(--accent);color:var(--accent)}
+.cv-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:var(--accent);font-size:12px;padding:5px 11px;border-radius:var(--r);font-weight:500}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:20px 22px}
+.profile-span{grid-column:1/-1}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:18px 22px 12px}
+.stat-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px}
+.stat-num{font-size:24px;font-weight:700}
+.stat-lbl{font-size:11px;color:var(--t2);margin-top:3px}
+.import-bar{display:flex;align-items:center;gap:10px;padding:10px 22px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);background:var(--bg2);flex-wrap:wrap}
+.import-hint{font-size:11px;color:var(--t3);flex:1}
+.tbl-wrap{overflow-x:auto;padding:0 22px 22px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:780px;margin-top:14px}
+thead tr{background:var(--bg2)}
+th{padding:9px 11px;text-align:left;font-weight:600;font-size:11px;color:var(--t2);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--border);color:var(--t1);vertical-align:middle}
+tbody tr:hover td{background:var(--bg2)}
+.badge{display:inline-block;font-size:10px;padding:3px 9px;border-radius:99px;font-weight:600;white-space:nowrap}
+.badge-applied{background:var(--info-bg);color:var(--info-c)}
+.badge-phone{background:var(--warn-bg);color:var(--warn-c)}
+.badge-tech{background:var(--success-bg);color:var(--success-c)}
+.badge-rejected{background:var(--danger-bg);color:var(--danger-c)}
+.badge-offer{background:#d4edda;color:#155724}
+.badge-pending{background:var(--neutral-bg);color:var(--neutral-c)}
+.empty-row td{text-align:center;color:var(--t3);padding:36px;font-size:13px}
+.network-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;padding:18px 22px}
+.contact-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;transition:box-shadow .15s}
+.contact-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.contact-avatar{width:40px;height:40px;border-radius:50%;background:var(--accent-light);color:var(--accent);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.contact-name{font-size:13px;font-weight:600}
+.contact-co{font-size:11px;color:var(--t2);margin-top:2px}
+.contact-phone{font-size:11px;color:var(--t3);margin-top:6px;font-family:'Courier New',monospace}
+.contact-rel{display:inline-block;margin-top:8px;font-size:10px;padding:3px 9px;border-radius:99px;background:var(--bg2);color:var(--t2);border:1px solid var(--border);font-weight:500}
+.add-contact-card{border:1.5px dashed var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:13px;min-height:160px;border-radius:var(--r-lg);transition:border-color .15s,color .15s}
+.add-contact-card:hover{border-color:var(--accent);color:var(--accent)}
+/* search */
+.search-outer{display:grid;grid-template-columns:1fr 310px;height:100%;overflow:hidden}
+.search-form{padding:18px 22px 24px;overflow-y:auto;border-right:1px solid var(--border)}
+.search-rp{padding:16px;overflow-y:auto;background:var(--bg2)}
+.form-section{margin-bottom:18px}
+.form-label{font-size:11px;color:var(--t2);font-weight:600;margin-bottom:7px;display:block}
+.tags-box{display:flex;flex-wrap:wrap;gap:6px;padding:7px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg2);min-height:40px;cursor:text;transition:border-color .15s}
+.tags-box:focus-within{border-color:var(--accent);background:var(--bg)}
+.tag{display:inline-flex;align-items:center;gap:5px;background:var(--accent-light);color:var(--accent);font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500}
+.anti-tag{background:var(--danger-bg);color:var(--danger-c)}
+.tag-x{cursor:pointer;font-size:15px;line-height:1;opacity:.6}
+.tag-x:hover{opacity:1}
+.tag-inp{border:none;background:transparent;font-size:12px;color:var(--t1);font-family:inherit;outline:none;min-width:80px;flex:1}
+.sites-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.site-row{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px}
+.tog{width:30px;height:17px;border-radius:99px;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:background .18s;outline:none}
+.tog.on{background:var(--accent)}
+.tog.off{background:#c5c8d4}
+.tog::after{content:'';position:absolute;top:2.5px;left:2.5px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .18s}
+.tog.on::after{left:15.5px}
+.site-info{flex:1;min-width:0}
+.site-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-url2{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-del{font-size:17px;color:var(--t3);cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0}
+.site-del:hover{color:var(--danger-c)}
+.site-edit{font-size:11px;color:var(--accent);cursor:pointer;flex-shrink:0}
+.site-edit:hover{text-decoration:underline}
+.add-site-row{display:flex;gap:6px}
+.add-site-row .field-input{font-size:12px}
+.flash{font-size:10px;margin-top:5px;height:14px;transition:opacity .3s;display:none}
+.result-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.result-role{font-size:13px;font-weight:600}
+.result-co{font-size:12px;color:var(--t2)}
+.result-match{font-size:10px;color:var(--success-c);margin-top:5px;font-weight:500}
+.result-site{font-size:10px;color:var(--t3);margin-top:2px}
+.results-label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+/* tailoring */
+.tailor-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:20px 22px}
+.tailor-span{grid-column:1/-1}
+.n8n-bar{display:flex;align-items:center;gap:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;font-size:12px;color:var(--t2);margin-bottom:12px}
+.n8n-dot{width:8px;height:8px;border-radius:50%;background:#ff6d00;flex-shrink:0}
+.output-area{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px;min-height:120px;font-size:12px;color:var(--t3);font-style:italic;line-height:1.6;white-space:pre-wrap}
+.url-row{display:flex;gap:8px}
+.url-row input{flex:1}
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--r-lg);padding:24px;width:380px;border:1px solid var(--border2)}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:99px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<
+
+    <!-- AUTO SEARCH -->
+    <div class="section" id="sec-search">
+      <div class="search-outer">
+        <div class="search-form">
+
+          <div class="form-section">
+            <label class="form-label">Search Keywords — Enter to add</label>
+            <div class="tags-box" id="kw-box" onclick="document.getElementById('kw-inp').focus()">
+              <input id="kw-inp" class="tag-inp" placeholder="e.g. Backend Engineer, Python…" onkeydown="addSTag(event,'kw-box','kw-inp',false)"/>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Exclude / Anti Keywords</label>
+            <div class="tags-box" id="anti-box" onclick="document.getElementById('anti-inp').focus()">
+              <input id="anti-inp" class="tag-inp" placeholder="e.g. 3+ years, Senior Manager…" onkeydown="addSTag(event,'anti-box','anti-inp',true)"/>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <label class="form-label" style="margin:0">Target Sites</label>
+              <span id="sites-count" style="font-size:10px;color:var(--t3)">0 sites</span>
+            </div>
+            <div class="sites-list" id="sites-list"></div>
+            <div class="add-site-row">
+              <input class="field-input" id="ns-name" placeholder="Company name" style="max-width:126px"/>
+              <input class="field-input" id="ns-url" placeholder="https://company.com/careers" type="url"/>
+              <button class="btn" onclick="addSite()">+ Add</button>
+            </div>
+            <div class="flash" id="s-flash"></div>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Send Results To (Email)</label>
+            <input class="field-input" id="s-email" type="email" placeholder="you@email.com" oninput="debSave()"/>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Run Schedule</label>
+            <select class="field-input" id="s-sched" onchange="debSave()">
+              <option>Manual only</option>
+              <option>Daily at 8:00am</option>
+              <option>Twice a day</option>
+              <option>Weekly on Monday</option>
+            </select>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn btn-primary" style="flex:1;padding:10px;font-size:13px" onclick="runSearch()">Run Search Now</button>
+            <button class="btn" style="padding:10px 12px;font-size:12px" onclick="saveAll(true)">Save</button>
+          </div>
+          <div style="font-size:10px;color:var(--t3);margin-top:7px;text-align:center">All settings auto-saved to browser localStorage</div>
+        </div>
+
+        <div class="search-rp">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div class="results-label">Last Run</div>
+            <button class="btn btn-sm" onclick="clearResults()" style="font-size:10px;padding:2px 8px">Clear</button>
+          </div>
+          <div id="last-run-meta" style="font-size:10px;color:var(--t3);margin-bottom:10px"></div>
+          <div id="search-list"><div style="text-align:center;color:var(--t3);font-size:12px;padding:28px 0">No results yet</div></div>
+        </div>
+      </div>
+    </div>
+
+   
+/* ═══════════════════════════════════════
+   AUTO SEARCH — multi-site + localStorage
+═══════════════════════════════════════ */
+const LS_KEY='jobpilot_search_v2';
+const RES_KEY='jobpilot_results_v1';
+let sites=[];
+
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'null');}catch{return null;}}
+function lsSave(d){try{localStorage.setItem(LS_KEY,JSON.stringify(d));}catch{}}
+
+function uid(){return Math.random().toString(36).slice(2,8);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function initSearch(){
+  const saved=lsLoad();
+  if(saved){
+    (saved.keywords||[]).forEach(k=>putTag('kw-box','kw-inp',k,false));
+    (saved.antiKeywords||[]).forEach(k=>putTag('anti-box','anti-inp',k,true));
+    if(saved.email) document.getElementById('s-email').value=saved.email;
+    const sel=document.getElementById('s-sched');
+    if(saved.schedule){for(let i=0;i<sel.options.length;i++)if(sel.options[i].text===saved.schedule){sel.selectedIndex=i;break;}}
+    sites=saved.sites||[];
+  } else {
+    ['Backend Engineer','Node.js','Python'].forEach(k=>putTag('kw-box','kw-inp',k,false));
+    ['3+ years experience','Senior Manager'].forEach(k=>putTag('anti-box','anti-inp',k,true));
+    sites=[
+      {id:uid(),name:'Wix',url:'https://www.wix.com/jobs',enabled:true},
+      {id:uid(),name:'Monday.com',url:'https://monday.com/careers',enabled:true},
+      {id:uid(),name:'Google',url:'https://careers.google.com',enabled:false},
+      {id:uid(),name:'Taboola',url:'https://www.taboola.com/careers',enabled:false}
+    ];
+  }
+  renderSites();
+  try{const res=JSON.parse(localStorage.getItem(RES_KEY)||'null');if(res)renderResults(res.items,res.time);}catch{}
+}
+
+function renderSites(){
+  const list=document.getElementById('sites-list');
+  list.innerHTML='';
+  if(!sites.length){list.innerHTML='<div style="font-size:12px;color:var(--t3);padding:6px 0">No sites yet — add one below</div>';document.getElementById('sites-count').textContent='0 sites';return;}
+  const en=sites.filter(s=>s.enabled).length;
+  document.getElementById('sites-count').textContent=en+'/'+sites.length+' active';
+  sites.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='site-row';
+    row.innerHTML=`<button class="tog ${s.enabled?'on':'off'}" onclick="toggleSite(${i})"></button>
+      <div class="site-info"><div class="site-name">${esc(s.name)}</div><div class="site-url2">${esc(s.url)}</div></div>
+      <span class="site-edit" onclick="openEditSite(${i})">Edit</span>
+      <span class="site-del" onclick="deleteSite(${i})" title="Remove">×</span>`;
+    list.appendChild(row);
+  });
+}
+
+function toggleSite(i){sites[i].enabled=!sites[i].enabled;renderSites();debSave();}
+
+function addSite(){
+  const name=document.getElementById('ns-name').value.trim();
+  const url=document.getElementById('ns-url').value.trim();
+  if(!name||!url){showFlash('Enter both name and URL','var(--danger-c)');return;}
+  sites.push({id:uid(),name,url,enabled:true});
+  document.getElementById('ns-name').value='';
+  document.getElementById('ns-url').value='';
+  renderSites();debSave();showFlash('Site added ✓','var(--success-c)');
+}
+
+function deleteSite(i){if(!confirm('Remove '+sites[i].name+'?'))return;sites.splice(i,1);renderSites();debSave();}
+
+function openEditSite(i){
+  document.getElementById('edit-site-idx').value=i;
+  document.getElementById('es-name').value=sites[i].name;
+  document.getElementById('es-url').value=sites[i].url;
+  document.getElementById('modal-edit-site').classList.add('open');
+}
+function saveEditSite(){
+  const i=parseInt(document.getElementById('edit-site-idx').value);
+  const n=document.getElementById('es-name').value.trim();
+  const u=document.getElementById('es-url').value.trim();
+  if(n)sites[i].name=n;if(u)sites[i].url=u;
+  closeModal('modal-edit-site');renderSites();debSave();showFlash('Saved ✓','var(--success-c)');
+}
+
+function saveAll(explicit){
+  const kws=[...document.querySelectorAll('#kw-box .tag')].map(t=>t.textContent.replace('×','').trim());
+  const anti=[...document.querySelectorAll('#anti-box .tag')].map(t=>t.textContent.replace('×','').trim());
+  lsSave({keywords:kws,antiKeywords:anti,sites,email:document.getElementById('s-email').value,schedule:document.getElementById('s-sched').value});
+  if(explicit)showFlash('All settings saved ✓','var(--success-c)');
+}
+let debT=null;
+function debSave(){clearTimeout(debT);debT=setTimeout(saveAll,700);}
+
+function showFlash(msg,color){
+  const el=document.getElementById('s-flash');
+  el.textContent=msg;el.style.color=color||'var(--success-c)';el.style.display='block';el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>{el.style.display='none';},400);},2200);
+}
+
+function addSTag(e,boxId,inpId,anti){
+  if(e.key!=='Enter'&&e.key!==',')return;
+  e.preventDefault();
+  const inp=document.getElementById(inpId);
+  const val=inp.value.replace(/,$/,'').trim();if(!val)return;
+  putTag(boxId,inpId,val,anti);inp.value='';debSave();
+}
+function putTag(boxId,inpId,val,anti){
+  const tag=document.createElement('span');
+  tag.className='tag'+(anti?' anti-tag':'');
+  tag.innerHTML=esc(val)+`<span class="tag-x" onclick="this.parentNode.remove();debSave()">×</span>`;
+  document.getElementById(boxId).insertBefore(tag,document.getElementById(inpId));
+}
+
+function runSearch(){
+  const kws=[...document.querySelectorAll('#kw-box .tag')].map(t=>t.textContent.replace('×','').trim());
+  const anti=[...document.querySelectorAll('#anti-box .tag')].map(t=>t.textContent.replace('×','').trim());
+  const active=sites.filter(s=>s.enabled);
+  if(!active.length){showFlash('Enable at least one site first','var(--danger-c)');return;}
+  saveAll(false);
+  const list=document.getElementById('search-list');
+  list.innerHTML='<div style="text-align:center;color:var(--t2);font-size:12px;padding:28px 0">Searching '+active.length+' site'+(active.length>1?'s':'')+'…</div>';
+  document.getElementById('last-run-meta').textContent='';
+
+  setTimeout(()=>{
+    const mockRoles=['Backend Engineer','Software Engineer II','Platform Engineer','Node.js Developer','Python Engineer','API Engineer','Full Stack Engineer','DevOps Engineer'];
+    const mockLocs=['Tel Aviv','Remote','Herzliya','Ra\'anana','Berlin'];
+    const items=[];
+    active.forEach(site=>{
+      const n=1+Math.floor(Math.random()*3);
+      for(let i=0;i<n;i++){
+        const role=mockRoles[Math.floor(Math.random()*mockRoles.length)];
+        const loc=mockLocs[Math.floor(Math.random()*mockLocs.length)];
+        const isAnti=anti.some(a=>role.toLowerCase().includes(a.toLowerCase().split(' ')[0]));
+        if(!isAnti){
+          const matchKws=kws.filter(()=>Math.random()>.45).slice(0,2);
+          items.push({role,co:site.name,loc,url:site.url,matches:matchKws.length?matchKws:[kws[0]||'keyword']});
+        }
+      }
+    });
+    const t=new Date().toLocaleString();
+    renderResults(items,t);
+    try{localStorage.setItem(RES_KEY,JSON.stringify({items,time:t}));}catch{}
+    const em=document.getElementById('s-email').value;
+    if(em)showFlash(items.length+' match'+(items.length!==1?'es':'')+' · queued to '+em,'var(--success-c)');
+  },1500);
+}
+
+function renderResults(items,t){
+  document.getElementById('last-run-meta').textContent=t?'Run: '+t:'';
+  const list=document.getElementById('search-list');
+  if(!items||!items.length){list.innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px;padding:20px 0">No matches found</div>';return;}
+  list.innerHTML=items.map(it=>`<div class="result-item"><div class="result-role">${esc(it.role)}</div><div class="result-co">${esc(it.co)} · ${esc(it.loc)}</div><div class="result-match">✓ ${it.matches.map(esc).join(', ')}</div><div class="result-site"><a href="${esc(it.url)}" target="_blank">${esc(it.url)}</a></div></div>`).join('')
+    +'<div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center">'+items.length+' match'+(items.length!==1?'es':'')+'</div>';
+}
+
+function clearResults(){document.getElementById('search-list').innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px;padding:28px 0">No results yet</div>';document.getElementById('last-run-meta').textContent='';try{localStorage.removeItem(RES_KEY);}catch{}}
+
+/* generic addTag (non-search) */
+function addTag(e,boxId,inpId,anti){if(e.key!=='Enter'&&e.key!==',')return;e.preventDefault();const inp=document.getElementById(inpId);const val=inp.value.replace(/,$/,'').trim();if(!val)return;const tag=document.createElement('span');tag.className='tag'+(anti?' anti-tag':'');tag.innerHTML=esc(val)+`<span class="tag-x" onclick="this.parentNode.remove()">×</span>`;document.getElementById(boxId).insertBefore(tag,inp);inp.value='';}
+
+/* CV TAILORING */
+function onTailorCV(e){const f=e.target.files[0];if(!f)return;document.getElementById('tailor-cv-lbl').textContent=f.name+' · '+Math.round(f.size/1024)+' KB';}
+function fetchJD(){const u=document.getElementById('t-url').value.trim();if(!u)return;document.getElementById('t-jd').value='[Job description from '+u+' will be fetched by your n8n workflow or backend proxy]';}
+function sendN8n(){const hook=document.getElementById('n8n-hook').value.trim();const jd=document.getElementById('t-jd').value.trim();const out=document.getElementById('tailor-out');if(!hook){alert('Enter your n8n webhook URL first.');return;}if(!jd){alert('Paste a job description first.');return;}out.textContent='Sending to n8n… waiting for response.';out.style.fontStyle='italic';fetch(hook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jobDescription:jd,cvFile:document.getElementById('tailor-cv-lbl').textContent||'profile-cv'})}).then(r=>r.text()).then(t=>{out.textContent=t;out.style.fontStyle='normal';}).catch(()=>{out.textContent='(n8n response will appear here once connected.)';out.style.fontStyle='italic';});}
+
+/* MODALS */
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+/* BOOT */
+initSearch();
+</script>
+</body>
+</html>
