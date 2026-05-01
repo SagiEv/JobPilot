@@ -1754,6 +1754,73 @@ td:nth-child(3) {
   border-color: var(--danger-c);
 }
 
+/* ── Search page skeleton shimmer ──────────────────────────────── */
+@keyframes skShimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.search-skeleton-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  background: var(--bg2);
+  min-height: 44px;
+  align-items: center;
+}
+
+.search-skeleton-box--col {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+}
+
+/* tiny inline spinner shown in card titles while loading */
+.card-inline-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: loaderSpin .7s linear infinite;
+  flex-shrink: 0;
+}
+.card-inline-spinner--red {
+  border-top-color: var(--danger-c);
+}
+
+/* pill skeletons for keyword tags */
+.sk-pill {
+  display: inline-block;
+  height: 28px;
+  width: 90px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--border2) 25%, #e8eaf0 50%, var(--border2) 75%);
+  background-size: 800px 100%;
+  animation: skShimmer 1.4s ease-in-out infinite;
+}
+.sk-pill--md { width: 120px; }
+.sk-pill--sm { width: 65px; }
+
+/* row skeletons for target sites */
+.sk-site-row {
+  display: block;
+  height: 20px;
+  width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--border2) 25%, #e8eaf0 50%, var(--border2) 75%);
+  background-size: 800px 100%;
+  animation: skShimmer 1.4s ease-in-out infinite;
+}
+.sk-site-row--short { width: 65%; }
+
 /* results panel — card provides the chrome, this just sets height */
 .search-rp {
   min-height: 300px;
@@ -2015,4 +2082,16 @@ td:nth-child(3) {
   font-size: 13px;
   color: var(--t3);
   letter-spacing: .2px;
+}
+
+/* ── ReactQuill Editor Overrides ─────────────────────────────────── */
+.ql-container {
+  font-family: inherit !important;
+}
+
+.ql-editor {
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  font-family: inherit !important;
+  color: var(--t1) !important;
 }

@@ -41,8 +41,8 @@ const EditableCVField = ({ title, value, onChange }) => {
                         <button className="btn btn-sm" onClick={() => setIsEditing(false)}>Cancel</button>
                     </div>
                 </div>
-                <div style={{ backgroundColor: '#1e1e2d', color: 'white', borderRadius: '8px', padding: '10px' }}>
-                    <ReactQuill theme="snow" value={tempValue} onChange={setTempValue} modules={modules} style={{ minHeight: '150px', color: 'white' }} />
+                <div style={{ borderRadius: 'var(--r)', overflow: 'hidden' }}>
+                    <ReactQuill theme="snow" value={tempValue} onChange={setTempValue} modules={modules} style={{ minHeight: '150px', backgroundColor: 'var(--bg)', color: 'var(--t1)' }} />
                 </div>
             </div>
         );

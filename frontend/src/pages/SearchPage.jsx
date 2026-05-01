@@ -69,6 +69,7 @@ const SiteRow = ({ site, onToggle, onDelete, onSave }) => {
 /* ── main page ────────────────────────────────────────────────── */
 const SearchPage = () => {
     const {
+        loading,
         searchSettings, addTag, removeTag,
         addSite, removeSite, updateSite, toggleSite,
         clearResults
@@ -94,7 +95,10 @@ const SearchPage = () => {
                 <div>
                     {/* Keywords */}
                     <div className="card" style={{ marginBottom: '14px' }}>
-                        <div className="card-title">Search Keywords — Enter to add</div>
+                        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            Search Keywords — Enter to add
+                            {loading && <span className="card-inline-spinner" />}
+                        </div>
                         <div className="tags-box" onClick={() => document.getElementById('kw-inp').focus()}>
                             {searchSettings.keywords.map((kw, i) => (
                                 <span key={i} className="skill-tag-pill">
@@ -118,8 +122,9 @@ const SearchPage = () => {
 
                     {/* Anti-keywords */}
                     <div className="card" style={{ marginBottom: '14px' }}>
-                        <div className="card-title" style={{ color: 'var(--danger-c)' }}>
+                        <div className="card-title" style={{ color: 'var(--danger-c)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             Exclude Keywords — Enter to add
+                            {loading && <span className="card-inline-spinner card-inline-spinner--red" />}
                         </div>
                         <div
                             className="tags-box tags-box-anti"
@@ -156,18 +161,28 @@ const SearchPage = () => {
                         </div>
 
                         <div className="sites-list">
-                            {searchSettings.targetSites.length === 0 && (
-                                <p className="empty-hint" style={{ padding: '8px 0' }}>No sites yet — add one below</p>
+                            {loading ? (
+                                <div className="search-skeleton-box search-skeleton-box--col">
+                                    <span className="sk-site-row" />
+                                    <span className="sk-site-row sk-site-row--short" />
+                                    <span className="sk-site-row" />
+                                </div>
+                            ) : (
+                                <>
+                                    {searchSettings.targetSites.length === 0 && (
+                                        <p className="empty-hint" style={{ padding: '8px 0' }}>No sites yet — add one below</p>
+                                    )}
+                                    {searchSettings.targetSites.map(site => (
+                                        <SiteRow
+                                            key={site.id}
+                                            site={site}
+                                            onToggle={toggleSite}
+                                            onDelete={removeSite}
+                                            onSave={updateSite}
+                                        />
+                                    ))}
+                                </>
                             )}
-                            {searchSettings.targetSites.map(site => (
-                                <SiteRow
-                                    key={site.id}
-                                    site={site}
-                                    onToggle={toggleSite}
-                                    onDelete={removeSite}
-                                    onSave={updateSite}
-                                />
-                            ))}
                         </div>
 
                         {/* Add site */}
