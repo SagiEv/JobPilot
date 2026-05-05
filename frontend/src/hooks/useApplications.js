@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import api from '../api';
-import { uploadData } from '../services/apiService';
+// import api from '../api';
+// import { uploadData } from '../services/apiService';
+import apiClient from '../services/apiClient';
+import { uploadCSV } from '../services/dataService';
 
 // Map between DB schema and frontend state
 const fromDb = (row) => ({
@@ -37,10 +39,13 @@ export function useApplications() {
 
     const fetchApplications = async () => {
         try {
-            const { data } = await api.get('/api/applications');
+            // Use apiClient directly
+            console.log("Fetching applications...");
+            const { data } = await apiClient.get('/api/applications');
+            console.log("Applications fetched:", data);
             setApplications((data || []).map(fromDb));
         } catch (error) {
-            console.error("Failed to fetch applications:", error);
+            console.error("Fetch failed:", error);
         } finally {
             setLoading(false);
         }
@@ -55,9 +60,9 @@ export function useApplications() {
         setApplications(prev => prev.map(app =>
             app.id === id ? { ...app, STATUS: newStatus, DATE: today } : app
         ));
-        
+
         try {
-            await api.put(`/api/applications/${id}`, { status: newStatus, date: today });
+            await apiClient.put(`/api/applications/${id}`, { status: newStatus, date: today });
         } catch (error) {
             console.error("Failed to update application:", error);
         }
@@ -76,7 +81,7 @@ export function useApplications() {
 
         try {
             setStatus('Uploading and processing...');
-            const result = await uploadData(file, 'applications');
+            const result = await uploadCSV(file, 'applications');
 
             const normalized = result.data.map(row => ({
                 COMPANY: row.COMPANY || row.company || row['Company'] || '',
@@ -92,8 +97,8 @@ export function useApplications() {
             // Bulk insert to DB
             setStatus('Saving to database...');
             const dbData = normalized.map(toDb);
-            await api.post('/api/applications/bulk', { applications: dbData });
-            
+            await apiClient.post('/api/applications/bulk', { applications: dbData });
+
             // Refetch to get real IDs
             await fetchApplications();
             setStatus(`✓ Loaded successfully`);
@@ -108,11 +113,11 @@ export function useApplications() {
             app.id === id ? { ...app, STATUS: newStatus } : app
         ));
         try {
-            await api.put(`/api/applications/${id}`, { status: newStatus });
+            await apiClient.put(`/api/applications/${id}`, { status: newStatus });
         } catch (error) {
             console.error("Failed to update application status:", error);
         }
     };
 
     return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication };
-}
+}

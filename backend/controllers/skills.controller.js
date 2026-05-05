@@ -2,7 +2,8 @@ const skillService = require('../services/skills.service');
 
 const getAll = async (req, res) => {
     try {
-        const data = await skillService.getAllSkills();
+        const userId = req.user.id;
+        const data = await skillService.getAllSkills(userId);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -11,7 +12,8 @@ const getAll = async (req, res) => {
 
 const create = async (req, res) => {
     try {
-        const data = await skillService.createSkill(req.body);
+        const userId = req.user.id;
+        const data = await skillService.createSkill(userId, req.body);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -20,7 +22,8 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
     try {
-        const data = await skillService.updateSkill(req.params.id, req.body);
+        const userId = req.user.id;
+        const data = await skillService.updateSkill(userId, req.params.id, req.body);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -29,7 +32,8 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
     try {
-        const result = await skillService.deleteSkill(req.params.id);
+        const userId = req.user.id;
+        const result = await skillService.deleteSkill(userId, req.params.id);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });

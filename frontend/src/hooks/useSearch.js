@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
+// import api from '../api';
+import apiClient from '../services/apiClient';
 
 export function useSearch() {
     const [loading, setLoading] = useState(true);
@@ -17,10 +18,10 @@ export function useSearch() {
         setLoading(true);
         try {
             const [settingsRes, sitesRes] = await Promise.all([
-                api.get('/api/search-settings'),
-                api.get('/api/search-settings/sites')
+                apiClient.get('/api/search-settings'),
+                apiClient.get('/api/search-settings/sites')
             ]);
-            
+
             setSearchSettings(prev => ({
                 ...prev,
                 ...(settingsRes.data && Object.keys(settingsRes.data).length > 0 ? {
@@ -60,7 +61,7 @@ export function useSearch() {
                 schedule: snapshot.schedule,
                 last_results: snapshot.lastResults
             };
-            const { data } = await api.put('/api/search-settings', payload);
+            const { data } = await apiClient.put('/api/search-settings', payload);
             // First save (INSERT) → persist the generated id
             if (data && data.id && !snapshot.id) {
                 setSearchSettings(prev => ({ ...prev, id: data.id }));
@@ -106,9 +107,9 @@ export function useSearch() {
     const toggleSite = async (id) => {
         const site = searchSettings.targetSites.find(s => s.id === id);
         if (!site) return;
-        
+
         const nextEnabled = !site.enabled;
-        
+
         setSearchSettings(prev => ({
             ...prev,
             targetSites: prev.targetSites.map(s =>
@@ -117,7 +118,7 @@ export function useSearch() {
         }));
 
         try {
-            await api.put(`/api/search-settings/sites/${id}`, { enabled: nextEnabled });
+            await apiClient.put(`/api/search-settings/sites/${id}`, { enabled: nextEnabled });
         } catch (error) {
             console.error("Failed to update site:", error);
         }
@@ -125,9 +126,9 @@ export function useSearch() {
 
     const addSite = async (name, url) => {
         if (!name || !url) return;
-        
+
         try {
-            const { data } = await api.post('/api/search-settings/sites', { name, url, enabled: true });
+            const { data } = await apiClient.post('/api/search-settings/sites', { name, url, enabled: true });
             setSearchSettings(prev => ({
                 ...prev,
                 targetSites: [...prev.targetSites, data]
@@ -143,7 +144,7 @@ export function useSearch() {
             targetSites: prev.targetSites.filter(s => s.id !== id)
         }));
         try {
-            await api.delete(`/api/search-settings/sites/${id}`);
+            await apiClient.delete(`/api/search-settings/sites/${id}`);
         } catch (error) {
             console.error("Failed to delete site:", error);
         }
@@ -157,7 +158,7 @@ export function useSearch() {
             )
         }));
         try {
-            await api.put(`/api/search-settings/sites/${id}`, { name, url });
+            await apiClient.put(`/api/search-settings/sites/${id}`, { name, url });
         } catch (error) {
             console.error("Failed to update site:", error);
         }

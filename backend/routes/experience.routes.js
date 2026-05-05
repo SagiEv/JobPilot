@@ -1,15 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const experienceController = require('../controllers/experience.controller');
+const { authenticate } = require('../middleware/auth');
 
 // Project Routes
-router.get('/projects', experienceController.getProjects);
-router.post('/projects', experienceController.postProject);
-router.put('/projects/:id', experienceController.putProject);
-router.delete('/projects/:id', experienceController.deleteProject);
+router.get('/projects', authenticate, experienceController.getProjects);
+router.post('/projects', authenticate, experienceController.postProject);
+router.put('/projects/:id', authenticate, experienceController.putProject);
+router.delete('/projects/:id', authenticate, experienceController.deleteProject);
 
 // Text Routes
-router.get('/text', experienceController.getExpText);
-router.put('/text', experienceController.putExpText);
+router.get('/text', authenticate, experienceController.getExpText);
+router.put('/text', authenticate, experienceController.putExpText);
 
 module.exports = router;

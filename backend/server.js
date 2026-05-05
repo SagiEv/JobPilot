@@ -11,6 +11,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- Import Routes ---
+const userRoutes = require('./routes/user.route.js');
 const profileRoutes = require('./routes/profile.routes');
 const applicationRoutes = require('./routes/applications.routes');
 const contactRoutes = require('./routes/contacts.routes');
@@ -19,9 +20,12 @@ const interviewRoutes = require('./routes/interviews.routes');
 const searchRoutes = require('./routes/searchSettings.routes');
 const skillRoutes = require('./routes/skills.routes');
 const cvRoutes = require('./routes/cv.routes');
-const csvRoutes = require('./routes/csv.routes'); // New file for the CSV logic
+const csvRoutes = require('./routes/csv.routes');
+const settingsRoutes = require('./routes/settings.routes');
+const tailorRoutes = require('./routes/tailor.routes');
 
 // --- Mount Routes ---
+app.use('/auth', userRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/contacts', contactRoutes);
@@ -31,6 +35,8 @@ app.use('/api/search-settings', searchRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/cv', cvRoutes);
 app.use('/api/csv', csvRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/tailor', tailorRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

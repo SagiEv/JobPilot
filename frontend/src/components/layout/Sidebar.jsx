@@ -11,7 +11,11 @@ const Sidebar = ({ activeTab, setActiveTab, backendStatus }) => {
         { id: 'projects', label: 'Portfolio' },
         { id: 'skills-matrix', label: 'Skills Matrix' },
         { id: 'interview', label: 'Interview Insights' },
-        { id: 'analytics', label: 'Analytics' }
+        { id: 'analytics', label: 'Analytics' },
+    ];
+
+    const bottomTabs = [
+        { id: 'settings', label: 'Settings' },
     ];
 
     return (
@@ -23,6 +27,16 @@ const Sidebar = ({ activeTab, setActiveTab, backendStatus }) => {
 
             <nav className="nav">
                 {tabs.map((tab) => (
+                    <div
+                        key={tab.id}
+                        className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                        onClick={() => setActiveTab(tab.id)}
+                    >
+                        <span>{tab.label}</span>
+                    </div>
+                ))}
+                <div className="nav-divider" />
+                {bottomTabs.map((tab) => (
                     <div
                         key={tab.id}
                         className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}

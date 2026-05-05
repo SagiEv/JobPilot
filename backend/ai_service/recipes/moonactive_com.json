@@ -1,0 +1,28 @@
+{
+  "company": "MoonActive",
+  "careers_url": "https://www.moonactive.com/careers/",
+  "last_analyzed": "2026-05-03",
+  "failure_count": 0,
+  "search_mechanism": {
+    "type": "no_search",
+    "pattern": null,
+    "notes": "No search mechanism found, only a list of job openings"
+  },
+  "pagination": {
+    "type": "none",
+    "param": null,
+    "start_index": 1,
+    "increment": 1,
+    "notes": "No pagination mechanism found"
+  },
+  "selectors": {
+    "job_container": ".job-card",
+    "title": ".job-card .job-title",
+    "location": ".job-card .location",
+    "link": ".job-card a[href]",
+    "description_snippet": ".job-card .job-snippet",
+    "no_results_indicator": ".no-results-message"
+  },
+  "requires_js": true,
+  "notes": "The page appears to be a React/Next.js SPA with no job listings in HTML. Test scrape result indicates 0 jobs found, but the page clearly has jobs. Setting requires_js to true."
+}

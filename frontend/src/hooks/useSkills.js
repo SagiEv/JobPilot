@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
+// import api from '../api';
+import apiClient from '../services/apiClient';
 
 export function useSkills() {
     const [skills, setSkills] = useState([]);
@@ -7,7 +8,7 @@ export function useSkills() {
 
     const fetchSkills = async () => {
         try {
-            const { data } = await api.get('/api/skills');
+            const { data } = await apiClient.get('/api/skills');
             setSkills(data || []);
         } catch (error) {
             console.error("Failed to fetch skills:", error);
@@ -22,9 +23,9 @@ export function useSkills() {
 
     const addSkill = async (name, category = 'Technical', level = 'Intermediate') => {
         if (!name.trim()) return;
-        
+
         try {
-            const { data } = await api.post('/api/skills', {
+            const { data } = await apiClient.post('/api/skills', {
                 name: name.trim(),
                 category,
                 level
@@ -38,7 +39,7 @@ export function useSkills() {
     const deleteSkill = async (id) => {
         setSkills(prev => prev.filter(s => s.id !== id));
         try {
-            await api.delete(`/api/skills/${id}`);
+            await apiClient.delete(`/api/skills/${id}`);
         } catch (error) {
             console.error("Failed to delete skill:", error);
         }

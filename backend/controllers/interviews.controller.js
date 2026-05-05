@@ -2,7 +2,8 @@ const interviewService = require('../services/interviews.service');
 
 const getAll = async (req, res) => {
     try {
-        const data = await interviewService.getAllInterviews();
+        const userId = req.user.id;
+        const data = await interviewService.getAllInterviews(userId);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -11,7 +12,8 @@ const getAll = async (req, res) => {
 
 const create = async (req, res) => {
     try {
-        const data = await interviewService.createInterview(req.body);
+        const userId = req.user.id;
+        const data = await interviewService.createInterview(userId, req.body);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -20,7 +22,8 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
     try {
-        const data = await interviewService.updateInterview(req.params.id, req.body);
+        const userId = req.user.id;
+        const data = await interviewService.updateInterview(userId, req.params.id, req.body);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -29,7 +32,8 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
     try {
-        const result = await interviewService.deleteInterview(req.params.id);
+        const userId = req.user.id;
+        const result = await interviewService.deleteInterview(userId, req.params.id);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });

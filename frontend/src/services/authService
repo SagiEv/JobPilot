@@ -1,0 +1,51 @@
+// this service simply uses the apiClient and doesn't worry about interceptors.
+import apiClient, { setAccessToken } from './apiClient';
+import { supabase } from '../supabaseClient';
+
+export const authService = {
+    async signup(email, password) {
+        const res = await apiClient.post('/auth/signup', { email, password });
+        return res.data;
+    },
+
+    async login(email, password) {
+        const res = await apiClient.post('/auth/login', { email, password });
+        setAccessToken(res.data.access_token);
+        // console.log("access_token", res.data.access_token);
+        localStorage.setItem('refresh_token', res.data.refresh_token);
+        return res.data.user;
+    },
+
+    async loginWithGoogle() {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: `${window.location.origin}/login` }
+        });
+        if (error) throw error;
+    },
+
+    async logout() {
+        setAccessToken(null);
+        await supabase.auth.signOut();
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+    }
+};
+
+export const restoreSession = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) {
+        setAccessToken(data.session.access_token);
+        return data.session.user;
+    }
+    return null;
+};
+
+export const handleRedirectSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        setAccessToken(session.access_token);
+        return session.user;
+    }
+    return null;
+};

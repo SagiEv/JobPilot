@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 
 const generateCvPdf = async (personalInfo, cvData) => {
-    // Your exact HTML template
-    const htmlContent = `
+  // Your exact HTML template
+  const htmlContent = `
     <html>
       <head>
         <style>
@@ -32,30 +32,30 @@ const generateCvPdf = async (personalInfo, cvData) => {
     </html>
   `;
 
-    const browser = await puppeteer.launch({ headless: 'new' });
-    const page = await browser.newPage();
+  const browser = await puppeteer.launch({ headless: 'new' });
+  const page = await browser.newPage();
 
-    await page.setViewport({ width: 794, height: 1122 });
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  await page.setViewport({ width: 794, height: 1122 });
+  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-    const contentHeight = await page.evaluate(() => document.documentElement.scrollHeight);
-    const maxPrintableHeight = 1046;
-    let scale = 1;
+  const contentHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  const maxPrintableHeight = 1046;
+  let scale = 1;
 
-    if (contentHeight > maxPrintableHeight) {
-        scale = (maxPrintableHeight / contentHeight) * 0.98;
-        scale = Math.max(0.1, scale);
-    }
+  if (contentHeight > maxPrintableHeight) {
+    scale = (maxPrintableHeight / contentHeight) * 0.98;
+    scale = Math.max(0.1, scale);
+  }
 
-    const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        scale: scale,
-        margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' }
-    });
+  const pdfBuffer = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    scale: scale,
+    margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' }
+  });
 
-    await browser.close();
-    return pdfBuffer; // Returning raw buffer
+  await browser.close();
+  return pdfBuffer; // Returning raw buffer
 };
 
 module.exports = { generateCvPdf };

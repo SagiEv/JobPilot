@@ -1,31 +1,31 @@
 const contactRepository = require('../repositories/contacts.repository');
 
-const getAllContacts = async () => {
-    const { data, error } = await contactRepository.findAll();
+const getAllContacts = async (userId) => {
+    const { data, error } = await contactRepository.findAll(userId);
     if (error) throw new Error(error.message);
     return data;
 };
 
-const createContact = async (data) => {
-    const { data: newContact, error } = await contactRepository.create(data);
+const createContact = async (userId, data) => {
+    const { data: newContact, error } = await contactRepository.create(userId, data);
     if (error) throw new Error(error.message);
     return newContact;
 };
 
-const updateContact = async (id, data) => {
-    const { data: updatedContact, error } = await contactRepository.update(id, data);
+const updateContact = async (userId, id, data) => {
+    const { data: updatedContact, error } = await contactRepository.update(userId, id, data);
     if (error) throw new Error(error.message);
     return updatedContact;
 };
 
-const deleteContact = async (id) => {
-    const { error } = await contactRepository.remove(id);
+const deleteContact = async (userId, id) => {
+    const { error } = await contactRepository.remove(userId, id);
     if (error) throw new Error(error.message);
     return { success: true };
 };
 
-const bulkCreateContacts = async (contacts) => {
-    const { data, error } = await contactRepository.bulkInsert(contacts);
+const bulkCreateContacts = async (userId, contacts) => {
+    const { data, error } = await contactRepository.bulkInsert(userId, contacts);
     if (error) {
         console.error("Bulk Insert Error (Contacts):", error);
         throw error;

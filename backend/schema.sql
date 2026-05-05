@@ -87,3 +87,12 @@ CREATE TABLE IF NOT EXISTS skills (
   category TEXT,
   level TEXT
 );
+
+-- App Settings table (singleton — one row only)
+-- Stores user-configured API tokens and app-level preferences
+CREATE TABLE IF NOT EXISTS app_settings (
+  id SERIAL PRIMARY KEY,
+  groq_token TEXT
+);
+
+

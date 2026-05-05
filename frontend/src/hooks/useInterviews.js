@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
+import apiClient from '../services/apiClient';
 
 export function useInterviews() {
     const [interviews, setInterviews] = useState([]);
@@ -7,7 +7,7 @@ export function useInterviews() {
 
     const fetchInterviews = async () => {
         try {
-            const { data } = await api.get('/api/interviews');
+            const { data } = await apiClient.get('/api/interviews');
             setInterviews(data || []);
         } catch (error) {
             console.error("Failed to fetch interviews:", error);
@@ -31,9 +31,9 @@ export function useInterviews() {
                 ? newInt.improve.split('\n').filter(line => line.trim())
                 : []
         };
-        
+
         try {
-            const { data } = await api.post('/api/interviews', interview);
+            const { data } = await apiClient.post('/api/interviews', interview);
             setInterviews(prev => [data, ...prev]);
         } catch (error) {
             console.error("Failed to add interview:", error);

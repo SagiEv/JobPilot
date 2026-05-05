@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api';
+// import api from '../api';
+import apiClient from '../services/apiClient';
 
 export function useProfile() {
     const [profile, setProfile] = useState({});
@@ -12,7 +13,8 @@ export function useProfile() {
             setLoading(true);
             setError(null);
             try {
-                const response = await api.get('/api/profile/');
+                // const response = await api.get('/api/profile/');
+                const response = await apiClient.get('/api/profile/');
                 if (response.data && Object.keys(response.data).length > 0) {
                     setProfile(response.data);
                 }
@@ -29,7 +31,7 @@ export function useProfile() {
     // Persist changes to backend
     const saveProfile = useCallback(async (updatedProfile) => {
         try {
-            await api.put('/api/profile', updatedProfile);
+            await apiClient.put('/api/profile', updatedProfile);
         } catch (err) {
             console.error('Failed to save profile:', err);
         }

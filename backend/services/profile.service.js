@@ -1,7 +1,7 @@
 const profileRepository = require('../repositories/profile.repository');
 
-const getProfile = async () => {
-    const { data, error } = await profileRepository.findFirstProfile();
+const getProfile = async (userId) => {
+    const { data, error } = await profileRepository.findFirstProfile(userId);
 
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
 
@@ -19,7 +19,7 @@ const getProfile = async () => {
     return profile;
 };
 
-const upsertProfile = async (payload) => {
+const upsertProfile = async (userId, payload) => {
     const { id, ...updateData } = payload;
 
     // Mapping frontend keys to database keys
@@ -33,8 +33,8 @@ const upsertProfile = async (payload) => {
     }
 
     const { data, error } = id
-        ? await profileRepository.updateProfile(id, updateData)
-        : await profileRepository.createProfile(updateData);
+        ? await profileRepository.updateProfile(userId, id, updateData)
+        : await profileRepository.createProfile(userId, updateData);
 
     if (error) throw new Error(error.message);
     return data;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
+// import api from '../api';
+import apiClient from '../services/apiClient';
 
 export function useExperience() {
     const [projects, setProjects] = useState([]);
@@ -9,8 +10,8 @@ export function useExperience() {
     const fetchExperience = async () => {
         try {
             const [projRes, textRes] = await Promise.all([
-                api.get('/api/experience/projects'),
-                api.get('/api/experience/text')
+                apiClient.get('/api/experience/projects'),
+                apiClient.get('/api/experience/text')
             ]);
             setProjects(projRes.data || []);
             if (textRes.data && textRes.data.text) {
@@ -31,7 +32,7 @@ export function useExperience() {
         const bullets = data.summary.split('\n').filter(l => l.trim());
         const { summary, ...rest } = data;
         try {
-            const res = await api.post('/api/experience/projects', { ...rest, bullets });
+            const res = await apiClient.post('/api/experience/projects', { ...rest, bullets });
             setProjects(prev => [res.data, ...prev]);
         } catch (error) {
             console.error("Failed to add project:", error.response?.data || error);
@@ -42,10 +43,10 @@ export function useExperience() {
         const bullets = updatedData.summary.split('\n').filter(l => l.trim());
         const { summary, ...rest } = updatedData;
         const payload = { ...rest, bullets };
-        
+
         setProjects(prev => prev.map(p => p.id === id ? { ...p, ...payload } : p));
         try {
-            await api.put(`/api/experience/projects/${id}`, payload);
+            await apiClient.put(`/api/experience/projects/${id}`, payload);
         } catch (error) {
             console.error("Failed to update project:", error);
         }
@@ -54,7 +55,7 @@ export function useExperience() {
     const deleteProject = async (id) => {
         setProjects(prev => prev.filter(p => p.id !== id));
         try {
-            await api.delete(`/api/experience/projects/${id}`);
+            await apiClient.delete(`/api/experience/projects/${id}`);
         } catch (error) {
             console.error("Failed to delete project:", error);
         }
@@ -63,7 +64,7 @@ export function useExperience() {
     const setExperienceText = async (newText) => {
         setExperienceTextObj(prev => ({ ...prev, text: newText }));
         try {
-            const res = await api.put('/api/experience/text', { id: experienceTextObj.id, text: newText });
+            const res = await apiClient.put('/api/experience/text', { id: experienceTextObj.id, text: newText });
             if (res.data && res.data.id && !experienceTextObj.id) {
                 setExperienceTextObj(res.data);
             }
@@ -72,13 +73,13 @@ export function useExperience() {
         }
     };
 
-    return { 
-        projects, 
+    return {
+        projects,
         loading,
-        experienceText: experienceTextObj.text, 
-        setExperienceText, 
-        addProject, 
-        updateProject, 
-        deleteProject 
+        experienceText: experienceTextObj.text,
+        setExperienceText,
+        addProject,
+        updateProject,
+        deleteProject
     };
 }

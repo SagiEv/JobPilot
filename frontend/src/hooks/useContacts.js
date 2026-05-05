@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import api from '../api';
-import { uploadData } from '../services/apiService';
+// import api from '../api';
+// import { uploadData } from '../services/apiService';
+import apiClient from '../services/apiClient';
+import { uploadCSV } from '../services/dataService';
 
 export function useContacts() {
     const [contacts, setContacts] = useState([]);
@@ -9,7 +11,7 @@ export function useContacts() {
 
     const fetchContacts = async () => {
         try {
-            const { data } = await api.get('/api/contacts');
+            const { data } = await apiClient.get('/api/contacts');
             setContacts(data || []);
         } catch (error) {
             console.error("Failed to fetch contacts:", error);
@@ -28,8 +30,9 @@ export function useContacts() {
 
         try {
             setUploadStatus('Uploading and processing...');
-            const result = await uploadData(file, 'network');
-            
+            // const result = await uploadData(file, 'network');
+            const result = await uploadCSV(file, 'network');
+
             const normalizedContacts = result.data.map((row) => ({
                 name: row.Contact || row.contact || row['Contact'] || row['contact'] || '',
                 company: row['COMPANY'] || row['Company'] || row['company'] || row.Company || row.company || '',
@@ -38,8 +41,8 @@ export function useContacts() {
             }));
 
             setUploadStatus('Saving to database...');
-            await api.post('/api/contacts/bulk', { contacts: normalizedContacts });
-            
+            await apiClient.post('/api/contacts/bulk', { contacts: normalizedContacts });
+
             await fetchContacts();
             setUploadStatus(`✓ Loaded successfully`);
         } catch (error) {
@@ -52,7 +55,7 @@ export function useContacts() {
         if (!newContact.name.trim()) return;
 
         try {
-            const { data } = await api.post('/api/contacts', newContact);
+            const { data } = await apiClient.post('/api/contacts', newContact);
             setContacts(prev => [...prev, data]);
         } catch (error) {
             console.error("Failed to add contact:", error);
@@ -66,4 +69,4 @@ export function useContacts() {
         handleCSVUpload,
         addContact
     };
-}
+}

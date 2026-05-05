@@ -2094,4 +2094,357 @@ td:nth-child(3) {
   line-height: 1.6 !important;
   font-family: inherit !important;
   color: var(--t1) !important;
+}
+
+/* ── Sidebar nav divider ─────────────────────────────────────────── */
+.nav-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 14px;
+}
+
+/* ── Danger ghost button ─────────────────────────────────────────── */
+.btn-danger-ghost {
+  color: var(--danger-c);
+  border-color: transparent;
+  background: transparent;
+}
+.btn-danger-ghost:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-c);
+}
+
+/* ── Settings Page ───────────────────────────────────────────────── */
+.settings-page {
+  padding: 0;
+}
+
+.settings-grid {
+  max-width: 720px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-header {
+  margin-bottom: 6px;
+}
+
+.settings-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -.3px;
+}
+
+.settings-subtitle {
+  font-size: 13px;
+  color: var(--t3);
+  margin-top: 3px;
+}
+
+.settings-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--t3);
+  margin-top: 6px;
+}
+
+.settings-card {
+  margin-bottom: 0;
+}
+
+/* Service row */
+.settings-service-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.settings-service-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #fff1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(245, 80, 54, .2);
+}
+
+.settings-service-info {
+  flex: 1;
+}
+
+.settings-service-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.settings-service-desc {
+  font-size: 12px;
+  color: var(--t2);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.settings-service-status {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+/* Token status badges */
+.token-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+}
+
+.token-badge-active {
+  background: var(--success-bg);
+  color: var(--success-c);
+}
+
+.token-badge-missing {
+  background: var(--neutral-bg);
+  color: var(--neutral-c);
+}
+
+/* Token preview row */
+.token-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+
+.token-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--t3);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.token-preview-value {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--t2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Token input */
+.token-input-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.token-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.token-input {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  flex: 1;
+}
+
+.token-input-hint {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 7px;
+}
+
+/* Toast feedback */
+.settings-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  font-size: 13px;
+  font-weight: 500;
+  animation: toastIn .2s ease;
+}
+
+.toast-success {
+  background: var(--success-bg);
+  color: var(--success-c);
+  border: 1px solid rgba(15, 110, 86, .2);
+}
+
+.toast-error {
+  background: var(--danger-bg);
+  color: var(--danger-c);
+  border: 1px solid rgba(163, 45, 45, .2);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Coming soon card */
+.settings-coming-soon {
+  opacity: .7;
+}
+
+.coming-soon-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.coming-soon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--t3);
+  flex-shrink: 0;
+}
+
+/* ── TailorPage — AI Engine section ────────────────────────────── */
+.ai-engine-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ai-engine-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--r);
+  flex: 1;
+  min-width: 200px;
+}
+
+.ai-status-ready {
+  background: var(--success-bg);
+  color: var(--success-c);
+}
+
+.ai-status-missing {
+  background: var(--warn-bg);
+  color: var(--warn-c);
+}
+
+.ai-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai-dot-active {
+  background: var(--success-c);
+  box-shadow: 0 0 0 3px rgba(15, 110, 86, .2);
+}
+
+.ai-dot-off {
+  background: #c8a84b;
+}
+
+.ai-settings-link {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ai-agents-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.ai-agent-chip {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 500;
+  border: 1px solid rgba(26, 108, 245, .15);
+}
+
+/* TailorPage legacy helpers that may still be used */
+.url-row {
+  display: flex;
+  gap: 8px;
+}
+
+.url-row .field-input {
+  flex: 1;
+}
+
+.manual-divider {
+  text-align: center;
+  font-size: 11px;
+  color: var(--t3);
+  margin: 12px 0;
+  position: relative;
+}
+
+.cv-drop {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--r);
+  padding: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--t3);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+
+.cv-drop:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.file-label-hint {
+  font-size: 11px;
+  color: var(--success-c);
+  margin-top: 5px;
+}
+
+.output-area {
+  min-height: 120px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1.6;
+  white-space: pre-wrap;
 }

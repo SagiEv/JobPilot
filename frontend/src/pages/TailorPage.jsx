@@ -1,30 +1,70 @@
 import React, { useState, useRef } from 'react';
+import { useSettings } from '../hooks/useSettings';
+import { runTailor } from '../api';
 
 const TailorPage = () => {
     const [jobUrl, setJobUrl] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [cvFile, setCvFile] = useState(null);
-    const [webhookUrl, setWebhookUrl] = useState('');
+    const [useProfileCv, setUseProfileCv] = useState(true);
     const [output, setOutput] = useState('');
+    const [report, setReport] = useState(null);
+    const [scores, setScores] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef(null);
 
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) setCvFile(file);
+    const { settings, loading: settingsLoading } = useSettings();
+    const groqReady = settings.groq_token_set;
+
+    const handleDownload = () => {
+        if (!output || isProcessing) return;
+        const blob = new Blob([output], { type: 'text/markdown' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'Tailored_CV.md');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
     };
 
-    const sendToN8n = async () => {
-        if (!webhookUrl) return alert("Please configure a webhook URL first.");
+    const handleCopy = () => {
+        if (!output || isProcessing) return;
+        navigator.clipboard.writeText(output);
+        alert('Tailored CV copied to clipboard!');
+    };
 
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setCvFile(file);
+            setUseProfileCv(false); // Auto-switch to uploaded file
+        }
+    };
+
+    const runAITailor = async () => {
+        if (!groqReady) return;
+        if (!jobDescription.trim() && !jobUrl.trim()) {
+            alert('Please paste a job description or enter a job URL first.');
+            return;
+        }
         setIsProcessing(true);
-        // Logic for sending data to your n8n workflow
+        setOutput('Starting the 8-agent CV tailoring pipeline...\nThis may take 1-2 minutes as the agents analyze, score, and rewrite your CV.');
+        setReport(null);
         try {
-            // Mocking the automation trigger
-            console.log("Sending to n8n:", { jobUrl, jobDescription, cvFile: cvFile?.name, webhookUrl });
-            setOutput("Processing your CV... suggestions will appear here shortly.");
+            const result = await runTailor(jobDescription, 'full', cvFile, useProfileCv);
+            if (result.success) {
+                setOutput(result.tailored_cv || 'CV Tailored Successfully, but no markdown was returned.');
+                setReport(result.tailoring_report);
+                setScores({
+                    overall: result.overall_score,
+                    projected: result.projected_score
+                });
+            } else {
+                setOutput('Failed to tailor CV: ' + (result.error || 'Unknown error'));
+            }
         } catch (err) {
-            setOutput("Error connecting to n8n. Please check your webhook configuration.");
+            setOutput('Error connecting to the AI service: ' + err.message);
         } finally {
             setIsProcessing(false);
         }
@@ -67,70 +107,151 @@ const TailorPage = () => {
                 <div className="card">
                     <div className="card-title">Your CV</div>
                     <div className="field-group">
-                        <div className="field-label">Upload CV (PDF / DOCX)</div>
-                        <div className="cv-drop" onClick={() => fileInputRef.current.click()}>
+                        <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="cvSource"
+                                checked={!useProfileCv}
+                                onChange={() => setUseProfileCv(false)}
+                            />
+                            Upload CV (PDF)
+                        </label>
+                        <div className={`cv-drop ${useProfileCv ? 'disabled' : ''}`} onClick={() => !useProfileCv && fileInputRef.current.click()} style={{ opacity: useProfileCv ? 0.5 : 1 }}>
                             {cvFile ? cvFile.name : "Drop or click to upload"}
                             <input
                                 type="file"
                                 ref={fileInputRef}
-                                accept=".pdf,.docx"
+                                accept=".pdf"
                                 style={{ display: 'none' }}
                                 onChange={handleFileUpload}
                             />
                         </div>
-                        {cvFile && <div className="file-label-hint">File ready for tailoring</div>}
+                        {cvFile && !useProfileCv && <div className="file-label-hint">File ready for tailoring</div>}
+                        {!cvFile && !useProfileCv && <div className="file-label-hint" style={{ color: '#ff6b6b' }}>Please select a file</div>}
                     </div>
 
-                    <div className="field-group" style={{ marginTop: '12px' }}>
-                        <div className="field-label">Or use active profile CV</div>
-                        <div className="cv-badge">
+                    <div className="field-group" style={{ marginTop: '16px' }}>
+                        <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="cvSource"
+                                checked={useProfileCv}
+                                onChange={() => setUseProfileCv(true)}
+                            />
+                            Or use active profile CV
+                        </label>
+                        <div className="cv-badge" style={{ opacity: !useProfileCv ? 0.5 : 1 }}>
                             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
                                 <rect x="3" y="1" width="10" height="14" rx="1.5" opacity=".25" />
-                                <rect x="3" y="1" width="10" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3" />
+                                <rect x="3" y="1" width="10" height="14" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
                             </svg>
-                            Alex_Johnson_CV_2026.pdf
+                            Profile CV (from Profile page)
                         </div>
                     </div>
 
                     <div className="field-group" style={{ marginTop: '14px' }}>
                         <div className="field-label">Tailoring Focus</div>
                         <select className="field-input">
+                            <option>Full AI pipeline (recommended)</option>
                             <option>Highlight matching skills</option>
                             <option>Reorder experience by relevance</option>
                             <option>Adjust summary / objective</option>
-                            <option>Full rewrite for role</option>
                         </select>
                     </div>
                 </div>
 
-                {/* Card 3: n8n Automation (Full Width) */}
+                {/* Card 3: AI Engine Status (Full Width) */}
                 <div className="card tailor-span">
-                    <div className="card-title">n8n Automation</div>
-                    <div className="n8n-bar">
-                        <div className={`n8n-dot ${webhookUrl ? 'active' : ''}`}></div>
-                        <span>Webhook — connect your n8n workflow to process CV + job description</span>
-                        <button className="btn btn-sm" style={{ marginLeft: 'auto' }} onClick={() => document.getElementById('n8n-hook').focus()}>
-                            Configure
+                    <div className="card-title">AI Engine</div>
+
+                    <div className="ai-engine-bar">
+                        {/* Status indicator */}
+                        <div className={`ai-engine-status ${groqReady ? 'ai-status-ready' : 'ai-status-missing'}`}>
+                            <span className={`ai-dot ${groqReady ? 'ai-dot-active' : 'ai-dot-off'}`} />
+                            {settingsLoading ? (
+                                <span>Checking Groq connection…</span>
+                            ) : groqReady ? (
+                                <span>Groq API connected — 8-agent CV pipeline ready</span>
+                            ) : (
+                                <span>
+                                    Groq API key not configured —{' '}
+                                    <span
+                                        className="ai-settings-link"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => {
+                                            // Trigger navigation to settings — bubble up via custom event
+                                            window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'settings' }));
+                                        }}
+                                        onKeyDown={e => e.key === 'Enter' && window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'settings' }))}
+                                    >
+                                        go to Settings to add your key
+                                    </span>
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Agents preview chips */}
+                        {groqReady && (
+                            <div className="ai-agents-row">
+                                {[
+                                    'Job Analyst',
+                                    'CV Scorer',
+                                    'Profile Selector',
+                                    'Keyword Injector',
+                                    'CV Restructurer',
+                                    'ATS Validator',
+                                    'Summary Rewriter',
+                                    'Final Polish',
+                                ].map(name => (
+                                    <span key={name} className="ai-agent-chip">{name}</span>
+                                ))}
+                            </div>
+                        )}
+
+                        <button
+                            id="run-ai-tailor-btn"
+                            className="btn btn-primary"
+                            onClick={runAITailor}
+                            disabled={isProcessing || !groqReady || settingsLoading}
+                            style={{ marginLeft: 'auto', flexShrink: 0 }}
+                        >
+                            {isProcessing ? 'Running pipeline…' : '✦ Run AI Tailor'}
                         </button>
                     </div>
-                    <div className="automation-controls">
-                        <input
-                            className="field-input"
-                            id="n8n-hook"
-                            type="url"
-                            placeholder="https://your-n8n.io/webhook/cv-tailor"
-                            value={webhookUrl}
-                            onChange={(e) => setWebhookUrl(e.target.value)}
-                            style={{ flex: 1 }}
-                        />
-                        <button className="btn btn-primary" onClick={sendToN8n} disabled={isProcessing}>
-                            {isProcessing ? "Processing..." : "Send to n8n ↗"}
-                        </button>
+
+                    <div className="field-label" style={{ marginBottom: '7px', marginTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {scores && (
+                            <div style={{ marginTop: '10px' }}>
+                                <strong>Scores:</strong>
+                                <p>Overall: {scores.overall}</p>
+                                <p>Projected: {scores.projected}</p>
+                            </div>
+                        )}
+                        {report && (
+                            <div style={{ marginTop: '10px' }}>
+                                <strong>Report:</strong>
+                                <p>Job Title: {report.job_title}</p>
+                                <p>Original Score: {report.original_score}</p>
+                                <p>Projected Score: {report.projected_score}</p>
+                                <p>ATS Score: {report.ats_score}</p>
+                            </div>
+                        )}
+                        <span>Tailored Output</span>
+                        {report && !isProcessing && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-sm" onClick={handleCopy}>Copy Text</button>
+                                <button className="btn btn-sm btn-primary" onClick={handleDownload}>Download MD</button>
+                            </div>
+                        )}
                     </div>
-                    <div className="field-label" style={{ marginBottom: '7px' }}>Tailored Output</div>
-                    <div className="output-area">
-                        {output || "Tailored CV suggestions will appear here once n8n processes the job description and your CV…"}
+                    <div className="output-area" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', overflowY: 'auto', maxHeight: '500px' }}>
+                        {output || (groqReady
+                            ? 'Paste a job description above and click "Run AI Tailor" to start the 8-agent pipeline…'
+                            : 'Add your Groq API key in Settings to enable the AI tailoring pipeline.'
+                        )}
                     </div>
+
                 </div>
 
             </div>

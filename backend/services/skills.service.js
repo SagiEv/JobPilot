@@ -1,25 +1,25 @@
 const skillRepository = require('../repositories/skills.repository');
 
-const getAllSkills = async () => {
-    const { data, error } = await skillRepository.findAll();
+const getAllSkills = async (userId) => {
+    const { data, error } = await skillRepository.findAll(userId);
     if (error) throw new Error(error.message);
     return data;
 };
 
-const createSkill = async (skillData) => {
-    const { data, error } = await skillRepository.create(skillData);
+const createSkill = async (userId, skillData) => {
+    const { data, error } = await skillRepository.create(userId, skillData);
     if (error) throw new Error(error.message);
     return data;
 };
 
-const updateSkill = async (id, updateData) => {
-    const { data, error } = await skillRepository.update(id, updateData);
+const updateSkill = async (userId, id, updateData) => {
+    const { data, error } = await skillRepository.update(userId, id, updateData);
     if (error) throw new Error(error.message);
     return data;
 };
 
-const deleteSkill = async (id) => {
-    const { error } = await skillRepository.remove(id);
+const deleteSkill = async (userId, id) => {
+    const { error } = await skillRepository.remove(userId, id);
     if (error) throw new Error(error.message);
     return { success: true };
 };
