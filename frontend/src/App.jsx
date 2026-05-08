@@ -61,18 +61,19 @@ function App() {
     }
 
     const renderContent = () => {
+        const contentKey = `${activeTab}-${isAuthenticated}`;
         switch (activeTab) {
-            case 'profile': return <ProfilePage />;
-            case 'applications': return <ApplicationsPage />;
-            case 'network': return <NetworkPage />;
-            case 'search': return <SearchPage />;
-            case 'tailor': return <TailorPage />;
-            case 'interview': return <InterviewInsightsPage />;
-            case 'projects': return <ExperiencePage />;
-            case 'skills-matrix': return <SkillsPage />;
-            case 'analytics': return <AnalyticsPage />;
-            case 'settings': return <SettingsPage />;
-            default: return <ProfilePage />;
+            case 'profile': return <ProfilePage key={contentKey} />;
+            case 'applications': return <ApplicationsPage key={contentKey} />;
+            case 'network': return <NetworkPage key={contentKey} />;
+            case 'search': return <SearchPage key={contentKey} />;
+            case 'tailor': return <TailorPage key={contentKey} />;
+            case 'interview': return <InterviewInsightsPage key={contentKey} />;
+            case 'projects': return <ExperiencePage key={contentKey} />;
+            case 'skills-matrix': return <SkillsPage key={contentKey} />;
+            case 'analytics': return <AnalyticsPage key={contentKey} />;
+            case 'settings': return <SettingsPage key={contentKey} />;
+            default: return <ProfilePage key={contentKey} />;
         }
     };
 
