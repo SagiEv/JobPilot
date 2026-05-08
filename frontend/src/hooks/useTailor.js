@@ -6,6 +6,7 @@ export const useTailor = (groqReady) => {
     const [jobDescription, setJobDescription] = useState('');
     const [cvFile, setCvFile] = useState(null);
     const [useProfileCv, setUseProfileCv] = useState(true);
+    const [tailorFocus, setTailorFocus] = useState('full');
     const [output, setOutput] = useState('');
     const [report, setReport] = useState(null);
     const [scores, setScores] = useState(null);
@@ -33,7 +34,7 @@ export const useTailor = (groqReady) => {
         setScores(null);
 
         try {
-            const result = await runTailor(jobDescription, 'full', cvFile, useProfileCv);
+            const result = await runTailor(jobDescription, tailorFocus, cvFile, useProfileCv);
             if (result.success) {
                 setOutput(result.tailored_cv || 'CV Tailored Successfully.');
                 setReport(result.tailoring_report);
