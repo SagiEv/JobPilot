@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useProfile } from '../hooks/useProfile';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import api from '../api';
+// import api from '../api';
 import PageLoader from '../components/PageLoader';
 
 const EditableCVField = ({ title, value, onChange }) => {
@@ -63,38 +63,38 @@ const EditableCVField = ({ title, value, onChange }) => {
 };
 
 const ProfilePage = () => {
-    const { profile, loading, error, handleProfileChange } = useProfile();
+    const { profile, loading, error, handleProfileChange, handleMakeCV, isGeneratingCV } = useProfile();
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const handleMakeCV = async () => {
-        setIsGenerating(true);
-        try {
-            const response = await api.post('/api/cv/generate', {
-                cvData: profile.cvData,
-                personalInfo: {
-                    name: profile.name,
-                    email: profile.email,
-                    roles: profile.roles,
-                    phone: profile.phone,
-                    linkedin: profile.linkedin,
-                    github: profile.github || profile.website
-                }
-            }, { responseType: 'arraybuffer' });
+    // const handleMakeCV = async () => {
+    //     setIsGenerating(true);
+    //     try {
+    //         const response = await api.post('/api/cv/generate', {
+    //             cvData: profile.cvData,
+    //             personalInfo: {
+    //                 name: profile.name,
+    //                 email: profile.email,
+    //                 roles: profile.roles,
+    //                 phone: profile.phone,
+    //                 linkedin: profile.linkedin,
+    //                 github: profile.github || profile.website
+    //             }
+    //         }, { responseType: 'arraybuffer' });
 
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${(profile.name || 'CV').replace(/\s+/g, '_')}_CV.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
-        } catch (error) {
-            console.error("Failed to generate CV", error);
-            alert("Failed to generate CV");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
+    //         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    //         const link = document.createElement('a');
+    //         link.href = url;
+    //         link.setAttribute('download', `${(profile.name || 'CV').replace(/\s+/g, '_')}_CV.pdf`);
+    //         document.body.appendChild(link);
+    //         link.click();
+    //         link.parentNode.removeChild(link);
+    //     } catch (error) {
+    //         console.error("Failed to generate CV", error);
+    //         alert("Failed to generate CV");
+    //     } finally {
+    //         setIsGenerating(false);
+    //     }
+    // };
 
     if (loading) return <PageLoader label="Loading profile…" />;
 

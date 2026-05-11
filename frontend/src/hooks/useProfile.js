@@ -6,6 +6,7 @@ export function useProfile() {
     const [profile, setProfile] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isGeneratingCV, setIsGeneratingCV] = useState(false);
 
     // Fetch profile from backend on mount
     useEffect(() => {
@@ -51,11 +52,53 @@ export function useProfile() {
         });
     };
 
+
+    const handleMakeCV = useCallback(async () => {
+        setIsGeneratingCV(true);
+        try {
+            const response = await apiClient.post(
+                '/api/cv/generate',
+                {
+                    cvData: profile.cvData,
+                    personalInfo: {
+                        name: profile.name,
+                        email: profile.email,
+                        roles: profile.roles,
+                        phone: profile.phone,
+                        linkedin: profile.linkedin,
+                        github: profile.github || profile.website
+                    }
+                },
+                { responseType: 'arraybuffer' }
+            );
+
+            const url = window.URL.createObjectURL(
+                new Blob([response.data], { type: 'application/pdf' })
+            );
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute(
+                'download',
+                `${(profile.name || 'CV').replace(/\s+/g, '_')}_CV.pdf`
+            );
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            console.error("Failed to generate CV", err);
+            alert("Failed to generate CV");
+        } finally {
+            setIsGeneratingCV(false);
+        }
+    }, [profile]);
+
     return {
         profile,
         loading,
         error,
         handleProfileChange,
         setProfile,
+        handleMakeCV,
+        isGeneratingCV
     };
 }
