@@ -152,18 +152,49 @@ const ApplicationsPage = () => {
                                 <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{app.ROLE_ID}</td>
                                 <td style={{ fontSize: '11px' }}>{app.DATE || '—'}</td>
                                 <td>
-                                    {/* The "Update" dropdown is back! */}
-                                    <select
-                                        className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
-                                        value={app.STATUS}
-                                        onChange={(e) => updateApplication(app.id, e.target.value)}
-                                    >
-                                        <option value="Applied">Applied</option>
-                                        <option value="Phone Interview">Phone Interview</option>
-                                        <option value="Technical Interview">Technical Interview</option>
-                                        <option value="Offer">Offer</option>
-                                        <option value="Rejected">Rejected</option>
-                                    </select>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <select
+                                            className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
+                                            value={
+                                                ['Applied', 'Phone Interview', 'Technical Interview', 'Offer', 'Rejected']
+                                                    .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS
+                                            }
+                                            onChange={(e) => updateApplication(app.id, e.target.value)}
+                                            style={{ margin: 0 }}
+                                        >
+                                            <option value="Applied">Applied</option>
+                                            <option value="Phone Interview">Phone Interview</option>
+                                            <option value="Technical Interview">Technical Interview</option>
+                                            <option value="Offer">Offer</option>
+                                            {app.STATUS?.toLowerCase() === 'rejected' && (
+                                                <option value="Rejected">Rejected</option>
+                                            )}
+                                        </select>
+                                        {app.STATUS?.toLowerCase() !== 'rejected' && (
+                                            <button
+                                                onClick={() => updateApplication(app.id, 'Rejected')}
+                                                style={{
+                                                    background: 'var(--danger-c, #ef4444)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    fontSize: '14px',
+                                                    fontWeight: 'bold',
+                                                    padding: 0,
+                                                    flexShrink: 0
+                                                }}
+                                                title="Fast Reject"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                                 <td>
                                     <button className="btn-link" onClick={() => setViewingAppId(app.id)}>

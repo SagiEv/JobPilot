@@ -40,7 +40,10 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                         <div className="status-edit-group">
                             <select
                                 className="status-select-large"
-                                value={tempStatus}
+                                value={
+                                    ['Applied', 'Phone Interview', 'Technical Interview', 'Offer', 'Rejected']
+                                        .find(opt => opt.toLowerCase() === tempStatus?.toLowerCase()) || tempStatus
+                                }
                                 onChange={(e) => setTempStatus(e.target.value)}
                             >
                                 <option value="Applied">Applied</option>
