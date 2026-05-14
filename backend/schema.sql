@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS applications (
   location TEXT,
   info TEXT,
   referal TEXT,
-  link TEXT
+  link TEXT,
+  cv_file TEXT
 );
 
 -- Contacts table

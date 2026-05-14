@@ -73,6 +73,20 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                     <label>Referral</label>
                     <span>{app.REFERAL || 'None'}</span>
                 </div>
+                <div className="stat-item">
+                    <label>CV Applied</label>
+                    <span>{app.CV_FILE || 'None'}</span>
+                </div>
+                {app.LINK && (
+                    <div className="stat-item">
+                        <label>Job Link</label>
+                        <span>
+                            <a href={app.LINK.startsWith('http') ? app.LINK : `https://${app.LINK}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent, #3b82f6)', textDecoration: 'none' }}>
+                                View Posting ↗
+                            </a>
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="detail-content-area">

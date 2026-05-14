@@ -14,7 +14,8 @@ const fromDb = (row) => ({
     LOCATION: row.location || '',
     INFO: row.info || '',
     REFERAL: row.referal || '',
-    LINK: row.link || ''
+    LINK: row.link || '',
+    CV_FILE: row.cv_file || ''
 });
 
 const toDb = (app) => {
@@ -26,7 +27,8 @@ const toDb = (app) => {
         location: app.LOCATION || '',
         info: app.INFO || '',
         referal: app.REFERAL || '',
-        link: app.LINK || ''
+        link: app.LINK || '',
+        cv_file: app.CV_FILE || ''
     };
     if (typeof app.id === 'number') data.id = app.id;
     return data;
@@ -68,6 +70,20 @@ export function useApplications() {
         }
     };
 
+    const addApplication = async (newApp) => {
+        try {
+            const dbData = toDb(newApp);
+            const { data } = await apiClient.post('/api/applications', dbData);
+            if (data) {
+                setApplications(prev => [fromDb(data), ...prev]);
+            }
+            return data;
+        } catch (error) {
+            console.error("Failed to add application:", error);
+            throw error;
+        }
+    };
+
     const stats = useMemo(() => ({
         total: applications.length,
         active: applications.filter(a => !a.STATUS?.toLowerCase().includes('reject') && !a.STATUS?.toLowerCase().includes('offer')).length,
@@ -91,7 +107,8 @@ export function useApplications() {
                 LOCATION: row.LOCATION || row.location || row['Location'] || '',
                 INFO: row.INFO || row.info || row['Info'] || '',
                 REFERAL: row.REFERAL || row.referal || row['Referral'] || '',
-                LINK: row.LINK || row.link || row['Link'] || ''
+                LINK: row.LINK || row.link || row['Link'] || '',
+                CV_FILE: row.CV_FILE || row.cv_file || row['CV File'] || row['CV_FILE'] || row['cv_file'] || row['cv file'] || ''
             }));
 
             // Bulk insert to DB
@@ -119,5 +136,5 @@ export function useApplications() {
         }
     };
 
-    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication };
+    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication };
 }
