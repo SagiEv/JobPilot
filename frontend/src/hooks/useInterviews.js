@@ -40,5 +40,33 @@ export function useInterviews() {
         }
     };
 
-    return { interviews, loading, addInterview };
+    const updateInterview = async (id, updatedInt) => {
+        const interview = {
+            ...updatedInt,
+            keep: typeof updatedInt.keep === 'string'
+                ? updatedInt.keep.split('\n').filter(line => line.trim())
+                : updatedInt.keep,
+            improve: typeof updatedInt.improve === 'string'
+                ? updatedInt.improve.split('\n').filter(line => line.trim())
+                : updatedInt.improve
+        };
+
+        try {
+            const { data } = await apiClient.put(`/api/interviews/${id}`, interview);
+            setInterviews(prev => prev.map(int => (int.id === id ? data : int)));
+        } catch (error) {
+            console.error("Failed to update interview:", error);
+        }
+    };
+
+    const deleteInterview = async (id) => {
+        try {
+            await apiClient.delete(`/api/interviews/${id}`);
+            setInterviews(prev => prev.filter(int => int.id !== id));
+        } catch (error) {
+            console.error("Failed to delete interview:", error);
+        }
+    };
+
+    return { interviews, loading, addInterview, updateInterview, deleteInterview };
 }

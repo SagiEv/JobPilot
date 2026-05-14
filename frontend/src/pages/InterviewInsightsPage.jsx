@@ -1,69 +1,282 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useInterviews } from '../hooks/useInterviews';
 import PageLoader from '../components/PageLoader';
 
 const InterviewInsightsPage = () => {
-    const { interviews, loading, addInterview } = useInterviews();
-    const [viewMode, setViewMode] = useState('all');
+    const { interviews, loading, addInterview, updateInterview, deleteInterview } = useInterviews();
+    const [viewMode, setViewMode] = useState('all'); // all, keep, improve
+    const [sortOrder, setSortOrder] = useState('desc'); // desc, asc
     const [showModal, setShowModal] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({ company: '', date: '', keep: '', improve: '' });
+
+    // Flashcard state
+    const [showFlashcards, setShowFlashcards] = useState(false);
+    const [flashcardIndex, setFlashcardIndex] = useState(0);
+
+    const sortedInterviews = useMemo(() => {
+        return [...interviews].sort((a, b) => {
+            const dateA = new Date(a.date || 0).getTime();
+            const dateB = new Date(b.date || 0).getTime();
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+    }, [interviews, sortOrder]);
+
+    const allFlashcards = useMemo(() => {
+        const cards = [];
+        sortedInterviews.forEach(int => {
+            if (viewMode === 'all' || viewMode === 'keep') {
+                (Array.isArray(int.keep) ? int.keep : []).forEach(pt => {
+                    cards.push({ type: 'keep', text: pt, company: int.company, date: int.date });
+                });
+            }
+            if (viewMode === 'all' || viewMode === 'improve') {
+                (Array.isArray(int.improve) ? int.improve : []).forEach(pt => {
+                    cards.push({ type: 'improve', text: pt, company: int.company, date: int.date });
+                });
+            }
+        });
+        return cards;
+    }, [sortedInterviews, viewMode]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        addInterview(formData);
+        if (editingId) {
+            updateInterview(editingId, formData);
+        } else {
+            addInterview(formData);
+        }
         setFormData({ company: '', date: '', keep: '', improve: '' });
         setShowModal(false);
+        setEditingId(null);
+    };
+
+    const handleEdit = (int) => {
+        setFormData({
+            company: int.company || '',
+            date: int.date ? new Date(int.date).toISOString().split('T')[0] : '',
+            keep: Array.isArray(int.keep) ? int.keep.join('\n') : '',
+            improve: Array.isArray(int.improve) ? int.improve.join('\n') : ''
+        });
+        setEditingId(int.id);
+        setShowModal(true);
+    };
+
+    const handleDelete = (id) => {
+        if (window.confirm("Are you sure you want to delete this interview insight?")) {
+            deleteInterview(id);
+        }
+    };
+
+    const startFlashcards = () => {
+        if (allFlashcards.length === 0) {
+            alert("No insights available for flashcards.");
+            return;
+        }
+        setFlashcardIndex(0);
+        setShowFlashcards(true);
+    };
+
+    const nextFlashcard = () => {
+        setFlashcardIndex(prev => (prev + 1) % allFlashcards.length);
+    };
+
+    const prevFlashcard = () => {
+        setFlashcardIndex(prev => (prev - 1 + allFlashcards.length) % allFlashcards.length);
+    };
+
+    const [touchStartX, setTouchStartX] = useState(null);
+
+    useEffect(() => {
+        if (!showFlashcards) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowRight') setFlashcardIndex(prev => (prev + 1) % allFlashcards.length);
+            if (e.key === 'ArrowLeft') setFlashcardIndex(prev => (prev - 1 + allFlashcards.length) % allFlashcards.length);
+            if (e.key === 'Escape') setShowFlashcards(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showFlashcards, allFlashcards.length]);
+
+    const handleTouchStart = (e) => {
+        setTouchStartX(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = (e) => {
+        if (touchStartX === null) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const diffX = touchStartX - touchEndX;
+
+        if (diffX > 50) {
+            nextFlashcard();
+        } else if (diffX < -50) {
+            prevFlashcard();
+        }
+        setTouchStartX(null);
     };
 
     if (loading) return <PageLoader label="Loading interview insights…" />;
 
     return (
         <div className="section">
-            <div className="toolbar">
+            <div className="toolbar" style={{ flexWrap: 'wrap', gap: '10px' }}>
                 <div className="btn-group">
                     <button className={`btn ${viewMode === 'all' ? 'active-filter' : ''}`} onClick={() => setViewMode('all')}>All Details</button>
                     <button className={`btn ${viewMode === 'keep' ? 'active-filter' : ''}`} onClick={() => setViewMode('keep')}>Keep Only</button>
                     <button className={`btn ${viewMode === 'improve' ? 'active-filter' : ''}`} onClick={() => setViewMode('improve')}>Improve Only</button>
                 </div>
-                <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => setShowModal(true)}>
+
+                <div className="btn-group">
+                    <button className={`btn ${sortOrder === 'desc' ? 'active-filter' : ''}`} onClick={() => setSortOrder('desc')}>Newest First</button>
+                    <button className={`btn ${sortOrder === 'asc' ? 'active-filter' : ''}`} onClick={() => setSortOrder('asc')}>Oldest First</button>
+                </div>
+
+                <button className="btn btn-secondary" onClick={startFlashcards}>
+                    Flashcards
+                </button>
+
+                <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => {
+                    setFormData({ company: '', date: '', keep: '', improve: '' });
+                    setEditingId(null);
+                    setShowModal(true);
+                }}>
                     + Add Insights
                 </button>
             </div>
 
             {/* Insight Entries List */}
             <div className="insights-list">
-                {interviews.map((int) => (
+                {sortedInterviews.map((int) => (
                     <div key={int.id} className="card insight-card">
-                        {viewMode === 'all' && (
-                            <div className="insight-header">
-                                <h3 dir="auto">{int.company}</h3>
-                                <span className="insight-date">{int.date}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                            {viewMode === 'all' ? (
+                                <div className="insight-header" style={{ flex: 1, paddingRight: '15px' }}>
+                                    <h3 dir="auto" style={{ margin: 0 }}>{int.company}</h3>
+                                    <span className="insight-date" style={{ color: 'var(--text-muted)' }}>{int.date ? new Date(int.date).toLocaleDateString() : ''}</span>
+                                </div>
+                            ) : <div style={{ flex: 1 }}></div>}
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn" onClick={() => handleEdit(int)} title="Edit" style={{ padding: '4px 12px', fontSize: '13px', background: 'transparent', color: 'var(--text-color)', border: '1px solid var(--border-color)', borderRadius: '6px' }}>Edit</button>
+                                <button className="btn" onClick={() => handleDelete(int.id)} title="Delete" style={{ padding: '4px 12px', fontSize: '13px', background: 'transparent', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.5)', borderRadius: '6px' }}>Delete</button>
                             </div>
-                        )}
+                        </div>
                         <div className="insight-body">
                             {(viewMode === 'all' || viewMode === 'keep') && (
                                 <div className="insight-section keep">
-                                    {viewMode === 'all' && <h4>Good Points</h4>}
-                                    <ul>{(Array.isArray(int.keep) ? int.keep : []).map((pt, i) => <li key={i} dir="auto">{pt}</li>)}</ul>
+                                    {viewMode === 'all' && <h4 style={{ color: 'var(--success-color, #28a745)' }}>Good Points</h4>}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                                        {(Array.isArray(int.keep) ? int.keep : []).map((pt, i) => (
+                                            <div key={i} dir="auto" style={{
+                                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                                borderLeft: '4px solid #28a745',
+                                                padding: '12px 16px',
+                                                borderRadius: '6px',
+                                                color: 'var(--text-color)',
+                                                lineHeight: '1.5'
+                                            }}>
+                                                {pt}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                             {(viewMode === 'all' || viewMode === 'improve') && (
-                                <div className="insight-section improve">
-                                    {viewMode === 'all' && <h4>To Improve</h4>}
-                                    <ul>{(Array.isArray(int.improve) ? int.improve : []).map((pt, i) => <li key={i} dir="auto">{pt}</li>)}</ul>
+                                <div className="insight-section improve" style={{ marginTop: viewMode === 'all' ? '24px' : '0' }}>
+                                    {viewMode === 'all' && <h4 style={{ color: 'var(--danger-color, #dc3545)' }}>To Improve</h4>}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                                        {(Array.isArray(int.improve) ? int.improve : []).map((pt, i) => (
+                                            <div key={i} dir="auto" style={{
+                                                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                                                borderLeft: '4px solid #dc3545',
+                                                padding: '12px 16px',
+                                                borderRadius: '6px',
+                                                color: 'var(--text-color)',
+                                                lineHeight: '1.5'
+                                            }}>
+                                                {pt}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 ))}
+                {sortedInterviews.length === 0 && (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
+                        No interview insights found. Add one to get started!
+                    </div>
+                )}
             </div>
 
-            {/* Modal for Creating New Insight */}
+            {/* Flashcards Overlay */}
+            {showFlashcards && (
+                <div className="modal-overlay" 
+                     style={{ zIndex: 1000, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+                     onTouchStart={handleTouchStart}
+                     onTouchEnd={handleTouchEnd}
+                >
+                    <div style={{ position: 'absolute', top: '20px', right: '30px' }}>
+                        <button className="btn" style={{ fontSize: '24px', background: 'transparent', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => setShowFlashcards(false)}>✕</button>
+                    </div>
+                    
+                    <h2 style={{ color: 'white', marginBottom: '30px', fontWeight: '500' }}>
+                        Flashcards ({flashcardIndex + 1} / {allFlashcards.length})
+                    </h2>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '800px', padding: '0 10px', gap: '15px' }}>
+                        <button className="btn" onClick={prevFlashcard} style={{ fontSize: '24px', padding: '10px 15px', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', flexShrink: 0 }}>❮</button>
+
+                        <div className="card flashcard" style={{
+                            width: '100%',
+                            maxWidth: '600px',
+                            minHeight: '350px',
+                            maxHeight: '80vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-start',
+                            alignItems: 'center',
+                            padding: '40px',
+                            textAlign: 'center',
+                            backgroundColor: allFlashcards[flashcardIndex].type === 'keep' ? '#f0fdf4' : '#fef2f2',
+                            border: `2px solid ${allFlashcards[flashcardIndex].type === 'keep' ? '#22c55e' : '#ef4444'}`,
+                            borderRadius: '20px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            overflowY: 'auto'
+                        }}>
+                            <div style={{ margin: 'auto 0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{
+                                    textTransform: 'uppercase',
+                                    fontWeight: 'bold',
+                                    letterSpacing: '1px',
+                                    color: allFlashcards[flashcardIndex].type === 'keep' ? '#166534' : '#991b1b',
+                                    marginBottom: '20px',
+                                    fontSize: '14px',
+                                    flexShrink: 0
+                                }}>
+                                    {allFlashcards[flashcardIndex].type === 'keep' ? 'Keep Doing' : 'To Improve'}
+                                </div>
+                                <h3 dir="auto" style={{ fontSize: '28px', color: '#1f2937', lineHeight: '1.4', margin: '0 0 30px 0', fontWeight: '600', wordBreak: 'break-word', width: '100%', flexShrink: 0 }}>
+                                    "{allFlashcards[flashcardIndex].text}"
+                                </h3>
+                                <div style={{ color: '#4b5563', fontSize: '15px', fontWeight: '500', flexShrink: 0 }}>
+                                    {allFlashcards[flashcardIndex].company} • {allFlashcards[flashcardIndex].date ? new Date(allFlashcards[flashcardIndex].date).toLocaleDateString() : 'No date'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button className="btn" onClick={nextFlashcard} style={{ fontSize: '24px', padding: '10px 15px', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', flexShrink: 0 }}>❯</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal for Creating/Editing Insight */}
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>New Interview Insight</h2>
+                            <h2>{editingId ? 'Edit Interview Insight' : 'New Interview Insight'}</h2>
                             <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
                         </div>
                         <form onSubmit={handleSubmit}>
@@ -93,10 +306,10 @@ const InterviewInsightsPage = () => {
                                     <label>Keep (What went well?)</label>
                                     <textarea
                                         className="textarea"
-                                        style={{ minHeight: '80px' }}
+                                        style={{ minHeight: '100px' }}
                                         value={formData.keep}
                                         onChange={e => setFormData({ ...formData, keep: e.target.value })}
-                                        placeholder="Handled the technical questions well..."
+                                        placeholder="Handled the technical questions well... (One point per line)"
                                         dir="auto"
                                     />
                                 </div>
@@ -104,17 +317,17 @@ const InterviewInsightsPage = () => {
                                     <label>Improve (Future focus)</label>
                                     <textarea
                                         className="textarea"
-                                        style={{ minHeight: '80px' }}
+                                        style={{ minHeight: '100px' }}
                                         value={formData.improve}
                                         onChange={e => setFormData({ ...formData, improve: e.target.value })}
-                                        placeholder="Need to be more concise in behavioral answers..."
+                                        placeholder="Need to be more concise in behavioral answers... (One point per line)"
                                         dir="auto"
                                     />
                                 </div>
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save Insights</button>
+                                <button type="submit" className="btn btn-primary">{editingId ? 'Update Insights' : 'Save Insights'}</button>
                             </div>
                         </form>
                     </div>
