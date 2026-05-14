@@ -7,7 +7,7 @@ const findAll = async (userId) => {
 const create = async (userId, contactData) => {
     return await supabase
         .from('contacts')
-        .insert([contactData])
+        .insert([{ ...contactData, user_id: userId }])
         .select()
         .single();
 };

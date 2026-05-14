@@ -37,6 +37,9 @@ export function useContacts() {
                 name: row.Contact || row.contact || row['Contact'] || row['contact'] || '',
                 company: row['COMPANY'] || row['Company'] || row['company'] || row.Company || row.company || '',
                 phone: row['Phone Number'] || row['phone number'] || row.Phone || row.phone || '',
+                email: row['Email'] || row['email'] || row.Email || row.email || '',
+                linkedin: row['LinkedIn'] || row['linkedin'] || row.LinkedIn || row.linkedin || '',
+                link: row['Link'] || row['link'] || row['Careers Link'] || row.Link || row.link || '',
                 relation: row.relation || row.Relation || 'Contact'
             }));
 
@@ -62,11 +65,31 @@ export function useContacts() {
         }
     };
 
+    const updateContact = async (id, updatedData) => {
+        try {
+            const { data } = await apiClient.put(`/api/contacts/${id}`, updatedData);
+            setContacts(prev => prev.map(c => (c.id === id ? data : c)));
+        } catch (error) {
+            console.error("Failed to update contact:", error);
+        }
+    };
+
+    const deleteContact = async (id) => {
+        try {
+            await apiClient.delete(`/api/contacts/${id}`);
+            setContacts(prev => prev.filter(c => c.id !== id));
+        } catch (error) {
+            console.error("Failed to delete contact:", error);
+        }
+    };
+
     return {
         contacts,
         loading,
         uploadStatus,
         handleCSVUpload,
-        addContact
+        addContact,
+        updateContact,
+        deleteContact
     };
 }
