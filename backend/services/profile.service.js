@@ -33,7 +33,7 @@ const upsertProfile = async (userId, payload) => {
     }
 
     const { data, error } = id
-        ? await profileRepository.updateProfile(userId, id, updateData)
+        ? await profileRepository.updateProfile(userId, updateData)
         : await profileRepository.createProfile(userId, updateData);
 
     if (error) throw new Error(error.message);

@@ -13,42 +13,42 @@ const api = axios.create({
   baseURL: API_URL,
 });
 
-// MEMORY STORAGE FOR TOKEN
-let accessToken = null;
+// // MEMORY STORAGE FOR TOKEN
+// let accessToken = null;
 
-// INTERCEPTOR: The "Guard" that attaches the token to EVERY request
-api.interceptors.request.use(async (config) => {
-  // If memory is empty (e.g., page refresh), try to get it from Supabase session
-  if (!accessToken) {
-    const { data } = await supabase.auth.getSession();
-    accessToken = data?.session?.access_token;
+// // INTERCEPTOR: The "Guard" that attaches the token to EVERY request
+// api.interceptors.request.use(async (config) => {
+//   // If memory is empty (e.g., page refresh), try to get it from Supabase session
+//   if (!accessToken) {
+//     const { data } = await supabase.auth.getSession();
+//     accessToken = data?.session?.access_token;
 
-    // Fix your ReferenceError: Make it available to the browser console
-    window.accessToken = accessToken;
-  }
+//     // Fix your ReferenceError: Make it available to the browser console
+//     window.accessToken = accessToken;
+//   }
 
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
-  }
-  return config;
-}, (error) => Promise.reject(error));
+//   if (accessToken) {
+//     config.headers.Authorization = `Bearer ${accessToken}`;
+//   }
+//   return config;
+// }, (error) => Promise.reject(error));
 
-/** 
- * EXPORTING HELPERS 
- */
-export const setAccessToken = (token) => {
-  accessToken = token;
-  window.accessToken = token;
-};
+// /** 
+//  * EXPORTING HELPERS 
+//  */
+// export const setAccessToken = (token) => {
+//   accessToken = token;
+//   window.accessToken = token;
+// };
 
-export const fetchSession = async () => {
-  const { data } = await supabase.auth.getSession();
-  if (data?.session) {
-    accessToken = data.session.access_token;
-    return data.session.user;
-  }
-  return null;
-};
+// export const fetchSession = async () => {
+//   const { data } = await supabase.auth.getSession();
+//   if (data?.session) {
+//     accessToken = data.session.access_token;
+//     return data.session.user;
+//   }
+//   return null;
+// };
 
 export const uploadCSV = async (file, type) => {
   const formData = new FormData()

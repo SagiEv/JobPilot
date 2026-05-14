@@ -16,8 +16,7 @@ const updateProfile = async (userId, updateData) => {
 const createProfile = async (userId, updateData) => {
     return await supabase
         .from('profile')
-        .insert(updateData)
-        .eq('id', userId)
+        .insert({ id: userId, ...updateData })
         .select()
         .single();
 };
