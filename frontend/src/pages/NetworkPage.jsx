@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useContacts } from '../hooks/useContacts';
 import { getInitials } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
+import NetworkGraph from '../components/NetworkGraph';
 
 const NetworkPage = () => {
     // 1. Deconstruct the correct function name 'addContact' from our hook
@@ -10,6 +11,7 @@ const NetworkPage = () => {
     // 2. Local state for controlling the modal visibility
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [showMap, setShowMap] = useState(false);
 
     // 3. Local state for the form inputs
     const [newContact, setNewContact] = useState({
@@ -19,7 +21,8 @@ const NetworkPage = () => {
         email: '',
         linkedin: '',
         link: '',
-        relation: 'Colleague'
+        relation: 'Colleague',
+        connected_by: ''
     });
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -58,7 +61,7 @@ const NetworkPage = () => {
         } else {
             addContact(newContact); // Call the hook function
         }
-        setNewContact({ name: '', company: '', phone: '', email: '', linkedin: '', link: '', relation: 'Colleague' }); // Reset form
+        setNewContact({ name: '', company: '', phone: '', email: '', linkedin: '', link: '', relation: 'Colleague', connected_by: '' }); // Reset form
         setShowModal(false); // Close modal
         setEditingId(null);
     };
@@ -71,7 +74,8 @@ const NetworkPage = () => {
             email: contact.email || '',
             linkedin: contact.linkedin || '',
             link: contact.link || '',
-            relation: contact.relation || 'Colleague'
+            relation: contact.relation || 'Colleague',
+            connected_by: contact.connected_by || ''
         });
         setEditingId(contact.id);
         setShowModal(true);
@@ -94,10 +98,13 @@ const NetworkPage = () => {
                         <input id="net-csv" type="file" accept=".csv" onChange={handleCSVUpload} style={{ display: 'none' }} />
                     </label>
                 </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setShowMap(!showMap)} style={{ marginLeft: '10px' }}>
+                    {showMap ? 'View Grid' : 'Display Map'}
+                </button>
                 {/* This button sets showModal to true */}
                 <button className="btn btn-primary btn-sm" onClick={() => {
                     setEditingId(null);
-                    setNewContact({ name: '', company: '', phone: '', email: '', linkedin: '', link: '', relation: 'Colleague' });
+                    setNewContact({ name: '', company: '', phone: '', email: '', linkedin: '', link: '', relation: 'Colleague', connected_by: '' });
                     setShowModal(true);
                 }} style={{ marginLeft: 'auto' }}>
                     + Add Contact
@@ -147,6 +154,8 @@ const NetworkPage = () => {
                         <option value="Colleague">Colleague</option>
                         <option value="Friend">Friend</option>
                         <option value="Recruiter">Recruiter</option>
+                        <option value="Friend of a friend">Friend of a friend</option>
+                        <option value="Friend of family">Friend of family</option>
                     </select>
                     
                     <select
@@ -163,44 +172,49 @@ const NetworkPage = () => {
                 </div>
             </div>
 
-            <div className="network-grid">
-                {displayedContacts.map(contact => (
-                    <div key={contact.id} className="contact-card" style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <button className="btn" onClick={() => handleEdit(contact)} title="Edit" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: 'var(--t2)', border: '1px solid var(--border)', borderRadius: '6px' }}>Edit</button>
-                            <button className="btn" onClick={() => handleDelete(contact.id)} title="Delete" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.5)', borderRadius: '6px' }}>Delete</button>
+            {showMap ? (
+                <NetworkGraph contacts={contacts} />
+            ) : (
+                <div className="network-grid">
+                    {displayedContacts.map(contact => (
+                        <div key={contact.id} className="contact-card" style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <button className="btn" onClick={() => handleEdit(contact)} title="Edit" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: 'var(--t2)', border: '1px solid var(--border)', borderRadius: '6px' }}>Edit</button>
+                                <button className="btn" onClick={() => handleDelete(contact.id)} title="Delete" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.5)', borderRadius: '6px' }}>Delete</button>
+                            </div>
+                            <div className="contact-avatar" style={{ margin: '0 auto 10px' }}>{getInitials(contact.name)}</div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div className="contact-name">{contact.name}</div>
+                                <div className="contact-co">
+                                    {contact.link ? (
+                                        <a href={contact.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: '#007bff' }}>{contact.company}</a>
+                                    ) : (
+                                        contact.company
+                                    )}
+                                </div>
+                                <div className="contact-rel">{contact.relation}</div>
+                            </div>
+                            {contact.email && (
+                                <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
+                                    Email: <a href={`mailto:${contact.email}`} style={{ color: '#007bff', textDecoration: 'none' }}>{contact.email}</a>
+                                </div>
+                            )}
+                            {contact.phone && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>Phone: {contact.phone}</div>}
+                            {contact.linkedin && (
+                                <div className="contact-detail" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                                    <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', color: '#0a66c2' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                        </svg>
+                                        LinkedIn
+                                    </a>
+                                </div>
+                            )}
+                            {contact.connected_by && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#888', marginTop: '4px', fontStyle: 'italic' }}>Connected by: {contact.connected_by}</div>}
                         </div>
-                        <div className="contact-avatar" style={{ margin: '0 auto 10px' }}>{getInitials(contact.name)}</div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div className="contact-name">{contact.name}</div>
-                            <div className="contact-co">
-                                {contact.link ? (
-                                    <a href={contact.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: '#007bff' }}>{contact.company}</a>
-                                ) : (
-                                    contact.company
-                                )}
-                            </div>
-                            <div className="contact-rel">{contact.relation}</div>
-                        </div>
-                        {contact.email && (
-                            <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
-                                Email: <a href={`mailto:${contact.email}`} style={{ color: '#007bff', textDecoration: 'none' }}>{contact.email}</a>
-                            </div>
-                        )}
-                        {contact.phone && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>Phone: {contact.phone}</div>}
-                        {contact.linkedin && (
-                            <div className="contact-detail" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-                                <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', color: '#0a66c2' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                                    </svg>
-                                    LinkedIn
-                                </a>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* 4. THE MISSING MODAL: The button won't 'work' if this isn't rendered */}
             {showModal && (
@@ -275,8 +289,21 @@ const NetworkPage = () => {
                                     <option>Colleague</option>
                                     <option>Friend</option>
                                     <option>Recruiter</option>
+                                    <option>Friend of a friend</option>
+                                    <option>Friend of family</option>
                                 </select>
                             </div>
+                            {(newContact.relation === 'Friend of a friend' || newContact.relation === 'Friend of family') && (
+                                <div className="modal-section">
+                                    <label>Connected By</label>
+                                    <input
+                                        className="field-input"
+                                        value={newContact.connected_by || ''}
+                                        onChange={(e) => setNewContact({ ...newContact, connected_by: e.target.value })}
+                                        placeholder="Name of the person who connected you"
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className="modal-footer">
                             <button className="btn" onClick={() => setShowModal(false)}>Cancel</button>
