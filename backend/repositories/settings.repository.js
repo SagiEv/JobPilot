@@ -7,11 +7,22 @@ const findSettings = async (userId) => {
 };
 
 const upsertSettings = async (userId, data) => {
-    return await supabase
-        .from(TABLE)
-        .upsert({ user_id: userId, ...data }, { onConflict: 'user_id' })
-        .select()
-        .single();
+    const { data: existing } = await findSettings(userId);
+
+    if (existing) {
+        return await supabase
+            .from(TABLE)
+            .update(data)
+            .eq('user_id', userId)
+            .select()
+            .single();
+    } else {
+        return await supabase
+            .from(TABLE)
+            .insert({ user_id: userId, ...data })
+            .select()
+            .single();
+    }
 };
 
 module.exports = { findSettings, upsertSettings };
