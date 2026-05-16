@@ -1,24 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 
 export function useInterviews() {
-    const [interviews, setInterviews] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
 
-    const fetchInterviews = async () => {
-        try {
+    const { data: interviews = [], isLoading: loading } = useQuery({
+        queryKey: ['interviews'],
+        queryFn: async () => {
             const { data } = await apiClient.get('/api/interviews');
-            setInterviews(data || []);
-        } catch (error) {
-            console.error("Failed to fetch interviews:", error);
-        } finally {
-            setLoading(false);
+            return data || [];
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchInterviews();
-    }, []);
+    const addInterviewMutation = useMutation({
+        mutationFn: async (interview) => {
+            const { data } = await apiClient.post('/api/interviews', interview);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['interviews'] });
+        }
+    });
+
+    const updateInterviewMutation = useMutation({
+        mutationFn: async ({ id, interview }) => {
+            const { data } = await apiClient.put(`/api/interviews/${id}`, interview);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['interviews'] });
+        }
+    });
+
+    const deleteInterviewMutation = useMutation({
+        mutationFn: async (id) => {
+            await apiClient.delete(`/api/interviews/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['interviews'] });
+        }
+    });
 
     const addInterview = async (newInt) => {
         const interview = {
@@ -31,13 +52,7 @@ export function useInterviews() {
                 ? newInt.improve.split('\n').filter(line => line.trim())
                 : []
         };
-
-        try {
-            const { data } = await apiClient.post('/api/interviews', interview);
-            setInterviews(prev => [data, ...prev]);
-        } catch (error) {
-            console.error("Failed to add interview:", error);
-        }
+        return addInterviewMutation.mutateAsync(interview);
     };
 
     const updateInterview = async (id, updatedInt) => {
@@ -50,22 +65,11 @@ export function useInterviews() {
                 ? updatedInt.improve.split('\n').filter(line => line.trim())
                 : updatedInt.improve
         };
-
-        try {
-            const { data } = await apiClient.put(`/api/interviews/${id}`, interview);
-            setInterviews(prev => prev.map(int => (int.id === id ? data : int)));
-        } catch (error) {
-            console.error("Failed to update interview:", error);
-        }
+        return updateInterviewMutation.mutateAsync({ id, interview });
     };
 
     const deleteInterview = async (id) => {
-        try {
-            await apiClient.delete(`/api/interviews/${id}`);
-            setInterviews(prev => prev.filter(int => int.id !== id));
-        } catch (error) {
-            console.error("Failed to delete interview:", error);
-        }
+        return deleteInterviewMutation.mutateAsync(id);
     };
 
     return { interviews, loading, addInterview, updateInterview, deleteInterview };

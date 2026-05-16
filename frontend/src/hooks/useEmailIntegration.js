@@ -1,29 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 
 export function useEmailIntegration() {
-    const [integration, setIntegration] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [syncing, setSyncing] = useState(false);
-    const [error, setError] = useState(null);
 
-    const fetchStatus = async () => {
-        try {
-            setLoading(true);
+    const { data: integration = null, isLoading: loading, error: queryError, refetch: fetchStatus } = useQuery({
+        queryKey: ['emailStatus'],
+        queryFn: async () => {
             const res = await apiClient.get('/api/email/status');
-            setIntegration(res.data.integration);
-            setError(null);
-        } catch (err) {
-            console.error('Failed to fetch email status:', err);
-            setError('Failed to load email integration status.');
-        } finally {
-            setLoading(false);
+            return res.data.integration;
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchStatus();
-    }, []);
+    const error = queryError ? 'Failed to load email integration status.' : null;
+
+    const disconnectMutation = useMutation({
+        mutationFn: async () => {
+            await apiClient.delete('/api/email/disconnect');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['emailStatus'] });
+        }
+    });
+
+    const syncMutation = useMutation({
+        mutationFn: async () => {
+            await apiClient.post('/api/email/sync');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['emailStatus'] });
+        }
+    });
 
     const connectGoogle = async (userId) => {
         // Redirect to backend OAuth route
@@ -33,8 +42,7 @@ export function useEmailIntegration() {
 
     const disconnectGoogle = async () => {
         try {
-            await apiClient.delete('/api/email/disconnect');
-            setIntegration(null);
+            await disconnectMutation.mutateAsync();
         } catch (err) {
             throw new Error('Failed to disconnect');
         }
@@ -43,8 +51,7 @@ export function useEmailIntegration() {
     const syncEmails = async () => {
         try {
             setSyncing(true);
-            await apiClient.post('/api/email/sync');
-            await fetchStatus(); // Refresh status to show 'syncing'
+            await syncMutation.mutateAsync();
         } catch (err) {
             throw new Error('Failed to start sync');
         } finally {
@@ -52,5 +59,14 @@ export function useEmailIntegration() {
         }
     };
 
-    return { integration, loading, error, syncing, connectGoogle, disconnectGoogle, syncEmails, refreshStatus: fetchStatus };
+    return { 
+        integration, 
+        loading, 
+        error, 
+        syncing, 
+        connectGoogle, 
+        disconnectGoogle, 
+        syncEmails, 
+        refreshStatus: fetchStatus 
+    };
 }

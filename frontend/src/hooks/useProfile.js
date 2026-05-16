@@ -1,57 +1,45 @@
-import { useState, useEffect, useCallback } from 'react';
-// import api from '../api';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 
 export function useProfile() {
-    const [profile, setProfile] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const queryClient = useQueryClient();
     const [isGeneratingCV, setIsGeneratingCV] = useState(false);
 
-    // Fetch profile from backend on mount
-    useEffect(() => {
-        const fetchProfile = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                // const response = await api.get('/api/profile/');
-                const response = await apiClient.get('/api/profile/');
-                if (response.data && Object.keys(response.data).length > 0) {
-                    setProfile(response.data);
-                }
-            } catch (err) {
-                console.error('Failed to fetch profile:', err);
-                setError('Failed to load profile data.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProfile();
-    }, []);
-
-    // Persist changes to backend
-    const saveProfile = useCallback(async (updatedProfile) => {
-        try {
-            await apiClient.put('/api/profile', updatedProfile);
-        } catch (err) {
-            console.error('Failed to save profile:', err);
+    const { data: profile = {}, isLoading: loading, error: queryError } = useQuery({
+        queryKey: ['profile'],
+        queryFn: async () => {
+            const response = await apiClient.get('/api/profile/');
+            return response.data || {};
         }
-    }, []);
+    });
 
-    const handleProfileChange = (field, value) => {
-        setProfile(prev => {
-            let updated = { ...prev };
+    const error = queryError ? 'Failed to load profile data.' : null;
+
+    const updateProfileMutation = useMutation({
+        mutationFn: (updatedProfile) => apiClient.put('/api/profile', updatedProfile)
+    });
+
+    const setProfile = useCallback((updater) => {
+        queryClient.setQueryData(['profile'], updater);
+    }, [queryClient]);
+
+    const handleProfileChange = useCallback((field, value) => {
+        let updated;
+        queryClient.setQueryData(['profile'], (prev = {}) => {
+            updated = { ...prev };
             if (field.includes('.')) {
                 const [parent, child] = field.split('.');
                 updated[parent] = { ...updated[parent], [child]: value };
             } else {
                 updated[field] = value;
             }
-            saveProfile(updated);
             return updated;
         });
-    };
-
+        if (updated) {
+            updateProfileMutation.mutate(updated);
+        }
+    }, [queryClient, updateProfileMutation]);
 
     const handleMakeCV = useCallback(async () => {
         setIsGeneratingCV(true);
@@ -101,4 +89,4 @@ export function useProfile() {
         handleMakeCV,
         isGeneratingCV
     };
-}
+}

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-// import api from '../api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 
 export function useSearch() {
-    const [loading, setLoading] = useState(true);
-    const [searchSettings, setSearchSettings] = useState({
+    const queryClient = useQueryClient();
+
+    const { data: searchSettings = {
         id: null,
         keywords: [],
         excludeKeywords: [],
@@ -12,18 +12,15 @@ export function useSearch() {
         email: '',
         schedule: 'Manual only',
         lastResults: []
-    });
-
-    const fetchSettings = async () => {
-        setLoading(true);
-        try {
+    }, isLoading: loading } = useQuery({
+        queryKey: ['searchSettings'],
+        queryFn: async () => {
             const [settingsRes, sitesRes] = await Promise.all([
                 apiClient.get('/api/search-settings'),
                 apiClient.get('/api/search-settings/sites')
             ]);
 
-            setSearchSettings(prev => ({
-                ...prev,
+            return {
                 ...(settingsRes.data && Object.keys(settingsRes.data).length > 0 ? {
                     id: settingsRes.data.id,
                     keywords: settingsRes.data.keywords || [],
@@ -31,28 +28,21 @@ export function useSearch() {
                     email: settingsRes.data.email || '',
                     schedule: settingsRes.data.schedule || 'Manual only',
                     lastResults: settingsRes.data.last_results || []
-                } : {}),
+                } : {
+                    id: null,
+                    keywords: [],
+                    excludeKeywords: [],
+                    email: '',
+                    schedule: 'Manual only',
+                    lastResults: []
+                }),
                 targetSites: sitesRes.data || []
-            }));
-        } catch (error) {
-            console.error("Failed to fetch search settings:", error);
-        } finally {
-            setLoading(false);
+            };
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
-    /**
-     * Persist a settings snapshot to the DB.
-     * Takes the already-computed next state object so it is never stale.
-     * On first INSERT the server returns the new row id; we write it back so
-     * all future calls do UPDATE instead of inserting duplicate rows.
-     */
-    const saveSettingsToDb = async (snapshot) => {
-        try {
+    const saveSettingsMutation = useMutation({
+        mutationFn: async (snapshot) => {
             const payload = {
                 id: snapshot.id,
                 keywords: snapshot.keywords,
@@ -62,46 +52,84 @@ export function useSearch() {
                 last_results: snapshot.lastResults
             };
             const { data } = await apiClient.put('/api/search-settings', payload);
-            // First save (INSERT) → persist the generated id
-            if (data && data.id && !snapshot.id) {
-                setSearchSettings(prev => ({ ...prev, id: data.id }));
+            return data;
+        },
+        onSuccess: (data) => {
+            // First save (INSERT) -> we get a generated id back. Ensure we cache it.
+            if (data && data.id) {
+                queryClient.setQueryData(['searchSettings'], (old) => {
+                    if (!old) return old;
+                    return { ...old, id: data.id };
+                });
             }
-        } catch (error) {
-            console.error("Failed to save search settings:", error);
+        }
+    });
+
+    const addSiteMutation = useMutation({
+        mutationFn: async ({ name, url }) => {
+            const { data } = await apiClient.post('/api/search-settings/sites', { name, url, enabled: true });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['searchSettings'] });
+        }
+    });
+
+    const updateSiteMutation = useMutation({
+        mutationFn: async ({ id, payload }) => {
+            await apiClient.put(`/api/search-settings/sites/${id}`, payload);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['searchSettings'] });
+        }
+    });
+
+    const removeSiteMutation = useMutation({
+        mutationFn: async (id) => {
+            await apiClient.delete(`/api/search-settings/sites/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['searchSettings'] });
+        }
+    });
+
+    const updateSettings = (key, value) => {
+        let next;
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            next = { ...prev, [key]: value };
+            return next;
+        });
+        if (next && key !== 'targetSites') {
+            saveSettingsMutation.mutate(next);
         }
     };
 
-    const updateSettings = (key, value) => {
-        setSearchSettings(prev => {
-            const next = { ...prev, [key]: value };
-            if (key !== 'targetSites') saveSettingsToDb(next);
-            return next;
-        });
-    };
-
-    /**
-     * addTag / removeTag: build the next state snapshot INSIDE the updater
-     * (so it is based on the latest prev), then fire the save via setTimeout
-     * so it runs after React has committed the new state. This avoids the
-     * stale-closure bug where id=null was used on every subsequent INSERT.
-     */
     const addTag = (type, tag) => {
         if (!tag.trim()) return;
         const key = type === 'keyword' ? 'keywords' : 'excludeKeywords';
-        setSearchSettings(prev => {
-            const next = { ...prev, [key]: [...prev[key], tag.trim()] };
-            setTimeout(() => saveSettingsToDb(next), 0);
+        let next;
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            next = { ...prev, [key]: [...prev[key], tag.trim()] };
             return next;
         });
+        if (next) {
+            setTimeout(() => saveSettingsMutation.mutate(next), 0);
+        }
     };
 
     const removeTag = (type, index) => {
         const key = type === 'keyword' ? 'keywords' : 'excludeKeywords';
-        setSearchSettings(prev => {
-            const next = { ...prev, [key]: prev[key].filter((_, i) => i !== index) };
-            setTimeout(() => saveSettingsToDb(next), 0);
+        let next;
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            next = { ...prev, [key]: prev[key].filter((_, i) => i !== index) };
             return next;
         });
+        if (next) {
+            setTimeout(() => saveSettingsMutation.mutate(next), 0);
+        }
     };
 
     const toggleSite = async (id) => {
@@ -109,68 +137,69 @@ export function useSearch() {
         if (!site) return;
 
         const nextEnabled = !site.enabled;
+        // Optimistic
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                targetSites: prev.targetSites.map(s => s.id === id ? { ...s, enabled: nextEnabled } : s)
+            };
+        });
 
-        setSearchSettings(prev => ({
-            ...prev,
-            targetSites: prev.targetSites.map(s =>
-                s.id === id ? { ...s, enabled: nextEnabled } : s
-            )
-        }));
-
-        try {
-            await apiClient.put(`/api/search-settings/sites/${id}`, { enabled: nextEnabled });
-        } catch (error) {
-            console.error("Failed to update site:", error);
-        }
+        updateSiteMutation.mutate({ id, payload: { enabled: nextEnabled } });
     };
 
     const addSite = async (name, url) => {
         if (!name || !url) return;
-
-        try {
-            const { data } = await apiClient.post('/api/search-settings/sites', { name, url, enabled: true });
-            setSearchSettings(prev => ({
-                ...prev,
-                targetSites: [...prev.targetSites, data]
-            }));
-        } catch (error) {
-            console.error("Failed to add site:", error);
-        }
+        addSiteMutation.mutate({ name, url });
     };
 
     const removeSite = async (id) => {
-        setSearchSettings(prev => ({
-            ...prev,
-            targetSites: prev.targetSites.filter(s => s.id !== id)
-        }));
-        try {
-            await apiClient.delete(`/api/search-settings/sites/${id}`);
-        } catch (error) {
-            console.error("Failed to delete site:", error);
-        }
+        // Optimistic
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                targetSites: prev.targetSites.filter(s => s.id !== id)
+            };
+        });
+        removeSiteMutation.mutate(id);
     };
 
     const updateSite = async (id, name, url) => {
-        setSearchSettings(prev => ({
-            ...prev,
-            targetSites: prev.targetSites.map(s =>
-                s.id === id ? { ...s, name, url } : s
-            )
-        }));
-        try {
-            await apiClient.put(`/api/search-settings/sites/${id}`, { name, url });
-        } catch (error) {
-            console.error("Failed to update site:", error);
-        }
+        // Optimistic
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                targetSites: prev.targetSites.map(s => s.id === id ? { ...s, name, url } : s)
+            };
+        });
+        updateSiteMutation.mutate({ id, payload: { name, url } });
     };
 
     const clearResults = () => {
-        setSearchSettings(prev => {
-            const next = { ...prev, lastResults: [] };
-            setTimeout(() => saveSettingsToDb(next), 0);
+        let next;
+        queryClient.setQueryData(['searchSettings'], (prev) => {
+            if (!prev) return prev;
+            next = { ...prev, lastResults: [] };
             return next;
         });
+        if (next) {
+            setTimeout(() => saveSettingsMutation.mutate(next), 0);
+        }
     };
 
-    return { loading, searchSettings, updateSettings, addTag, removeTag, addSite, removeSite, updateSite, toggleSite, clearResults };
+    return { 
+        loading, 
+        searchSettings, 
+        updateSettings, 
+        addTag, 
+        removeTag, 
+        addSite, 
+        removeSite, 
+        updateSite, 
+        toggleSite, 
+        clearResults 
+    };
 }

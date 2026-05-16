@@ -1,28 +1,57 @@
-import { useState, useEffect } from 'react';
-// import api from '../api';
-// import { uploadData } from '../services/apiService';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
 
 export function useContacts() {
-    const [contacts, setContacts] = useState([]);
+    const queryClient = useQueryClient();
     const [uploadStatus, setUploadStatus] = useState('');
-    const [loading, setLoading] = useState(true);
 
-    const fetchContacts = async () => {
-        try {
+    const { data: contacts = [], isLoading: loading } = useQuery({
+        queryKey: ['contacts'],
+        queryFn: async () => {
             const { data } = await apiClient.get('/api/contacts');
-            setContacts(data || []);
-        } catch (error) {
-            console.error("Failed to fetch contacts:", error);
-        } finally {
-            setLoading(false);
+            return data || [];
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchContacts();
-    }, []);
+    const addContactMutation = useMutation({
+        mutationFn: async (newContact) => {
+            const { data } = await apiClient.post('/api/contacts', newContact);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        }
+    });
+
+    const updateContactMutation = useMutation({
+        mutationFn: async ({ id, updatedData }) => {
+            const { data } = await apiClient.put(`/api/contacts/${id}`, updatedData);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        }
+    });
+
+    const deleteContactMutation = useMutation({
+        mutationFn: async (id) => {
+            await apiClient.delete(`/api/contacts/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        }
+    });
+
+    const bulkAddMutation = useMutation({
+        mutationFn: async (dbData) => {
+            await apiClient.post('/api/contacts/bulk', { contacts: dbData });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        }
+    });
 
     const handleCSVUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -30,7 +59,6 @@ export function useContacts() {
 
         try {
             setUploadStatus('Uploading and processing...');
-            // const result = await uploadData(file, 'network');
             const result = await uploadCSV(file, 'network');
 
             const normalizedContacts = result.data.map((row) => ({
@@ -44,9 +72,8 @@ export function useContacts() {
             }));
 
             setUploadStatus('Saving to database...');
-            await apiClient.post('/api/contacts/bulk', { contacts: normalizedContacts });
+            await bulkAddMutation.mutateAsync(normalizedContacts);
 
-            await fetchContacts();
             setUploadStatus(`✓ Loaded successfully`);
         } catch (error) {
             const msg = error.response?.data?.error || error.response?.data?.message || error.message;
@@ -56,31 +83,15 @@ export function useContacts() {
 
     const addContact = async (newContact) => {
         if (!newContact.name.trim()) return;
-
-        try {
-            const { data } = await apiClient.post('/api/contacts', newContact);
-            setContacts(prev => [...prev, data]);
-        } catch (error) {
-            console.error("Failed to add contact:", error);
-        }
+        return addContactMutation.mutateAsync(newContact);
     };
 
     const updateContact = async (id, updatedData) => {
-        try {
-            const { data } = await apiClient.put(`/api/contacts/${id}`, updatedData);
-            setContacts(prev => prev.map(c => (c.id === id ? data : c)));
-        } catch (error) {
-            console.error("Failed to update contact:", error);
-        }
+        return updateContactMutation.mutateAsync({ id, updatedData });
     };
 
     const deleteContact = async (id) => {
-        try {
-            await apiClient.delete(`/api/contacts/${id}`);
-            setContacts(prev => prev.filter(c => c.id !== id));
-        } catch (error) {
-            console.error("Failed to delete contact:", error);
-        }
+        return deleteContactMutation.mutateAsync(id);
     };
 
     return {

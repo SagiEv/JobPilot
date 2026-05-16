@@ -1,51 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 
 export function useEvents() {
-    const [events, setEvents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
 
-    const fetchEvents = async () => {
-        try {
+    const { data: events = [], isLoading: loading, refetch } = useQuery({
+        queryKey: ['events'],
+        queryFn: async () => {
             const { data } = await apiClient.get('/api/events');
-            setEvents(data || []);
-        } catch (error) {
-            console.error("Failed to fetch events:", error);
-        } finally {
-            setLoading(false);
+            return data || [];
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchEvents();
-    }, []);
+    const addEventMutation = useMutation({
+        mutationFn: async (newEvent) => {
+            const { data } = await apiClient.post('/api/events', newEvent);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+        }
+    });
+
+    const updateEventMutation = useMutation({
+        mutationFn: async ({ id, updatedEvent }) => {
+            const { data } = await apiClient.put(`/api/events/${id}`, updatedEvent);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+        }
+    });
+
+    const deleteEventMutation = useMutation({
+        mutationFn: async (id) => {
+            await apiClient.delete(`/api/events/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+        }
+    });
 
     const addEvent = async (newEvent) => {
-        try {
-            const { data } = await apiClient.post('/api/events', newEvent);
-            setEvents(prev => [...prev, data]);
-        } catch (error) {
-            console.error("Failed to add event:", error);
-        }
+        return addEventMutation.mutateAsync(newEvent);
     };
 
     const updateEvent = async (id, updatedEvent) => {
-        try {
-            const { data } = await apiClient.put(`/api/events/${id}`, updatedEvent);
-            setEvents(prev => prev.map(ev => (ev.id === id ? data : ev)));
-        } catch (error) {
-            console.error("Failed to update event:", error);
-        }
+        return updateEventMutation.mutateAsync({ id, updatedEvent });
     };
 
     const deleteEvent = async (id) => {
-        try {
-            await apiClient.delete(`/api/events/${id}`);
-            setEvents(prev => prev.filter(ev => ev.id !== id));
-        } catch (error) {
-            console.error("Failed to delete event:", error);
-        }
+        return deleteEventMutation.mutateAsync(id);
     };
 
-    return { events, loading, addEvent, updateEvent, deleteEvent, refetch: fetchEvents };
+    return { 
+        events, 
+        loading, 
+        addEvent, 
+        updateEvent, 
+        deleteEvent, 
+        refetch 
+    };
 }

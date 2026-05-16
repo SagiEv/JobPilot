@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-// import api from '../api';
-// import { uploadData } from '../services/apiService';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
 
@@ -35,53 +34,59 @@ const toDb = (app) => {
 };
 
 export function useApplications() {
-    const [applications, setApplications] = useState([]);
+    const queryClient = useQueryClient();
     const [status, setStatus] = useState('');
-    const [loading, setLoading] = useState(true);
 
-    const fetchApplications = async () => {
-        try {
-            // Use apiClient directly
-            console.log("Fetching applications...");
+    const { data: applications = [], isLoading: loading } = useQuery({
+        queryKey: ['applications'],
+        queryFn: async () => {
             const { data } = await apiClient.get('/api/applications');
-            console.log("Applications fetched:", data);
-            setApplications((data || []).map(fromDb));
-        } catch (error) {
-            console.error("Fetch failed:", error);
-        } finally {
-            setLoading(false);
+            return (data || []).map(fromDb);
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchApplications();
-    }, []);
+    const updateApplicationMutation = useMutation({
+        mutationFn: async ({ id, newStatus, date }) => {
+            const payload = { status: newStatus };
+            if (date) payload.date = date;
+            await apiClient.put(`/api/applications/${id}`, payload);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['applications'] });
+        }
+    });
+
+    const addApplicationMutation = useMutation({
+        mutationFn: async (newApp) => {
+            const dbData = toDb(newApp);
+            const { data } = await apiClient.post('/api/applications', dbData);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['applications'] });
+        }
+    });
+
+    const bulkAddMutation = useMutation({
+        mutationFn: async (dbData) => {
+            await apiClient.post('/api/applications/bulk', { applications: dbData });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['applications'] });
+        }
+    });
 
     const updateApplication = async (id, newStatus) => {
         const today = new Date().toISOString().split('T')[0];
-        setApplications(prev => prev.map(app =>
-            app.id === id ? { ...app, STATUS: newStatus, DATE: today } : app
-        ));
-
-        try {
-            await apiClient.put(`/api/applications/${id}`, { status: newStatus, date: today });
-        } catch (error) {
-            console.error("Failed to update application:", error);
-        }
+        // Optimistic update
+        queryClient.setQueryData(['applications'], (old) => 
+            old.map(app => app.id === id ? { ...app, STATUS: newStatus, DATE: today } : app)
+        );
+        updateApplicationMutation.mutate({ id, newStatus, date: today });
     };
 
     const addApplication = async (newApp) => {
-        try {
-            const dbData = toDb(newApp);
-            const { data } = await apiClient.post('/api/applications', dbData);
-            if (data) {
-                setApplications(prev => [fromDb(data), ...prev]);
-            }
-            return data;
-        } catch (error) {
-            console.error("Failed to add application:", error);
-            throw error;
-        }
+        return addApplicationMutation.mutateAsync(newApp);
     };
 
     const stats = useMemo(() => ({
@@ -114,10 +119,8 @@ export function useApplications() {
             // Bulk insert to DB
             setStatus('Saving to database...');
             const dbData = normalized.map(toDb);
-            await apiClient.post('/api/applications/bulk', { applications: dbData });
+            await bulkAddMutation.mutateAsync(dbData);
 
-            // Refetch to get real IDs
-            await fetchApplications();
             setStatus(`✓ Loaded successfully`);
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || err.message;
@@ -126,14 +129,10 @@ export function useApplications() {
     };
 
     const updateAppStatus = async (id, newStatus) => {
-        setApplications(prev => prev.map(app =>
-            app.id === id ? { ...app, STATUS: newStatus } : app
-        ));
-        try {
-            await apiClient.put(`/api/applications/${id}`, { status: newStatus });
-        } catch (error) {
-            console.error("Failed to update application status:", error);
-        }
+        queryClient.setQueryData(['applications'], (old) => 
+            old.map(app => app.id === id ? { ...app, STATUS: newStatus } : app)
+        );
+        updateApplicationMutation.mutate({ id, newStatus });
     };
 
     return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication };
