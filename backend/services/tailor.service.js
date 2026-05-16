@@ -8,10 +8,10 @@ const axios = require('axios');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
-const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null) => {
+const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null) => {
 
     // 1. Get Groq token
-    const groqApiKey = await settingsService.getRawGroqToken(userId);
+    const groqApiKey = await settingsService.getRawGroqToken(userId, token);
     if (!groqApiKey) {
         throw new Error('Groq API key not configured. Please add it in Settings.');
     }

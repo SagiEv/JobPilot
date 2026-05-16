@@ -2,26 +2,34 @@ const supabase = require('../supabaseClient');
 
 const TABLE = 'app_settings';
 
-const findSettings = async (userId) => {
-    return await supabase.from(TABLE).select('*').eq('user_id', userId).single();
+const findSettings = async (userId, token = null) => {
+    const client = token ? supabase.createAuthClient(token) : supabase;
+    return await client.from(TABLE).select('*').eq('user_id', userId).limit(1).maybeSingle();
 };
 
-const upsertSettings = async (userId, data) => {
-    const { data: existing } = await findSettings(userId);
+const upsertSettings = async (userId, data, token = null) => {
+    const client = token ? supabase.createAuthClient(token) : supabase;
+    const { data: existing } = await findSettings(userId, token);
 
     if (existing) {
-        return await supabase
+        return await client
             .from(TABLE)
             .update(data)
-            .eq('user_id', userId)
+            .eq('id', existing.id)
             .select()
-            .single();
+            .limit(1)
+            .maybeSingle();
     } else {
-        return await supabase
+        const { data: inserted, error } = await client
             .from(TABLE)
             .insert({ user_id: userId, ...data })
             .select()
-            .single();
+            .limit(1)
+            .maybeSingle();
+            
+        // If insert fails because the row suddenly exists (race condition) or RLS
+        if (error) return { data: null, error };
+        return { data: inserted, error: null };
     }
 };
 

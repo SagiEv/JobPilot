@@ -12,7 +12,7 @@ exports.tailorCv = async (req, res) => {
 
         const useProfile = use_profile_cv === 'true' || use_profile_cv === true;
 
-        const result = await tailorService.runTailoring(userId, job_description, mode, useProfile, cv_file);
+        const result = await tailorService.runTailoring(userId, job_description, mode, useProfile, cv_file, req.token);
         res.json(result);
     } catch (err) {
         console.error('Tailor Controller Error:', err);

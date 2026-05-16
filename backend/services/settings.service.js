@@ -2,8 +2,8 @@ const settingsRepository = require('../repositories/settings.repository');
 
 const MASKED = '••••••••••••••••••••••••••••••••••••••••';
 
-const getSettings = async (userId) => {
-    const { data, error } = await settingsRepository.findSettings(userId);
+const getSettings = async (userId, token) => {
+    const { data, error } = await settingsRepository.findSettings(userId, token);
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
 
     const settings = data || {};
@@ -17,7 +17,7 @@ const getSettings = async (userId) => {
     };
 };
 
-const saveSettings = async (userId, payload) => {
+const saveSettings = async (userId, payload, token) => {
     const updateData = {};
 
     if ('groq_token' in payload) {
@@ -25,7 +25,7 @@ const saveSettings = async (userId, payload) => {
         updateData.groq_token = payload.groq_token || null;
     }
 
-    const { data, error } = await settingsRepository.upsertSettings(userId, updateData);
+    const { data, error } = await settingsRepository.upsertSettings(userId, updateData, token);
     if (error) throw new Error(error.message);
 
     return {
@@ -34,8 +34,8 @@ const saveSettings = async (userId, payload) => {
 };
 
 // Internal use only — never exposed via HTTP
-const getRawGroqToken = async (userId) => {
-    const { data, error } = await settingsRepository.findSettings(userId);
+const getRawGroqToken = async (userId, token) => {
+    const { data, error } = await settingsRepository.findSettings(userId, token);
     if (error) return null;
     return data?.groq_token || null;
 };

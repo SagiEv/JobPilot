@@ -9,4 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const createAuthClient = (token) => {
+    if (!token) return supabase;
+    return createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false }
+    });
+};
+
 module.exports = supabase;
+module.exports.createAuthClient = createAuthClient;
