@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Sidebar = ({ activeTab, setActiveTab, backendStatus }) => {
+const Sidebar = ({ activeTab, setActiveTab, backendStatus, isOpen, onClose }) => {
     const tabs = [
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'profile', label: 'Profile' },
@@ -19,10 +19,16 @@ const Sidebar = ({ activeTab, setActiveTab, backendStatus }) => {
     ];
 
     return (
-        <div className="sidebar">
-            <div className="logo">
-                <div className="logo-mark">JobPilot</div>
-                <div className="logo-sub">Career command center</div>
+        <div className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
+            <div className="logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <div className="logo-mark">JobPilot</div>
+                    <div className="logo-sub">Career command center</div>
+                </div>
+                {/* Mobile close button */}
+                <button className="sidebar-close-btn mobile-only" onClick={onClose} aria-label="Close Menu">
+                    &times;
+                </button>
             </div>
 
             <nav className="nav">

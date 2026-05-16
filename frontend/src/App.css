@@ -2451,4 +2451,124 @@ td:nth-child(3) {
   color: var(--t3);
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================== */
+
+/* Hide mobile-only elements by default on desktop */
+.mobile-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  /* Show mobile-only elements */
+  .mobile-only {
+    display: flex !important;
+  }
+  
+  .hamburger-btn, .sidebar-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--t2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .sidebar-close-btn {
+    font-size: 24px;
+    padding: 0 8px;
+    color: var(--t1);
+  }
+
+  /* Core Layout adjustments */
+  .app {
+    flex-direction: column;
+  }
+  
+  .main {
+    width: 100%;
+    flex: 1;
+  }
+
+  /* Sidebar styling for mobile (off-canvas) */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Hide off-screen */
+    width: 260px;
+    height: 100vh;
+    z-index: 1001;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
+
+  .mobile-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+
+  /* Grids and Layouts to single column */
+  .profile-grid,
+  .tailor-grid,
+  .detail-grid,
+  .settings-grid,
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Adjust stats bar */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Make forms and inputs take full width */
+  .field-input, .textarea, .status-select-large {
+    width: 100%;
+  }
+
+  /* Modals */
+  .modal {
+    width: 95%;
+    margin: 10px;
+  }
+
+  /* Table horizontal scrolling constraint */
+  .tbl-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  table {
+    min-width: 600px; /* Adjust if needed to ensure columns don't shrink too much */
+  }
+
+  /* Adjust padding for mobile */
+  .content {
+    padding-bottom: 24px; /* Ensure content isn't cut off at the bottom */
+  }
+  
+  .topbar {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
 }
