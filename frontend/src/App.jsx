@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import ApplicationsPage from './pages/ApplicationsPage';
 import NetworkPage from './pages/NetworkPage';
@@ -63,6 +64,7 @@ function App() {
     const renderContent = () => {
         const contentKey = `${activeTab}-${isAuthenticated}`;
         switch (activeTab) {
+            case 'dashboard': return <DashboardPage key={contentKey} />;
             case 'profile': return <ProfilePage key={contentKey} />;
             case 'applications': return <ApplicationsPage key={contentKey} />;
             case 'network': return <NetworkPage key={contentKey} />;
@@ -73,7 +75,7 @@ function App() {
             case 'skills-matrix': return <SkillsPage key={contentKey} />;
             case 'analytics': return <AnalyticsPage key={contentKey} />;
             case 'settings': return <SettingsPage key={contentKey} />;
-            default: return <ProfilePage key={contentKey} />;
+            default: return <DashboardPage key={contentKey} />;
         }
     };
 

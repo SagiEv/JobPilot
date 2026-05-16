@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
+import { getAccessToken } from '../services/apiClient';
+import { useEmailIntegration } from '../hooks/useEmailIntegration';
+import { supabase } from '../supabaseClient';
 import PageLoader from '../components/PageLoader';
 
 const GroqIcon = () => (
@@ -33,14 +36,22 @@ const TrashIcon = () => (
     </svg>
 );
 
+const MailIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+        <path d="M4 7.00005L10.2 11.65C11.2667 12.45 12.7333 12.45 13.8 11.65L20 7" stroke="#0f6e56" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="3" y="5" width="18" height="14" rx="2" stroke="#0f6e56" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+);
+
 const SettingsPage = () => {
     const { settings, loading, saving, saveGroqToken, clearGroqToken } = useSettings();
+    const { integration, loading: emailLoading, syncing, connectGoogle, disconnectGoogle, syncEmails } = useEmailIntegration();
     const [tokenInput, setTokenInput] = useState('');
     const [showInput, setShowInput] = useState(false);
     const [showToken, setShowToken] = useState(false);
     const [feedback, setFeedback] = useState(null); // { type: 'success'|'error', msg }
 
-    if (loading) return <PageLoader />;
+    if (loading || emailLoading) return <PageLoader />;
 
     const handleSave = async () => {
         if (!tokenInput.trim()) return;
@@ -198,6 +209,86 @@ const SettingsPage = () => {
                             <div className="token-input-hint">
                                 Your key is stored in the database and never sent to the frontend in plain text.
                             </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Email Integration Section */}
+                <div className="settings-section-label" style={{ marginTop: '2rem' }}>Email Integrations</div>
+
+                <div className="card settings-card">
+                    <div className="settings-service-row">
+                        <div className="settings-service-icon" style={{ backgroundColor: '#eefdf8' }}>
+                            <MailIcon />
+                        </div>
+                        <div className="settings-service-info">
+                            <div className="settings-service-name">Gmail Proxy Inbox</div>
+                            <div className="settings-service-desc">
+                                Automatically sync job applications, interview invites, and rejections from a dedicated Gmail account.
+                            </div>
+                        </div>
+                        <div className="settings-service-status">
+                            {integration ? (
+                                <span className="token-badge token-badge-active">
+                                    <CheckIcon /> Connected
+                                </span>
+                            ) : (
+                                <span className="token-badge token-badge-missing">
+                                    Not connected
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {integration ? (
+                        <div className="token-preview-row">
+                            <div className="token-preview-label">
+                                <MailIcon /> {integration.connected_email}
+                            </div>
+                            <div style={{ flex: 1, fontSize: '0.85rem', color: '#666' }}>
+                                Status: <strong>{integration.sync_status}</strong> 
+                                {integration.last_synced_at && ` (Last synced: ${new Date(integration.last_synced_at).toLocaleString()})`}
+                            </div>
+                            <button
+                                className="btn btn-sm"
+                                onClick={syncEmails}
+                                disabled={syncing}
+                            >
+                                {syncing ? 'Syncing...' : 'Sync Now'}
+                            </button>
+                            <button
+                                className="btn btn-sm btn-danger-ghost"
+                                onClick={disconnectGoogle}
+                            >
+                                <TrashIcon /> Disconnect
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="token-input-section" style={{ borderTop: 'none', paddingTop: 0 }}>
+                            <p className="token-input-hint" style={{ marginBottom: '1rem' }}>
+                                Connect a dedicated Gmail proxy account. Your emails will be securely parsed on our backend.
+                            </p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => {
+                                    const token = getAccessToken();
+                                    if (!token) {
+                                        alert("Authentication token not found. Please log in again.");
+                                        return;
+                                    }
+                                    try {
+                                        const payload = JSON.parse(atob(token.split('.')[1]));
+                                        const id = payload.sub;
+                                        if (!id) throw new Error("Invalid token payload");
+                                        connectGoogle(id);
+                                    } catch (e) {
+                                        console.error("JWT parse error:", e);
+                                        alert("Failed to extract user session.");
+                                    }
+                                }}
+                            >
+                                Connect Google Account
+                            </button>
                         </div>
                     )}
                 </div>

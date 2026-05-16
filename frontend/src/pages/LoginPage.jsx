@@ -14,8 +14,8 @@ const LoginPage = () => {
         const checkSession = async () => {
             const user = await handleRedirectSession();
             if (user && isMounted) {
-                // Signal App.jsx to unlock and go to profile
-                window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'profile' }));
+                // Signal App.jsx to unlock and go to dashboard
+                window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'dashboard' }));
             }
         };
         checkSession();
@@ -33,8 +33,8 @@ const LoginPage = () => {
                 alert("Check your email for verification!");
             } else {
                 await authService.login(email, password);
-                // Signal App.jsx to unlock and go to profile
-                window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'profile' }));
+                // Signal App.jsx to unlock and go to dashboard
+                window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'dashboard' }));
             }
         } catch (err) {
             setError(err.response?.data?.error || "Authentication failed");

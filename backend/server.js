@@ -23,6 +23,9 @@ const cvRoutes = require('./routes/cv.routes');
 const csvRoutes = require('./routes/csv.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const tailorRoutes = require('./routes/tailor.routes');
+const emailRoutes = require('./routes/email.routes');
+const messagesRoutes = require('./routes/messages.routes');
+const eventsRoutes = require('./routes/events.routes');
 
 // --- Mount Routes ---
 app.use('/auth', userRoutes);
@@ -37,6 +40,9 @@ app.use('/api/cv', cvRoutes);
 app.use('/api/csv', csvRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/tailor', tailorRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/events', eventsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

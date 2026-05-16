@@ -298,6 +298,65 @@ def invalidate_recipe(company_domain: str):
     return {"success": False, "message": "Recipe not found"}
  
 
+class MessageRequest(BaseModel):
+    purpose: str
+    job_link: Optional[str] = ""
+    description: Optional[str] = ""
+    addressee_name: Optional[str] = ""
+    cv_text: Optional[str] = ""
+    github_portfolio: Optional[str] = ""
+    groq_api_key: str
+
+@app.post("/generate-message")
+async def generate_message(payload: MessageRequest):
+    if not payload.groq_api_key:
+        raise HTTPException(status_code=400, detail="Missing groq_api_key")
+    
+    try:
+        from langchain_groq import ChatGroq
+        from langchain.schema import HumanMessage, SystemMessage
+
+        llm = ChatGroq(temperature=0.7, groq_api_key=payload.groq_api_key, model_name="llama3-8b-8192")
+
+        if payload.purpose == "referral":
+            system_prompt = "You are an expert career coach helping a user write a LinkedIn message or email asking for a job referral."
+            user_prompt = f"""
+            Please write a short, professional, and engaging message to {payload.addressee_name or 'a connection'}.
+            I am asking for a referral for a job.
+            Job Link: {payload.job_link}
+            Job Description: {payload.description}
+            My GitHub Portfolio: {payload.github_portfolio}
+            My CV Summary: {payload.cv_text[:500] if payload.cv_text else ''}
+            
+            Keep it under 150 words. Be polite, direct, and highlight one key strength if possible.
+            """
+        else:
+            system_prompt = "You are an expert career coach helping a user write a cold email or direct message to a recruiter applying for a job."
+            user_prompt = f"""
+            Please write a short, professional, and engaging message to {payload.addressee_name or 'the hiring team'}.
+            I am applying for a job.
+            Job Link: {payload.job_link}
+            Job Description: {payload.description}
+            My GitHub Portfolio: {payload.github_portfolio}
+            My CV Summary: {payload.cv_text[:500] if payload.cv_text else ''}
+            
+            Keep it under 150 words. Emphasize excitement about the role and a brief match of skills.
+            """
+
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ]
+        
+        response = llm.invoke(messages)
+        return {
+            "success": True,
+            "message": response.content
+        }
+    except Exception as e:
+        logger.error(f"Error generating message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "jobpilot-ai"}

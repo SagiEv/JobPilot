@@ -1,8 +1,8 @@
 import React from 'react';
 
 const Sidebar = ({ activeTab, setActiveTab, backendStatus }) => {
-    // Define tab labels for cleaner mapping
     const tabs = [
+        { id: 'dashboard', label: 'Dashboard' },
         { id: 'profile', label: 'Profile' },
         { id: 'applications', label: 'Applications' },
         { id: 'network', label: 'Network Edge' },
