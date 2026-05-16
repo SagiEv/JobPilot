@@ -1,31 +1,36 @@
 const supabase = require('../supabaseClient');
 
-const findAll = async () => {
-    return await supabase.from('interviews').select('*');
-};
-
-const create = async (interviewData) => {
+const findAll = async (userId) => {
     return await supabase
         .from('interviews')
-        .insert([interviewData])
+        .select('*')
+        .eq('user_id', userId);
+};
+
+const create = async (userId, interviewData) => {
+    return await supabase
+        .from('interviews')
+        .insert({ ...interviewData, user_id: userId })
         .select()
         .single();
 };
 
-const update = async (id, updateData) => {
+const update = async (userId, id, updateData) => {
     return await supabase
         .from('interviews')
         .update(updateData)
         .eq('id', id)
+        .eq('user_id', userId)
         .select()
         .single();
 };
 
-const remove = async (id) => {
+const remove = async (userId, id) => {
     return await supabase
         .from('interviews')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', userId);
 };
 
 module.exports = {
