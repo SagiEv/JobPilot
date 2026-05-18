@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { statusBadgeClass } from '../utils/helpers';
+import { statusBadgeClass, formatDate } from '../utils/helpers';
+import { useSettings } from '../hooks/useSettings';
 
 const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
+    const { settings } = useSettings();
     const [isEditing, setIsEditing] = useState(false);
     const [tempStatus, setTempStatus] = useState(app.STATUS);
 
@@ -63,7 +65,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
             <div className="quick-stats-row">
                 <div className="stat-item">
                     <label>Last Updated</label>
-                    <span>{app.DATE || 'N/A'}</span>
+                    <span>{formatDate(app.DATE, settings?.timezone) || 'N/A'}</span>
                 </div>
                 <div className="stat-item">
                     <label>Location</label>

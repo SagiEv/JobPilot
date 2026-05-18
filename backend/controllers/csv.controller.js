@@ -1,6 +1,6 @@
 const { parse } = require('csv-parse/sync');
 
-exports.uploadAndParse = (req, res) => {
+exports.uploadAndParse = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
@@ -50,6 +50,49 @@ exports.uploadAndParse = (req, res) => {
                 }
             }
         }
+
+        // Date Parsing Logic
+        const dayjs = require('dayjs');
+        const customParseFormat = require('dayjs/plugin/customParseFormat');
+        const timezone = require('dayjs/plugin/timezone');
+        const utc = require('dayjs/plugin/utc');
+        
+        dayjs.extend(customParseFormat);
+        dayjs.extend(utc);
+        dayjs.extend(timezone);
+
+        const settingsService = require('../services/settings.service');
+        let userTimezone = 'Asia/Jerusalem';
+        if (req.user && req.user.id) {
+            try {
+                const settings = await settingsService.getSettings(req.user.id, req.token);
+                if (settings.timezone) {
+                    userTimezone = settings.timezone;
+                }
+            } catch (e) {
+                console.warn('Could not fetch user timezone for CSV parsing', e);
+            }
+        }
+
+        const dateFormats = [
+            'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY', 'D/M/YYYY', 'M/D/YYYY',
+            'DD/MM/YY', 'MM/DD/YY', 'YYYY/MM/DD', 'DD.MM.YYYY', 'MM.DD.YYYY'
+        ];
+
+        records = records.map(record => {
+            // Find the date key, it might be 'date', 'Date', or 'DATE'
+            let dateKey = Object.keys(record).find(k => k.toLowerCase() === 'date');
+            if (dateKey && record[dateKey]) {
+                let parsedDate = dayjs.tz(record[dateKey], dateFormats, userTimezone);
+                if (!parsedDate.isValid()) {
+                    parsedDate = dayjs.tz(record[dateKey], userTimezone);
+                }
+                if (parsedDate.isValid()) {
+                    record[dateKey] = parsedDate.format('YYYY-MM-DD');
+                }
+            }
+            return record;
+        });
 
         res.json({
             success: true,

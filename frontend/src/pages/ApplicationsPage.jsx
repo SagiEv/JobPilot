@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
+import { useSettings } from '../hooks/useSettings';
 import ApplicationDetailPage from './ApplicationDetailPage';
-import { statusBadgeClass } from '../utils/helpers';
+import { statusBadgeClass, formatDate } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
 
 const ApplicationsPage = () => {
     const { applications, stats, handleUpload, updateApplication, addApplication, loading } = useApplications();
+    const { settings } = useSettings();
 
     // UI State
     const [viewingAppId, setViewingAppId] = useState(null);
@@ -157,7 +159,7 @@ const ApplicationsPage = () => {
                             <tr key={app.id}>
                                 <td style={{ fontWeight: '600' }}>{app.COMPANY}</td>
                                 <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{app.ROLE_ID}</td>
-                                <td style={{ fontSize: '11px' }}>{app.DATE || '—'}</td>
+                                <td style={{ fontSize: '11px' }}>{formatDate(app.DATE, settings?.timezone) || '—'}</td>
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <select

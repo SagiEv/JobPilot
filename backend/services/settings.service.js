@@ -14,6 +14,7 @@ const getSettings = async (userId, token) => {
         groq_token_preview: settings.groq_token
             ? `${settings.groq_token.slice(0, 6)}${MASKED.slice(6)}`
             : null,
+        timezone: settings.timezone || 'Asia/Jerusalem',
     };
 };
 
@@ -24,12 +25,17 @@ const saveSettings = async (userId, payload, token) => {
         // Allow clearing (empty string) or setting a new token
         updateData.groq_token = payload.groq_token || null;
     }
+    
+    if ('timezone' in payload) {
+        updateData.timezone = payload.timezone;
+    }
 
     const { data, error } = await settingsRepository.upsertSettings(userId, updateData, token);
     if (error) throw new Error(error.message);
 
     return {
         groq_token_set: !!(data?.groq_token && data.groq_token.length > 0),
+        timezone: data?.timezone || 'Asia/Jerusalem',
     };
 };
 

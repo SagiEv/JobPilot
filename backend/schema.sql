@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS applications (
   id SERIAL PRIMARY KEY,
   company TEXT,
   role_id TEXT,
-  date TEXT,
+  date DATE,
   status TEXT,
   location TEXT,
   info TEXT,
@@ -94,7 +94,8 @@ CREATE TABLE IF NOT EXISTS skills (
 CREATE TABLE IF NOT EXISTS app_settings (
   id SERIAL PRIMARY KEY,
   user_id UUID UNIQUE NOT NULL,
-  groq_token TEXT
+  groq_token TEXT,
+  timezone TEXT DEFAULT 'Asia/Jerusalem'
 );
 
 

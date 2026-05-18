@@ -44,7 +44,7 @@ const MailIcon = () => (
 );
 
 const SettingsPage = () => {
-    const { settings, loading, saving, saveGroqToken, clearGroqToken } = useSettings();
+    const { settings, loading, saving, saveGroqToken, clearGroqToken, saveTimezone } = useSettings();
     const { integration, loading: emailLoading, syncing, connectGoogle, disconnectGoogle, syncEmails } = useEmailIntegration();
     const [tokenInput, setTokenInput] = useState('');
     const [showInput, setShowInput] = useState(false);
@@ -104,8 +104,46 @@ const SettingsPage = () => {
                     </div>
                 )}
 
+                {/* Localization Section */}
+                <div className="settings-section-label">Localization</div>
+                
+                <div className="card settings-card">
+                    <div className="settings-service-row">
+                        <div className="settings-service-info">
+                            <div className="settings-service-name">Timezone</div>
+                            <div className="settings-service-desc">
+                                Default timezone for date parsing and display.
+                            </div>
+                        </div>
+                        <div className="settings-service-status">
+                            <select 
+                                className="field-input" 
+                                value={settings.timezone || 'Asia/Jerusalem'}
+                                onChange={async (e) => {
+                                    try {
+                                        await saveTimezone(e.target.value);
+                                        setFeedback({ type: 'success', msg: 'Timezone updated.' });
+                                        setTimeout(() => setFeedback(null), 3500);
+                                    } catch {
+                                        setFeedback({ type: 'error', msg: 'Failed to update timezone.' });
+                                    }
+                                }}
+                                disabled={saving}
+                                style={{ width: '200px' }}
+                            >
+                                <option value="Asia/Jerusalem">Israel Time (Asia/Jerusalem)</option>
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time (US)</option>
+                                <option value="America/Los_Angeles">Pacific Time (US)</option>
+                                <option value="Europe/London">London (GMT/BST)</option>
+                                <option value="Europe/Paris">Central Europe (CET/CEST)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 {/* AI Integration Section */}
-                <div className="settings-section-label">AI Integration</div>
+                <div className="settings-section-label" style={{ marginTop: '2rem' }}>AI Integration</div>
 
                 <div className="card settings-card">
                     <div className="settings-service-row">
