@@ -79,25 +79,42 @@ function parseHtml(html) {
 
 // ── Render helpers ──────────────────────────────────────────────────────────
 
-function renderRuns(doc, runs, fontSize, opts = {}) {
-    if (!runs.length) { doc.text('', opts); return; }
+function renderRuns(doc, runs, fontSize, startX, width) {
+    if (!runs.length) { doc.text(''); return; }
     for (let i = 0; i < runs.length; i++) {
         const r = runs[i];
         const last = i === runs.length - 1;
         doc.font(getFont(r.bold, r.italic)).fontSize(fontSize);
-        doc.text(r.text, { ...opts, continued: !last, underline: !!r.underline });
-        if (i === 0) opts = {}; // clear x/y after first run
+        const opts = { continued: !last, underline: !!r.underline };
+        if (i === 0 && startX !== undefined) {
+            doc.text(r.text, startX, doc.y, { ...opts, width });
+        } else {
+            doc.text(r.text, opts);
+        }
     }
 }
 
 function renderBlocks(doc, blocks, fontSize) {
     for (const b of blocks) {
         if (b.type === 'li') {
-            doc.font('Helvetica').fontSize(fontSize)
-                .text(b.bullet, doc.x, doc.y, { continued: true, indent: 12 });
-            renderRuns(doc, b.runs, fontSize);
+            const indent = 12;
+            const bulletX = MARGIN.left + indent;
+            const savedY = doc.y;
+
+            // Measure bullet width to know where text starts
+            doc.font('Helvetica').fontSize(fontSize);
+            const bulletW = doc.widthOfString(b.bullet);
+
+            // Render bullet (no line break, stays on same line)
+            doc.text(b.bullet, bulletX, savedY, { lineBreak: false });
+
+            // Render content in a column that starts after the bullet
+            const textX = bulletX + bulletW;
+            const textW = doc.page.width - MARGIN.right - textX;
+            doc.y = savedY;
+            renderRuns(doc, b.runs, fontSize, textX, textW);
         } else {
-            renderRuns(doc, b.runs, fontSize, { lineGap: 1.5 });
+            renderRuns(doc, b.runs, fontSize);
         }
     }
 }
