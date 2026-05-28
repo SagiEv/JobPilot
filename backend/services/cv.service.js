@@ -113,6 +113,7 @@ function renderBlocks(doc, blocks, fontSize) {
             const textW = doc.page.width - MARGIN.right - textX;
             doc.y = savedY;
             renderRuns(doc, b.runs, fontSize, textX, textW);
+            doc.x = MARGIN.left; // reset X so next block isn't indented
         } else {
             renderRuns(doc, b.runs, fontSize);
         }
