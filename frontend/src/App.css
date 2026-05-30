@@ -511,10 +511,13 @@ a:hover {
   height: 100%;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(2px);
+  padding: 5vh 0;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 /* The actual modal box */
@@ -529,6 +532,16 @@ a:hover {
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  margin: auto;
+}
+
+/* Form inside modal must participate in flex layout */
+.modal form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @keyframes modalSlideUp {
@@ -568,6 +581,8 @@ a:hover {
 .modal-body {
   padding: 20px;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-section {

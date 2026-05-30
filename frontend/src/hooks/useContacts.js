@@ -78,6 +78,8 @@ export function useContacts() {
         } catch (error) {
             const msg = error.response?.data?.error || error.response?.data?.message || error.message;
             setUploadStatus(`✗ Error: ${msg}`);
+        } finally {
+            e.target.value = null;
         }
     };
 
@@ -91,6 +93,7 @@ export function useContacts() {
     };
 
     const deleteContact = async (id) => {
+        queryClient.setQueryData(['contacts'], (old) => old ? old.filter(c => c.id !== id) : []);
         return deleteContactMutation.mutateAsync(id);
     };
 

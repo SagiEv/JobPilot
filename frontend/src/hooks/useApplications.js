@@ -125,6 +125,8 @@ export function useApplications() {
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || err.message;
             setStatus(`✗ Error: ${msg}`);
+        } finally {
+            e.target.value = null;
         }
     };
 

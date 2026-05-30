@@ -6,7 +6,7 @@ import { statusBadgeClass, formatDate } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
 
 const ApplicationsPage = () => {
-    const { applications, stats, handleUpload, updateApplication, addApplication, loading } = useApplications();
+    const { applications, stats, status, handleUpload, updateApplication, addApplication, loading } = useApplications();
     const { settings } = useSettings();
 
     // UI State
@@ -133,14 +133,14 @@ const ApplicationsPage = () => {
                     <button className="btn btn-primary btn-sm" onClick={() => setIsAddModalOpen(true)}>
                         + New Application
                     </button>
-                    <button className="btn btn-primary btn-sm">
-                        <label htmlFor="app-csv" style={{ cursor: 'pointer', margin: 0 }}>
-                            Import CSV
-                            <input id="app-csv" type="file" accept=".csv" onChange={handleUpload} style={{ display: 'none' }} />
-                        </label>
-                    </button>
+                    <label className="btn btn-primary btn-sm" htmlFor="app-csv" style={{ cursor: 'pointer', margin: 0, display: 'inline-block', lineHeight: 'normal' }}>
+                        Import CSV
+                        <input id="app-csv" type="file" accept=".csv" onChange={handleUpload} style={{ display: 'none' }} />
+                    </label>
                 </div>
             </div>
+
+            {status && <div className="status-msg" style={{ marginBottom: '20px' }}>{status}</div>}
 
             {/* Table with Inline Update and Details Link */}
             <div className="tbl-wrap">

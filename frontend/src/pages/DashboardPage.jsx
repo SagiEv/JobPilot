@@ -8,6 +8,16 @@ const DashboardPage = () => {
     const { applications, loading: appsLoading } = useApplications();
     const { events, loading: eventsLoading, addEvent } = useEvents();
 
+    // Returns 'YYYY-MM-DD' in the USER'S local timezone (no UTC shift)
+    const localDateStr = (date) => {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        if (!d || isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
     const [stats, setStats] = useState({ active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 });
     const [recentUpdates, setRecentUpdates] = useState([
         { id: 1, type: 'email', message: 'Application confirmed: Google Software Engineer', time: '2 hours ago' },
@@ -16,13 +26,14 @@ const DashboardPage = () => {
     
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [hoveredDay, setHoveredDay] = useState(null);
 
     // Modals state
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
 
     // Event Form
-    const [eventForm, setEventForm] = useState({ title: '', date: '', type: 'generic', details: '' });
+    const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', allDay: false, type: 'generic', details: '' });
     
     // Interview Form
     const [interviewForm, setInterviewForm] = useState({
@@ -39,24 +50,20 @@ const DashboardPage = () => {
     useEffect(() => {
         if (!appsLoading) {
             const apps = applications || [];
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = localDateStr(new Date());
 
             setStats({
                 active: apps.filter(a => a.STATUS !== 'Rejected' && a.STATUS !== 'Offer').length,
                 rejected: apps.filter(a => a.STATUS === 'Rejected').length,
                 appliedToday: apps.filter(a => {
-                    if(!a.DATE) return false;
-                    const d = new Date(a.DATE);
-                    if (isNaN(d.getTime())) return false;
-                    return d.toISOString().split('T')[0] === todayStr;
+                    if (!a.DATE) return false;
+                    return localDateStr(a.DATE) === todayStr;
                 }).length,
                 rejectedToday: apps.filter(a => {
-                    if(a.STATUS !== 'Rejected') return false;
+                    if (a.STATUS !== 'Rejected') return false;
                     const dateToCheck = a.updated_at || a.updatedAt || a.DATE;
-                    if(!dateToCheck) return false;
-                    const d = new Date(dateToCheck);
-                    if (isNaN(d.getTime())) return false;
-                    return d.toISOString().split('T')[0] === todayStr;
+                    if (!dateToCheck) return false;
+                    return localDateStr(dateToCheck) === todayStr;
                 }).length
             });
         }
@@ -76,9 +83,16 @@ const DashboardPage = () => {
 
     const handleEventSubmit = async (e) => {
         e.preventDefault();
-        await addEvent(eventForm);
+        // Combine date + time into a single ISO string, or use date-only if all-day
+        let finalDate = eventForm.date;
+        if (!eventForm.allDay && eventForm.date && eventForm.time) {
+            finalDate = new Date(`${eventForm.date}T${eventForm.time}`).toISOString();
+        } else if (eventForm.allDay && eventForm.date) {
+            finalDate = new Date(`${eventForm.date}T00:00:00`).toISOString();
+        }
+        await addEvent({ ...eventForm, date: finalDate, allDay: eventForm.allDay });
         setIsEventModalOpen(false);
-        setEventForm({ title: '', date: '', type: 'generic', details: '' });
+        setEventForm({ title: '', date: '', time: '', allDay: false, type: 'generic', details: '' });
     };
 
     const handleInterviewSubmit = async (e) => {
@@ -198,21 +212,97 @@ const DashboardPage = () => {
                             {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} />)}
                             {Array.from({ length: daysInMonth }).map((_, i) => {
                                 const day = i + 1;
-                                const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
-                                const hasEvent = events.some(e => {
-                                    if(!e.date) return false;
-                                    const d = new Date(e.date);
-                                    return !isNaN(d.getTime()) && d.toISOString().split('T')[0] === dateStr;
+                                // Build dateStr in LOCAL timezone to avoid UTC-shift
+                                const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                                const dateStr = localDateStr(cellDate);
+                                const dayEvents = events.filter(e => {
+                                    if (!e.date) return false;
+                                    return localDateStr(e.date) === dateStr;
                                 });
+                                const hasEvent = dayEvents.length > 0;
+                                const isHovered = hoveredDay === dateStr;
                                 return (
-                                    <div key={day} style={{
-                                        padding: '0.25rem',
-                                        borderRadius: '4px',
-                                        backgroundColor: hasEvent ? '#0f6e56' : 'transparent',
-                                        color: hasEvent ? '#fff' : '#333',
-                                        fontWeight: hasEvent ? 'bold' : 'normal'
-                                    }}>
-                                        {day}
+                                    <div
+                                        key={day}
+                                        style={{ position: 'relative', display: 'inline-block' }}
+                                        onMouseEnter={() => hasEvent && setHoveredDay(dateStr)}
+                                        onMouseLeave={() => setHoveredDay(null)}
+                                    >
+                                        <div style={{
+                                            padding: '0.25rem',
+                                            borderRadius: '4px',
+                                            backgroundColor: hasEvent ? '#0f6e56' : 'transparent',
+                                            color: hasEvent ? '#fff' : '#333',
+                                            fontWeight: hasEvent ? 'bold' : 'normal',
+                                            cursor: hasEvent ? 'pointer' : 'default',
+                                            transition: 'transform 0.1s ease',
+                                            transform: isHovered ? 'scale(1.15)' : 'scale(1)'
+                                        }}>
+                                            {day}
+                                        </div>
+                                        {isHovered && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                bottom: 'calc(100% + 8px)',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                zIndex: 100,
+                                                backgroundColor: '#1a1a2e',
+                                                color: '#f0f0f0',
+                                                borderRadius: '10px',
+                                                padding: '0.75rem',
+                                                minWidth: '200px',
+                                                maxWidth: '260px',
+                                                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                                                pointerEvents: 'none',
+                                                fontSize: '0.8rem',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.6rem'
+                                            }}>
+                                                {/* Arrow */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: '-6px',
+                                                    left: '50%',
+                                                    transform: 'translateX(-50%)',
+                                                    width: 0,
+                                                    height: 0,
+                                                    borderLeft: '6px solid transparent',
+                                                    borderRight: '6px solid transparent',
+                                                    borderTop: '6px solid #1a1a2e'
+                                                }} />
+                                                {dayEvents.map((ev, idx) => (
+                                                    <div key={idx} style={{
+                                                        borderBottom: idx < dayEvents.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                                                        paddingBottom: idx < dayEvents.length - 1 ? '0.6rem' : 0
+                                                    }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                                                            <span style={{
+                                                                fontSize: '0.7rem',
+                                                                padding: '1px 6px',
+                                                                borderRadius: '999px',
+                                                                backgroundColor: ev.type === 'interview' ? '#0f6e56' : '#3b4a6b',
+                                                                color: '#fff',
+                                                                textTransform: 'capitalize',
+                                                                flexShrink: 0
+                                                            }}>{ev.type || 'event'}</span>
+                                                            <span style={{ fontWeight: 600, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title || ev.company || 'Event'}</span>
+                                                        </div>
+                                                        {ev.company && ev.type === 'interview' && (
+                                                            <div style={{ color: '#a0aec0', marginBottom: '0.2rem' }}>🏢 {ev.company}</div>
+                                                        )}
+                                                        <div style={{ color: '#68d391' }}>🕐 {new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                        {ev.details && (
+                                                            <div style={{ color: '#a0aec0', marginTop: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📝 {ev.details}</div>
+                                                        )}
+                                                        {ev.interviewers && ev.interviewers.length > 0 && (
+                                                            <div style={{ color: '#a0aec0', marginTop: '0.2rem' }}>👤 {Array.isArray(ev.interviewers) ? ev.interviewers.join(', ') : ev.interviewers}</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -328,8 +418,57 @@ const DashboardPage = () => {
                                     <input className="field-input" required value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})} />
                                 </div>
                                 <div className="modal-section">
-                                    <label>Date & Time</label>
-                                    <input type="datetime-local" className="field-input" required value={eventForm.date} onChange={e => setEventForm({...eventForm, date: e.target.value})} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ margin: 0 }}>Date {eventForm.allDay ? '' : '& Time'}</label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#555', cursor: 'pointer', fontWeight: 'normal' }}>
+                                            <div
+                                                onClick={() => setEventForm(prev => ({ ...prev, allDay: !prev.allDay, time: '' }))}
+                                                style={{
+                                                    width: '36px', height: '20px', borderRadius: '999px', position: 'relative', cursor: 'pointer',
+                                                    backgroundColor: eventForm.allDay ? '#0f6e56' : '#ccc',
+                                                    transition: 'background-color 0.2s ease'
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: 'absolute', top: '2px',
+                                                    left: eventForm.allDay ? '18px' : '2px',
+                                                    width: '16px', height: '16px', borderRadius: '50%',
+                                                    backgroundColor: '#fff',
+                                                    transition: 'left 0.2s ease',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                }} />
+                                            </div>
+                                            All Day
+                                        </label>
+                                    </div>
+                                    {eventForm.allDay ? (
+                                        <input
+                                            type="date"
+                                            className="field-input"
+                                            required
+                                            value={eventForm.date}
+                                            onChange={e => setEventForm({ ...eventForm, date: e.target.value })}
+                                        />
+                                    ) : (
+                                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                            <input
+                                                type="date"
+                                                className="field-input"
+                                                required
+                                                value={eventForm.date}
+                                                onChange={e => setEventForm({ ...eventForm, date: e.target.value })}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <input
+                                                type="time"
+                                                className="field-input"
+                                                value={eventForm.time}
+                                                onChange={e => setEventForm({ ...eventForm, time: e.target.value })}
+                                                style={{ flex: 1 }}
+                                                placeholder="Optional"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="modal-section">
                                     <label>Details</label>

@@ -92,12 +92,10 @@ const NetworkPage = () => {
     return (
         <div className="section">
             <div className="import-bar">
-                <button className="btn btn-primary btn-sm">
-                    <label htmlFor="net-csv" style={{ cursor: 'pointer', margin: 0 }}>
-                        Import CSV
-                        <input id="net-csv" type="file" accept=".csv" onChange={handleCSVUpload} style={{ display: 'none' }} />
-                    </label>
-                </button>
+                <label className="btn btn-primary btn-sm" htmlFor="net-csv" style={{ cursor: 'pointer', margin: 0, display: 'inline-block', lineHeight: 'normal' }}>
+                    Import CSV
+                    <input id="net-csv" type="file" accept=".csv" onChange={handleCSVUpload} style={{ display: 'none' }} />
+                </label>
                 <button className="btn btn-secondary btn-sm" onClick={() => setShowMap(!showMap)} style={{ marginLeft: '10px' }}>
                     {showMap ? 'View Grid' : 'Display Map'}
                 </button>
