@@ -14,7 +14,7 @@ const ApplicationsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '' });
+    const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
 
     // Sorting State
     const [sortBy, setSortBy] = useState('date');
@@ -229,7 +229,7 @@ const ApplicationsPage = () => {
                             try {
                                 await addApplication(newAppForm);
                                 setIsAddModalOpen(false);
-                                setNewAppForm({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '' });
+                                setNewAppForm({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
                             } catch (error) {
                                 alert("Failed to create application");
                             }
@@ -299,6 +299,26 @@ const ApplicationsPage = () => {
                                         value={newAppForm.INFO}
                                         onChange={e => setNewAppForm({...newAppForm, INFO: e.target.value})}
                                         placeholder="Job description, notes, etc."
+                                        dir="auto"
+                                    />
+                                </div>
+                                <div className="modal-section">
+                                    <label>Referral Name <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+                                    <input
+                                        className="field-input"
+                                        value={newAppForm.REFERAL}
+                                        onChange={e => setNewAppForm({...newAppForm, REFERAL: e.target.value})}
+                                        placeholder="e.g. Jane Smith"
+                                        dir="auto"
+                                    />
+                                </div>
+                                <div className="modal-section">
+                                    <label>Location <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+                                    <input
+                                        className="field-input"
+                                        value={newAppForm.LOCATION}
+                                        onChange={e => setNewAppForm({...newAppForm, LOCATION: e.target.value})}
+                                        placeholder="e.g. Tel Aviv / Remote"
                                         dir="auto"
                                     />
                                 </div>

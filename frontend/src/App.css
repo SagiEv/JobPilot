@@ -972,6 +972,436 @@ td:nth-child(3) {
   padding-top: 10px;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Application Detail Page  (adp-*)
+   ════════════════════════════════════════════════════════════════ */
+
+.adp-root {
+  padding: 20px 16px 40px;
+  animation: adpFadeIn .25s ease;
+}
+
+@keyframes adpFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Nav bar ── */
+.adp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.adp-btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--t2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.adp-btn-back:hover {
+  background: var(--bg2);
+  color: var(--t1);
+  border-color: var(--border2);
+}
+
+.adp-btn-job-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid rgba(26, 108, 245, .25);
+  border-radius: var(--r);
+  padding: 6px 13px;
+  text-decoration: none;
+  transition: background .15s, box-shadow .15s;
+}
+.adp-btn-job-link:hover {
+  background: #d6e8ff;
+  box-shadow: 0 2px 8px rgba(26, 108, 245, .2);
+  text-decoration: none;
+}
+
+/* ── Hero ── */
+.adp-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.05);
+}
+
+.adp-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  /* HSL-based gradient from company name hue */
+  background: linear-gradient(135deg,
+    hsl(var(--avatar-hue, 220), 70%, 88%) 0%,
+    hsl(var(--avatar-hue, 220), 60%, 78%) 100%);
+  color: hsl(var(--avatar-hue, 220), 55%, 28%);
+}
+
+.adp-hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.adp-company {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.4px;
+  color: var(--t1);
+  line-height: 1.15;
+}
+
+.adp-role {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Status display / edit ── */
+.adp-hero-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Non-editing: badge + pencil button side by side */
+.adp-status-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adp-badge-lg {
+  font-size: 12px !important;
+  padding: 5px 14px !important;
+  border-radius: 999px !important;
+}
+
+/* Pencil icon button — borderless, only visible on hover of parent */
+.adp-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--t3);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.adp-btn-edit:hover {
+  background: var(--bg2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.adp-status-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adp-select {
+  padding: 5px 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  font-size: 12px;
+  font-family: inherit;
+  background: var(--bg2);
+  color: var(--t1);
+  cursor: pointer;
+  outline: none;
+  height: 30px;
+  transition: border-color .15s;
+}
+.adp-select:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.adp-btn-confirm {
+  padding: 5px 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  height: 30px;
+  transition: background .15s;
+}
+.adp-btn-confirm:hover { background: var(--accent-dark); }
+
+.adp-btn-cancel {
+  padding: 5px 10px;
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  font-size: 11px;
+  color: var(--t2);
+  cursor: pointer;
+  font-family: inherit;
+  height: 30px;
+  transition: background .15s, color .15s;
+}
+.adp-btn-cancel:hover { background: var(--bg2); color: var(--danger-c); }
+
+/* ── Stepper ── */
+.adp-stepper-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.04);
+}
+
+.adp-stepper-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--t3);
+  margin-bottom: 14px;
+}
+
+.adp-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.adp-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.adp-step span {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--t3);
+}
+
+.adp-step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border: 2px solid var(--border2);
+  background: var(--bg2);
+  color: var(--t3);
+  transition: background .2s, border-color .2s, color .2s;
+}
+
+.adp-step--done .adp-step-dot {
+  background: var(--success-bg);
+  border-color: var(--success-c);
+  color: var(--success-c);
+  font-weight: 700;
+}
+.adp-step--done span { color: var(--success-c); }
+
+.adp-step--active .adp-step-dot {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--accent-light);
+}
+.adp-step--active span { color: var(--accent); font-weight: 700; }
+
+.adp-step--rejected .adp-step-dot {
+  background: var(--danger-bg);
+  border-color: var(--danger-c);
+  color: var(--danger-c);
+}
+.adp-step--rejected span { color: var(--danger-c); font-weight: 700; }
+
+.adp-step--skipped .adp-step-dot {
+  background: var(--bg2);
+  border-color: var(--border);
+  color: var(--t3);
+  opacity: .5;
+}
+
+.adp-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border2);
+  margin: 0 4px;
+  margin-bottom: 16px;   /* aligns with dot centres */
+  border-radius: 99px;
+  transition: background .3s;
+}
+.adp-step-line--done {
+  background: var(--success-c);
+}
+.adp-step-line--skipped {
+  background: var(--danger-bg);
+  opacity: .4;
+}
+
+/* ── Stat chips row ── */
+.adp-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.adp-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  transition: box-shadow .15s, transform .15s;
+}
+.adp-stat-chip:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+}
+
+.adp-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.adp-stat-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--t3);
+  margin-bottom: 2px;
+}
+
+.adp-stat-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+/* ── Notes card ── */
+.adp-notes-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,.04);
+}
+
+.adp-notes-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.adp-notes-icon {
+  font-size: 16px;
+}
+
+.adp-notes-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.adp-notes-body {
+  padding: 22px 24px;
+  min-height: 160px;
+}
+
+.adp-notes-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.85;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
+.adp-notes-empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--t3);
+  font-style: italic;
+}
+
+/* ── Responsive: collapse stat grid on small screens ── */
+@media (max-width: 700px) {
+  .adp-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .adp-hero {
+    flex-wrap: wrap;
+  }
+  .adp-stepper {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
+
 .tbl-wrap {
   background: white;
   border-radius: 12px;
@@ -2586,4 +3016,350 @@ td:nth-child(3) {
     justify-content: space-between;
     flex-shrink: 0;
   }
-}
+}
+
+/* ── Unified Page Header ──────────────────────────────────────────────────── */
+/* Used by: TailorPage, SearchPage, AnalyticsPage,                            */
+/*          InterviewInsightsPage, SkillsPage, ExperiencePage                 */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 0;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.page-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* Title inside a page-header — override any existing bottom margin */
+.page-header .section-title {
+  margin-bottom: 0;
+}
+
+/* Optional muted tagline under the title */
+.section-subtitle {
+  font-size: 12px;
+  color: var(--t3);
+  margin: 0;
+}
+
+/* .toolbar__right — a utility for pushing trailing controls to the right */
+.toolbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* section-title & subsection-title — define once here */
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--t1);
+  margin: 0;
+}
+
+.subsection-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  padding: 0 22px;
+  margin: 16px 0 8px;
+}
+
+@media (max-width: 600px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Analytics Page (New UI) ─────────────────────────────────────────────── */
+
+.an-page {
+  padding-bottom: 40px;
+}
+
+/* KPI Hero Cards */
+.an-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 0 22px 24px;
+}
+
+.an-kpi-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.an-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+}
+
+.an-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--kpi-accent) 12%, transparent);
+  color: var(--kpi-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.an-kpi-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.an-kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.an-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.an-kpi-sub {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Funnel */
+.an-funnel-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 22px 32px;
+  flex-wrap: wrap;
+}
+
+.an-funnel-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+
+.an-ring-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.an-ring-pct {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.an-funnel-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.an-funnel-count {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.an-funnel-sep {
+  font-size: 20px;
+  color: var(--border2);
+  margin-bottom: 30px;
+}
+
+/* Monthly Bar Chart */
+.an-chart-card {
+  margin: 0 22px 24px;
+  padding: 30px 20px;
+  background: var(--bg);
+  overflow-x: auto;
+}
+
+.an-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  height: 200px;
+  padding-top: 20px;
+  min-width: max-content;
+}
+
+.an-empty {
+  text-align: center;
+  color: var(--t3);
+  padding: 40px;
+  font-size: 14px;
+}
+
+.an-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 48px;
+  group-hover: var(--accent);
+}
+
+.an-bar-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2);
+  margin-bottom: 8px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.an-bar-item:hover .an-bar-count {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.an-bar-track {
+  width: 32px;
+  height: 140px;
+  background: var(--bg2);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  position: relative;
+}
+
+.an-bar-fill {
+  width: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  opacity: 0.8;
+  transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: barGrow 0.8s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+  transform-origin: bottom;
+}
+
+.an-bar-item:hover .an-bar-fill {
+  opacity: 1;
+}
+
+.an-bar-item--current .an-bar-fill {
+  background: var(--success-c);
+}
+
+.an-bar-label {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.an-bar-item--current .an-bar-label {
+  color: var(--success-c);
+  font-weight: 700;
+}
+
+@keyframes barGrow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* Status Breakdown Row */
+.an-status-card {
+  margin: 0 22px 24px;
+  padding: 24px;
+}
+
+.an-status-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.an-status-row:last-child {
+  margin-bottom: 0;
+}
+
+.an-status-name {
+  width: 120px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.an-status-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--bg2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.an-status-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.an-status-meta {
+  width: 80px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.an-status-pct {
+  color: var(--t3);
+  font-weight: 400;
+  font-size: 12px;
+}
+

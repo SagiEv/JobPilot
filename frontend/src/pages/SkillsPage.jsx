@@ -27,9 +27,11 @@ const SkillsPage = () => {
     if (loading) return <PageLoader label="Loading skills…" />;
 
     return (
-        <div className="section">
-            <div className="toolbar">
-                <h2 className="section-title">Skills Matrix</h2>
+        <div className="section" id="sec-skills">
+            <div className="page-header">
+                <div className="page-header__left">
+                    <h2 className="section-title">Skills Matrix</h2>
+                </div>
             </div>
 
             {/* Quick Add Tag Bar */}

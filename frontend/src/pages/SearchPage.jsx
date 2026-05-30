@@ -86,8 +86,10 @@ const SearchPage = () => {
 
     return (
         <div className="section" id="sec-search">
-            <div className="toolbar">
-                <h2 className="section-title">Job Search</h2>
+            <div className="page-header">
+                <div className="page-header__left">
+                    <h2 className="section-title">Job Search</h2>
+                </div>
             </div>
 
             <div className="search-outer">
@@ -203,12 +205,11 @@ const SearchPage = () => {
                             />
                             <button className="btn btn-sm" onClick={handleAddSite}>+ Add</button>
                         </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="btn-group" style={{ marginTop: '14px' }}>
-                        <button className="btn btn-primary">Run Search Now</button>
-                        <button className="btn">Save Settings</button>
+                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button className="btn">Save Settings</button>
+                            <button className="btn btn-primary">Run Search Now</button>
+                        </div>
                     </div>
                 </div>
 
@@ -230,6 +231,7 @@ const SearchPage = () => {
                             ))
                         )}
                     </div>
+
                 </div>
             </div>
         </div>

@@ -118,8 +118,26 @@ const InterviewInsightsPage = () => {
     if (loading) return <PageLoader label="Loading interview insights…" />;
 
     return (
-        <div className="section">
-            <div className="toolbar" style={{ flexWrap: 'wrap', gap: '10px' }}>
+        <div className="section" id="sec-interview-insights">
+            <div className="page-header">
+                <div className="page-header__left">
+                    <h2 className="section-title">Interview Insights</h2>
+                </div>
+                <div className="page-header__actions">
+                    <button className="btn btn-secondary" onClick={startFlashcards}>
+                        Flashcards
+                    </button>
+                    <button className="btn btn-primary" onClick={() => {
+                        setFormData({ company: '', date: '', keep: '', improve: '' });
+                        setEditingId(null);
+                        setShowModal(true);
+                    }}>
+                        + Add Insights
+                    </button>
+                </div>
+            </div>
+
+            <div className="toolbar">
                 <div className="btn-group">
                     <button className={`btn ${viewMode === 'all' ? 'active-filter' : ''}`} onClick={() => setViewMode('all')}>All Details</button>
                     <button className={`btn ${viewMode === 'keep' ? 'active-filter' : ''}`} onClick={() => setViewMode('keep')}>Keep Only</button>
@@ -130,18 +148,6 @@ const InterviewInsightsPage = () => {
                     <button className={`btn ${sortOrder === 'desc' ? 'active-filter' : ''}`} onClick={() => setSortOrder('desc')}>Newest First</button>
                     <button className={`btn ${sortOrder === 'asc' ? 'active-filter' : ''}`} onClick={() => setSortOrder('asc')}>Oldest First</button>
                 </div>
-
-                <button className="btn btn-secondary" onClick={startFlashcards}>
-                    Flashcards
-                </button>
-
-                <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => {
-                    setFormData({ company: '', date: '', keep: '', improve: '' });
-                    setEditingId(null);
-                    setShowModal(true);
-                }}>
-                    + Add Insights
-                </button>
             </div>
 
             {/* Insight Entries List */}
