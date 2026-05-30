@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
 const NetworkGraph = ({ contacts }) => {
     const svgRef = useRef();
     const wrapperRef = useRef();
+    const [viewMode, setViewMode] = useState('contacts');
 
     useEffect(() => {
         if (!contacts || contacts.length === 0) return;
@@ -20,38 +21,61 @@ const NetworkGraph = ({ contacts }) => {
 
         const links = [];
 
-        // Pass 1: Add all known contacts
-        contacts.forEach(contact => {
-            const contactId = contact.id || contact.name;
-            if (!nodesMap.has(contactId)) {
-                nodesMap.set(contactId, { id: contactId, name: contact.name, group: contact.relation, radius: 25 });
-            }
-        });
+        if (viewMode === 'contacts') {
+            // Pass 1: Add all known contacts
+            contacts.forEach(contact => {
+                const contactId = contact.id || contact.name;
+                if (!nodesMap.has(contactId)) {
+                    nodesMap.set(contactId, { id: contactId, name: contact.name, group: contact.relation, radius: 25 });
+                }
+            });
 
-        // Pass 2: Establish links and identify existing connectors
-        contacts.forEach(contact => {
-            const contactId = contact.id || contact.name;
+            // Pass 2: Establish links and identify existing connectors
+            contacts.forEach(contact => {
+                const contactId = contact.id || contact.name;
 
-            if (contact.connected_by) {
-                const connectorName = contact.connected_by.trim();
-                let connectorId = connectorName;
+                if (contact.connected_by) {
+                    const connectorName = contact.connected_by.trim();
+                    let connectorId = connectorName;
 
-                // Match existing contact by name (case-insensitive) to avoid duplicates
-                const existingContact = contacts.find(c => c.name && c.name.toLowerCase() === connectorName.toLowerCase());
-                if (existingContact) {
-                    connectorId = existingContact.id || existingContact.name;
+                    // Match existing contact by name (case-insensitive) to avoid duplicates
+                    const existingContact = contacts.find(c => c.name && c.name.toLowerCase() === connectorName.toLowerCase());
+                    if (existingContact) {
+                        connectorId = existingContact.id || existingContact.name;
+                    }
+
+                    if (!nodesMap.has(connectorId)) {
+                        // Create an intermediary node for the connector if it doesn't exist
+                        nodesMap.set(connectorId, { id: connectorId, name: connectorName, group: 'Connector', radius: 20 });
+                        links.push({ source: 'Me', target: connectorId });
+                    }
+                    links.push({ source: connectorId, target: contactId });
+                } else {
+                    links.push({ source: 'Me', target: contactId });
+                }
+            });
+        } else {
+            // viewMode === 'companies'
+            contacts.forEach(contact => {
+                const contactId = contact.id || contact.name;
+                const companyName = contact.company ? contact.company.trim() : 'Independent';
+                const companyId = `company-${companyName}`;
+
+                // Add Company Node if not exists
+                if (!nodesMap.has(companyId)) {
+                    nodesMap.set(companyId, { id: companyId, name: companyName, group: 'Company', radius: 32 });
+                    links.push({ source: 'Me', target: companyId });
                 }
 
-                if (!nodesMap.has(connectorId)) {
-                    // Create an intermediary node for the connector if it doesn't exist
-                    nodesMap.set(connectorId, { id: connectorId, name: connectorName, group: 'Connector', radius: 20 });
-                    links.push({ source: 'Me', target: connectorId });
+                // Add Contact Node
+                if (!nodesMap.has(contactId)) {
+                    nodesMap.set(contactId, { id: contactId, name: contact.name, group: contact.relation, radius: 20 });
                 }
-                links.push({ source: connectorId, target: contactId });
-            } else {
-                links.push({ source: 'Me', target: contactId });
-            }
-        });
+
+                // Link Company to Contact
+                links.push({ source: companyId, target: contactId });
+            });
+        }
 
         const nodes = Array.from(nodesMap.values());
 
@@ -100,6 +124,7 @@ const NetworkGraph = ({ contacts }) => {
         createGradient("friend-grad", "#52c41a", "#95de64");
         createGradient("recruiter-grad", "#722ed1", "#b37feb");
         createGradient("connector-grad", "#fa8c16", "#ffd591");
+        createGradient("company-grad", "#13c2c2", "#87e8e8"); // Teal color for companies
         createGradient("default-grad", "#d9d9d9", "#f5f5f5");
 
         const getGradient = (group) => {
@@ -108,6 +133,7 @@ const NetworkGraph = ({ contacts }) => {
             if (group === 'Friend') return "url(#friend-grad)";
             if (group === 'Recruiter') return "url(#recruiter-grad)";
             if (group === 'Connector') return "url(#connector-grad)";
+            if (group === 'Company') return "url(#company-grad)";
             return "url(#default-grad)";
         };
 
@@ -178,10 +204,26 @@ const NetworkGraph = ({ contacts }) => {
                 .on("end", dragended);
         }
 
-    }, [contacts]);
+    }, [contacts, viewMode]);
 
     return (
         <div ref={wrapperRef} style={{ width: '100%', height: '600px', position: 'relative', marginTop: '20px' }}>
+            <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '10px', background: 'var(--bg-elevated, #ffffff)', padding: '5px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: '1px solid var(--border, #eaeaea)' }}>
+                <button 
+                    className={`btn btn-sm ${viewMode === 'contacts' ? 'btn-primary' : ''}`} 
+                    onClick={() => setViewMode('contacts')}
+                    style={{ margin: 0, padding: '4px 12px' }}
+                >
+                    Contacts
+                </button>
+                <button 
+                    className={`btn btn-sm ${viewMode === 'companies' ? 'btn-primary' : ''}`} 
+                    onClick={() => setViewMode('companies')}
+                    style={{ margin: 0, padding: '4px 12px' }}
+                >
+                    Companies
+                </button>
+            </div>
             <svg ref={svgRef} style={{ width: '100%', height: '100%' }}></svg>
         </div>
     );
