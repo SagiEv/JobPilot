@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import { useEvents } from '../hooks/useEvents';
+import { useNotifications } from '../hooks/useNotifications';
 import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
 
@@ -19,11 +20,7 @@ const DashboardPage = () => {
     };
 
     const [stats, setStats] = useState({ active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 });
-    const [recentUpdates, setRecentUpdates] = useState([
-        { id: 1, type: 'email', message: 'Application confirmed: Google Software Engineer', time: '2 hours ago' },
-        { id: 2, type: 'status', message: 'Meta moved you to Interview stage', time: '1 day ago' },
-    ]);
-    
+    const { notifications, isLoading: notifLoading, markAllRead, markRead } = useNotifications(10);
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
     const [hoveredDay, setHoveredDay] = useState(null);
@@ -68,6 +65,18 @@ const DashboardPage = () => {
             });
         }
     }, [applications, appsLoading]);
+
+    const timeAgo = (dateStr) => {
+        if (!dateStr) return '';
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    };
 
     // Calendar logic
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -176,17 +185,31 @@ const DashboardPage = () => {
                         Notifications & Updates
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {recentUpdates.map(update => (
-                            <div key={update.id} style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #0f6e56' }}>
+                        {notifications.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888', fontSize: '0.9rem' }}>
+                                {notifLoading ? 'Loading…' : 'No notifications yet. Email sync updates will appear here.'}
+                            </div>
+                        ) : notifications.map(update => (
+                            <div key={update.id} onClick={() => { if (!update.read) markRead(update.id); }} style={{
+                                display: 'flex', gap: '1rem', padding: '1rem',
+                                backgroundColor: update.read ? '#f8f9fa' : '#f0fdf4',
+                                borderRadius: '8px',
+                                borderLeft: `4px solid ${update.read ? '#ccc' : '#0f6e56'}`,
+                                transition: 'background 0.2s',
+                                cursor: update.read ? 'default' : 'pointer'
+                            }}>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '0.95rem', fontWeight: 500, color: '#333' }}>{update.message}</div>
-                                    <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>{update.time}</div>
+                                    <div style={{ fontSize: '0.95rem', fontWeight: update.read ? 400 : 600, color: '#333' }}>{update.title}</div>
+                                    {update.body && <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>{update.body}</div>}
+                                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{timeAgo(update.created_at)}</div>
                                 </div>
                             </div>
                         ))}
-                        <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-                            <button className="btn btn-sm" style={{ color: '#0f6e56' }}>View all notifications</button>
-                        </div>
+                        {notifications.length > 0 && (
+                            <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                                <button className="btn btn-sm" style={{ color: '#0f6e56' }} onClick={() => markAllRead()}>Mark all as read</button>
+                            </div>
+                        )}
                     </div>
                 </div>
 

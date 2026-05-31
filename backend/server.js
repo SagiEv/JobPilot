@@ -26,6 +26,8 @@ const tailorRoutes = require('./routes/tailor.routes');
 const emailRoutes = require('./routes/email.routes');
 const messagesRoutes = require('./routes/messages.routes');
 const eventsRoutes = require('./routes/events.routes');
+const { startMailPolling } = require('./cron/mail-poll-cron');
+const notificationsRoutes = require('./routes/notifications.routes');
 
 // --- Mount Routes ---
 app.use('/auth', userRoutes);
@@ -43,6 +45,7 @@ app.use('/api/tailor', tailorRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -65,6 +68,7 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
+  startMailPolling();
 });
 
 module.exports = app;
