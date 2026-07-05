@@ -37,9 +37,8 @@ const DashboardPage = () => {
         title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: ''
     });
 
-    // Quick Email Composer state
     const [emailComposer, setEmailComposer] = useState({
-        purpose: 'referral', jobLink: '', description: '', addresseeName: '', cvFile: null, githubPortfolio: ''
+        purpose: 'referral', jobLink: '', description: '', addresseeName: '', cvFile: null, githubPortfolio: '', recipientEmail: '', language: 'En'
     });
     const [isComposing, setIsComposing] = useState(false);
     const [composedMessage, setComposedMessage] = useState('');
@@ -141,6 +140,8 @@ const DashboardPage = () => {
             formData.append('description', emailComposer.description);
             formData.append('addresseeName', emailComposer.addresseeName);
             formData.append('githubPortfolio', emailComposer.githubPortfolio);
+            formData.append('recipientEmail', emailComposer.recipientEmail);
+            formData.append('language', emailComposer.language);
             if(emailComposer.cvFile) formData.append('cvFile', emailComposer.cvFile);
 
             const res = await apiClient.post('/api/messages/generate', formData, {
@@ -393,6 +394,13 @@ const DashboardPage = () => {
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
                                 <input type="radio" name="purpose" value="application" checked={emailComposer.purpose === 'application'} onChange={() => setEmailComposer({...emailComposer, purpose: 'application'})} /> Application Message
                             </label>
+                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.85rem', color: '#555' }}>Language:</span>
+                                <select className="field-input" style={{ padding: '0.2rem 0.5rem', height: 'auto' }} value={emailComposer.language} onChange={e => setEmailComposer({...emailComposer, language: e.target.value})}>
+                                    <option value="En">English</option>
+                                    <option value="He">Hebrew</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -403,13 +411,17 @@ const DashboardPage = () => {
                         <textarea className="textarea" placeholder="Job Description (Optional if fetched)" value={emailComposer.description} onChange={e => setEmailComposer({...emailComposer, description: e.target.value})} style={{ minHeight: '60px' }}></textarea>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <input type="text" className="field-input" placeholder="Addressee Name (Optional)" value={emailComposer.addresseeName} onChange={e => setEmailComposer({...emailComposer, addresseeName: e.target.value})} />
-                            <input type="text" className="field-input" placeholder="GitHub Portfolio (Optional)" value={emailComposer.githubPortfolio} onChange={e => setEmailComposer({...emailComposer, githubPortfolio: e.target.value})} />
+                            <input type="text" className="field-input" placeholder="Recipient Full Name" value={emailComposer.addresseeName} onChange={e => setEmailComposer({...emailComposer, addresseeName: e.target.value})} />
+                            <input type="email" className="field-input" placeholder="Recipient Email" value={emailComposer.recipientEmail} onChange={e => setEmailComposer({...emailComposer, recipientEmail: e.target.value})} />
                         </div>
+                        <input type="text" className="field-input" placeholder="GitHub Portfolio (Optional)" value={emailComposer.githubPortfolio} onChange={e => setEmailComposer({...emailComposer, githubPortfolio: e.target.value})} />
 
                         <div>
                             <label style={{ fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem', display: 'block' }}>Upload CV (Optional):</label>
                             <input type="file" className="field-input" accept=".pdf" onChange={e => setEmailComposer({...emailComposer, cvFile: e.target.files[0]})} />
+                            <div style={{ fontSize: '0.8rem', color: '#0f6e56', marginTop: '0.5rem' }}>
+                                ✨ Your profile data (Skills, Projects, Experience) will be automatically used to personalize the message fit!
+                            </div>
                         </div>
 
                         <button className="btn btn-primary" onClick={handleGenerateMessage} disabled={isComposing}>
