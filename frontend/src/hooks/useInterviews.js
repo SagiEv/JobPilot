@@ -41,6 +41,28 @@ export function useInterviews() {
         }
     });
 
+    const { data: aiReports = [], isLoading: loadingReports } = useQuery({
+        queryKey: ['aiReports'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/api/interviews/reports');
+            return data || [];
+        }
+    });
+
+    const generateAiReportMutation = useMutation({
+        mutationFn: async () => {
+            const { data } = await apiClient.post('/api/interviews/analyze');
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['aiReports'] });
+        }
+    });
+
+    const generateAiReport = async () => {
+        return generateAiReportMutation.mutateAsync();
+    };
+
     const addInterview = async (newInt) => {
         const interview = {
             ...newInt, // Spread first so it provides the company and date
@@ -72,5 +94,15 @@ export function useInterviews() {
         return deleteInterviewMutation.mutateAsync(id);
     };
 
-    return { interviews, loading, addInterview, updateInterview, deleteInterview };
+    return { 
+        interviews, 
+        loading, 
+        addInterview, 
+        updateInterview, 
+        deleteInterview,
+        aiReports,
+        loadingReports,
+        generateAiReport,
+        isGeneratingReport: generateAiReportMutation.isPending
+    };
 }

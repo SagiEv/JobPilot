@@ -33,9 +33,32 @@ const remove = async (userId, id) => {
         .eq('user_id', userId);
 };
 
+const getAnalysisReports = async (userId) => {
+    return await supabase
+        .from('ai_analysis_reports')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+};
+
+const saveAnalysisReport = async (userId, reportData) => {
+    return await supabase
+        .from('ai_analysis_reports')
+        .insert({
+            user_id: userId,
+            keep_report: reportData.keep_report,
+            improve_report: reportData.improve_report,
+            overall_trends: reportData.overall_trends
+        })
+        .select()
+        .single();
+};
+
 module.exports = {
     findAll,
     create,
     update,
-    remove
+    remove,
+    getAnalysisReports,
+    saveAnalysisReport
 };

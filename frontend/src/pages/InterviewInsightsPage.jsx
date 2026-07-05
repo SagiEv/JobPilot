@@ -3,12 +3,20 @@ import { useInterviews } from '../hooks/useInterviews';
 import PageLoader from '../components/PageLoader';
 
 const InterviewInsightsPage = () => {
-    const { interviews, loading, addInterview, updateInterview, deleteInterview } = useInterviews();
+    const { 
+        interviews, loading, addInterview, updateInterview, deleteInterview,
+        aiReports, loadingReports, generateAiReport, isGeneratingReport
+    } = useInterviews();
+    
     const [viewMode, setViewMode] = useState('all'); // all, keep, improve
     const [sortOrder, setSortOrder] = useState('desc'); // desc, asc
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({ company: '', date: '', keep: '', improve: '' });
+
+    // AI Reports state
+    const [showAiModal, setShowAiModal] = useState(false);
+    const [selectedAiReportIndex, setSelectedAiReportIndex] = useState(0);
 
     // Flashcard state
     const [showFlashcards, setShowFlashcards] = useState(false);
@@ -124,6 +132,12 @@ const InterviewInsightsPage = () => {
                     <h2 className="section-title">Interview Insights</h2>
                 </div>
                 <div className="page-header__actions">
+                    <button className="btn btn-secondary" onClick={() => setShowAiModal(true)} title="AI Analysis" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                        AI Insights
+                    </button>
                     <button className="btn btn-secondary" onClick={startFlashcards}>
                         Flashcards
                     </button>
@@ -336,6 +350,99 @@ const InterviewInsightsPage = () => {
                                 <button type="submit" className="btn btn-primary">{editingId ? 'Update Insights' : 'Save Insights'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* AI Reports Modal */}
+            {showAiModal && (
+                <div className="modal-overlay" onClick={() => setShowAiModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: '900px', maxWidth: '95vw', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <div className="modal-header">
+                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-color)' }}>
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                </svg>
+                                AI Insights Analysis
+                            </h2>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="btn btn-primary" onClick={() => generateAiReport()} disabled={isGeneratingReport} style={{ padding: '6px 12px', fontSize: '13px' }}>
+                                    {isGeneratingReport ? 'Analyzing...' : '+ New Analysis'}
+                                </button>
+                                <button className="modal-close" onClick={() => setShowAiModal(false)}>✕</button>
+                            </div>
+                        </div>
+                        
+                        <div className="modal-body" style={{ flex: 1, display: 'flex', padding: 0, overflow: 'hidden' }}>
+                            {loadingReports ? (
+                                <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    Loading reports...
+                                </div>
+                            ) : aiReports.length === 0 ? (
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)' }}>
+                                    <p>No AI reports generated yet.</p>
+                                    <p>Click "+ New Analysis" to generate one based on your interview insights.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Sidebar: List of Reports */}
+                                    <div style={{ width: '250px', borderRight: '1px solid var(--border-color)', overflowY: 'auto', background: 'var(--bg-secondary)' }}>
+                                        {aiReports.map((report, idx) => (
+                                            <div 
+                                                key={report.id} 
+                                                onClick={() => setSelectedAiReportIndex(idx)}
+                                                style={{ 
+                                                    padding: '15px', 
+                                                    borderBottom: '1px solid var(--border-color)', 
+                                                    cursor: 'pointer',
+                                                    background: selectedAiReportIndex === idx ? 'var(--bg-card)' : 'transparent',
+                                                    borderLeft: selectedAiReportIndex === idx ? '4px solid var(--primary-color)' : '4px solid transparent',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <div style={{ fontWeight: '500', color: 'var(--text-color)' }}>Report #{aiReports.length - idx}</div>
+                                                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                    {new Date(report.created_at).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    {/* Main Content: Selected Report */}
+                                    <div style={{ flex: 1, overflowY: 'auto', padding: '24px', background: 'var(--bg-card)' }}>
+                                        {aiReports[selectedAiReportIndex] && (
+                                            <div>
+                                                <div style={{ marginBottom: '30px' }}>
+                                                    <h3 style={{ color: 'var(--text-color)', marginBottom: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Overall Trends</h3>
+                                                    <p dir="auto" style={{ lineHeight: '1.6', color: 'var(--text-color)', fontSize: '15px' }}>
+                                                        {aiReports[selectedAiReportIndex].overall_trends || 'No trends available.'}
+                                                    </p>
+                                                </div>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                                    <div className="insight-section keep" style={{ marginTop: 0 }}>
+                                                        <h4 style={{ color: 'var(--success-color, #28a745)', marginBottom: '15px', borderBottom: '1px solid rgba(40, 167, 69, 0.2)', paddingBottom: '8px' }}>Keep Doing</h4>
+                                                        <ul style={{ paddingLeft: '20px', margin: 0, color: 'var(--text-color)', lineHeight: '1.6' }}>
+                                                            {(aiReports[selectedAiReportIndex].keep_report || []).map((pt, i) => (
+                                                                <li key={i} dir="auto" style={{ marginBottom: '8px' }}>{pt}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <div className="insight-section improve" style={{ marginTop: 0 }}>
+                                                        <h4 style={{ color: 'var(--danger-color, #dc3545)', marginBottom: '15px', borderBottom: '1px solid rgba(220, 53, 69, 0.2)', paddingBottom: '8px' }}>To Improve</h4>
+                                                        <ul style={{ paddingLeft: '20px', margin: 0, color: 'var(--text-color)', lineHeight: '1.6' }}>
+                                                            {(aiReports[selectedAiReportIndex].improve_report || []).map((pt, i) => (
+                                                                <li key={i} dir="auto" style={{ marginBottom: '8px' }}>{pt}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

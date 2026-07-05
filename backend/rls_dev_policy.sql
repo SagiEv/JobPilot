@@ -19,3 +19,5 @@ CREATE POLICY "Dev Allow All" ON interviews FOR ALL USING (true) WITH CHECK (tru
 CREATE POLICY "Dev Allow All" ON search_settings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Dev Allow All" ON search_sites FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Dev Allow All" ON skills FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE ai_analysis_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Dev Allow All" ON ai_analysis_reports FOR ALL USING (true) WITH CHECK (true);
