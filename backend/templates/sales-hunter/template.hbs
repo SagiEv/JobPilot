@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{basics.name}} - CV</title>
+    <style>
+        /* Sales Hunter Theme CSS */
+        body { font-family: "Arial", sans-serif; padding: 20px; color: #111; }
+        .section-title { font-size: 1.6em; border-bottom: 2px solid #0056b3; margin-top: 20px; color: #0056b3; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1 style="color: #0056b3; text-transform: uppercase;">{{basics.name}}</h1>
+    <p><strong>Email:</strong> {{basics.email}} | <strong>Phone:</strong> {{basics.phone}}</p>
+    
+    <div class="section-title">Summary</div>
+    <div>{{{cvData.summary}}}</div>
+
+    <div class="section-title">Experience</div>
+    <div>{{{cvData.experience}}}</div>
+
+    <div class="section-title">Education</div>
+    <div>{{{cvData.education}}}</div>
+
+    <div class="section-title">Projects</div>
+    <div>{{{cvData.projects}}}</div>
+</body>
+</html>

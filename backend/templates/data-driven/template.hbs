@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{basics.name}} - CV</title>
+    <style>
+        /* Data Driven Theme CSS */
+        body { font-family: "Helvetica", sans-serif; padding: 20px; color: #222; }
+        .section-title { font-size: 1.5em; background-color: #eee; padding: 5px 10px; margin-top: 20px; font-weight: bold; border-left: 4px solid #333; }
+    </style>
+</head>
+<body>
+    <h1>{{basics.name}}</h1>
+    <p>{{basics.email}} | {{basics.phone}}</p>
+    
+    <div class="section-title">Summary</div>
+    <div>{{{cvData.summary}}}</div>
+
+    <div class="section-title">Experience</div>
+    <div>{{{cvData.experience}}}</div>
+
+    <div class="section-title">Education</div>
+    <div>{{{cvData.education}}}</div>
+
+    <div class="section-title">Projects</div>
+    <div>{{{cvData.projects}}}</div>
+</body>
+</html>

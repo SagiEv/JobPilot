@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{basics.name}} - CV</title>
+    <style>
+        /* Architects Portfolio Theme CSS */
+        body { font-family: "Futura", "Trebuchet MS", sans-serif; padding: 40px; color: #000; }
+        .section-title { font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; margin-top: 30px; font-weight: normal; border-bottom: 1px solid #000; display: inline-block; padding-bottom: 5px; }
+        h1 { text-transform: uppercase; letter-spacing: 4px; font-weight: normal; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>{{basics.name}}</h1>
+    <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.9em; color: #555;">{{basics.email}} | {{basics.phone}}</p>
+    
+    <div class="section-title">Summary</div>
+    <div>{{{cvData.summary}}}</div>
+
+    <div class="section-title">Experience</div>
+    <div>{{{cvData.experience}}}</div>
+
+    <div class="section-title">Education</div>
+    <div>{{{cvData.education}}}</div>
+
+    <div class="section-title">Projects</div>
+    <div>{{{cvData.projects}}}</div>
+</body>
+</html>

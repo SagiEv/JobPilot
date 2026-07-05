@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{basics.name}} - CV</title>
+    <style>
+        /* Developer Mono Theme CSS */
+        body { font-family: "Courier New", monospace; padding: 20px; background-color: #f4f4f4; color: #333; }
+        .section-title { font-size: 1.4em; border-bottom: 1px dashed #333; margin-top: 20px; padding-bottom: 5px; }
+        h1 { font-weight: normal; }
+    </style>
+</head>
+<body>
+    <h1>&gt; {{basics.name}}</h1>
+    <p>contact: {{basics.email}} | {{basics.phone}}</p>
+    
+    <div class="section-title">$ cat summary.txt</div>
+    <div>{{{cvData.summary}}}</div>
+
+    <div class="section-title">$ ls -l experience/</div>
+    <div>{{{cvData.experience}}}</div>
+
+    <div class="section-title">$ cat education.md</div>
+    <div>{{{cvData.education}}}</div>
+
+    <div class="section-title">$ git log projects/</div>
+    <div>{{{cvData.projects}}}</div>
+</body>
+</html>
