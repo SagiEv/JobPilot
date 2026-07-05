@@ -63,8 +63,49 @@ const EditableCVField = ({ title, value, onChange }) => {
 };
 
 const ProfilePage = () => {
-    const { profile, loading, error, handleProfileChange, handleMakeCV, isGeneratingCV } = useProfile();
+    const { profile, loading, error, handleProfileChange, handleMakeCV, handlePreviewCV, handleDownloadJSONResumeCV, isGeneratingCV } = useProfile();
     const [isGenerating, setIsGenerating] = useState(false);
+
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [previewHtml, setPreviewHtml] = useState('');
+    const [selectedTheme, setSelectedTheme] = useState('claude');
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+    const themes = [
+        { id: 'claude', name: 'Claude' },
+        { id: 'sales-hunter', name: 'Sales Hunter' },
+        { id: 'developer-mono', name: 'Developer Mono' },
+        { id: 'data-driven', name: 'Data Driven' },
+        { id: 'architects-portfolio', name: 'Architects Portfolio' },
+        { id: 'stackoverflow', name: 'Stackoverflow' }
+    ];
+
+    const openPreview = async () => {
+        setShowPreviewModal(true);
+        setIsPreviewLoading(true);
+        try {
+            const html = await handlePreviewCV(selectedTheme);
+            setPreviewHtml(html);
+        } catch (err) {
+            alert("Failed to load preview");
+        } finally {
+            setIsPreviewLoading(false);
+        }
+    };
+
+    const handleThemeChange = async (e) => {
+        const newTheme = e.target.value;
+        setSelectedTheme(newTheme);
+        setIsPreviewLoading(true);
+        try {
+            const html = await handlePreviewCV(newTheme);
+            setPreviewHtml(html);
+        } catch (err) {
+            alert("Failed to update preview");
+        } finally {
+            setIsPreviewLoading(false);
+        }
+    };
 
     // const handleMakeCV = async () => {
     //     setIsGenerating(true);
@@ -113,9 +154,14 @@ const ProfilePage = () => {
         <div className="section profile-grid">
             <div className="toolbar profile-span" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 className="section-title" style={{ margin: 0 }}>My Profile</h2>
-                <button className="btn btn-primary" onClick={handleMakeCV} disabled={isGenerating}>
-                    {isGenerating ? 'Generating PDF...' : 'Make CV'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-primary" onClick={openPreview} disabled={isGeneratingCV}>
+                        Make CV (JSONResume)
+                    </button>
+                    <button className="btn" onClick={handleMakeCV} disabled={isGeneratingCV}>
+                        {isGeneratingCV ? 'Generating...' : 'Make CV (Old)'}
+                    </button>
+                </div>
             </div>
 
             <div className="card">
@@ -160,6 +206,38 @@ const ProfilePage = () => {
             <EditableCVField title="Projects" value={profile.cvData?.projects} onChange={(val) => handleProfileChange('cvData.projects', val)} />
             <EditableCVField title="Experience" value={profile.cvData?.experience} onChange={(val) => handleProfileChange('cvData.experience', val)} />
             <EditableCVField title="Additional Information" value={profile.cvData?.additionalInformation} onChange={(val) => handleProfileChange('cvData.additionalInformation', val)} />
+            
+            {showPreviewModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <div className="card" style={{ width: '90%', maxWidth: '900px', height: '90vh', display: 'flex', flexDirection: 'column', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ margin: 0 }}>CV Preview</h3>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <select className="field-input" value={selectedTheme} onChange={handleThemeChange} style={{ margin: 0, padding: '5px 10px', backgroundColor: 'var(--bg)', color: 'var(--t1)' }}>
+                                    {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                </select>
+                                <button className="btn btn-primary" onClick={() => handleDownloadJSONResumeCV(selectedTheme)} disabled={isGeneratingCV || isPreviewLoading}>
+                                    {isGeneratingCV ? 'Generating PDF...' : 'Download as PDF'}
+                                </button>
+                                <button className="btn" onClick={() => setShowPreviewModal(false)}>Close</button>
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, backgroundColor: '#fff', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                            {isPreviewLoading ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#000' }}>
+                                    <span>Loading preview...</span>
+                                </div>
+                            ) : (
+                                <iframe 
+                                    srcDoc={previewHtml} 
+                                    style={{ width: '100%', height: '100%', border: 'none' }} 
+                                    title="CV Preview"
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -31,8 +31,18 @@ const previewCvJsonResume = async (personalInfo, cvData, themeId) => {
 const generateCvJsonResumePdf = async (personalInfo, cvData, themeId) => {
     const html = await previewCvJsonResume(personalInfo, cvData, themeId);
 
-    // Launch puppeteer
-    const browser = await puppeteer.launch({ headless: 'new' });
+    // Launch puppeteer with args for Oracle Server and local Windows compatibility
+    const puppeteerOptions = { 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote']
+    };
+
+    // On Windows local development, fallback to Edge if bundled Chromium is broken
+    if (process.platform === 'win32' && fs.existsSync('C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe')) {
+        puppeteerOptions.executablePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+    }
+
+    const browser = await puppeteer.launch(puppeteerOptions);
     const page = await browser.newPage();
     
     await page.setContent(html, { waitUntil: 'networkidle0' });
