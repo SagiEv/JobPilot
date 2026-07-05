@@ -8,7 +8,7 @@ const applicationRepo = require('../repositories/applications.repository');
 const notificationsRepo = require('../repositories/notifications.repository');
 
 const AUTO_UPDATE_THRESHOLD = 0.7;
-const MAX_BODY_SNIPPET = 500;
+const MAX_BODY_SNIPPET = 3000;
 
 /**
  * Poll all users that have SMTP enabled and are due for polling.
@@ -169,7 +169,7 @@ async function pollUserInbox(settings) {
                         application_id: result.applicationId,
                         from_address: from,
                         subject: subject.substring(0, 500),
-                        body_snippet: bodyText,
+                        body_snippet: bodyText.substring(0, 500),
                         received_at: receivedAt.toISOString(),
                         matched_company: result.matchedCompany,
                         matched_role: result.matchedRole,
