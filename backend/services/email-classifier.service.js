@@ -168,14 +168,26 @@ function classifyEmail(email, applications) {
  * Detect status category from email text using keyword dictionaries.
  */
 function detectStatus(text) {
+    const STATUS_PRIORITY = {
+        offer: 100,
+        rejected: 80,
+        interview: 60,
+        assessment: 40,
+        follow_up: 20
+    };
+
     let bestStatus = 'unknown';
-    let bestCount = 0;
+    let bestScore = 0;
 
     for (const [status, keywords] of Object.entries(STATUS_KEYWORDS)) {
         const hits = keywords.filter(kw => text.includes(kw)).length;
-        if (hits > bestCount) {
-            bestCount = hits;
-            bestStatus = status;
+        if (hits > 0) {
+            // Priority is dominant; extra hits give a slight bonus
+            const score = STATUS_PRIORITY[status] + (hits * 2);
+            if (score > bestScore) {
+                bestScore = score;
+                bestStatus = status;
+            }
         }
     }
 
