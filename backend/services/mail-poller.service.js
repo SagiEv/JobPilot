@@ -151,7 +151,9 @@ async function pollUserInbox(settings) {
                         continue;
                     }
 
-                    const from = parsed.from?.value?.[0]?.address || '';
+                    const fromAddress = parsed.from?.value?.[0]?.address || '';
+                    const fromName = parsed.from?.value?.[0]?.name || '';
+                    const from = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
                     const subject = parsed.subject || '';
                     const bodyText = (parsed.text || '').substring(0, MAX_BODY_SNIPPET);
                     const receivedAt = parsed.date || new Date();

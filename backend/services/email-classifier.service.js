@@ -50,8 +50,30 @@ function normalizeCompany(name) {
  */
 function extractDomain(email) {
     if (!email) return '';
-    const match = email.match(/@([^.]+)/);
-    return match ? match[1].toLowerCase() : '';
+    
+    // Extract actual email address if format is "Name <address>"
+    const emailMatch = email.match(/<([^>]+)>/);
+    const cleanEmail = emailMatch ? emailMatch[1] : email;
+
+    const match = cleanEmail.match(/@([^.]+)/);
+    if (!match) return '';
+
+    const domain = match[1].toLowerCase();
+    
+    // Known ATS domains where the username before @ is the actual company name
+    const atsDomains = ['myworkday', 'myworkdaybio', 'greenhouse', 'lever', 'bamboohr', 'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors', 'comeet-notifications'];
+    
+    if (atsDomains.includes(domain)) {
+        const usernameMatch = cleanEmail.match(/^([^@]+)@/);
+        if (usernameMatch) {
+            let username = usernameMatch[1].toLowerCase();
+            // remove generic prefixes
+            username = username.replace(/^(no-reply|noreply|donotreply|do-not-reply|careers|jobs|hr|talent)_?-?/i, '');
+            if (username) return username;
+        }
+    }
+
+    return domain;
 }
 
 /**
@@ -63,7 +85,7 @@ function extractDomain(email) {
  */
 function classifyEmail(email, applications) {
     const { from, subject, bodySnippet } = email;
-    const text = `${subject || ''} ${bodySnippet || ''}`.toLowerCase();
+    const text = `${from || ''} ${subject || ''} ${bodySnippet || ''}`.toLowerCase();
     const senderDomain = extractDomain(from);
 
     let bestMatch = {
