@@ -5,7 +5,7 @@ Uses: power LLM (prose quality critical)
 """
 import json
 from langchain_core.messages import HumanMessage, SystemMessage
-from state import TailoringState
+from cv_tailor.state import TailoringState
 from llm import get_power_llm
 
 SYSTEM = """You are a professional CV copywriter specializing in compelling executive summaries.

@@ -7,16 +7,16 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from langgraph.graph import StateGraph, END
-from state import TailoringState
+from cv_tailor.state import TailoringState
 
-from agents.job_analyst import job_analyst_node
-from agents.cv_scorer import cv_scorer_node
-from agents.profile_selector import profile_selector_node
-from agents.keyword_injector import keyword_injector_node
-from agents.cv_restructurer import cv_restructurer_node
-from agents.ats_validator import ats_validator_node
-from agents.summary_rewriter import summary_rewriter_node
-from agents.final_polish import final_polish_node
+from cv_tailor.agents.job_analyst import job_analyst_node
+from cv_tailor.agents.cv_scorer import cv_scorer_node
+from cv_tailor.agents.profile_selector import profile_selector_node
+from cv_tailor.agents.keyword_injector import keyword_injector_node
+from cv_tailor.agents.cv_restructurer import cv_restructurer_node
+from cv_tailor.agents.ats_validator import ats_validator_node
+from cv_tailor.agents.summary_rewriter import summary_rewriter_node
+from cv_tailor.agents.final_polish import final_polish_node
 
 MAX_ATS_RETRIES = 2
 

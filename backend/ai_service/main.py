@@ -1,13 +1,12 @@
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from state import TailoringState
-from graph import build_graph
-
+from cv_tailor.state import TailoringState
+from cv_tailor.graph import build_graph
 # ── Job Search imports ────────────────────────────────────────────────
 from job_search.graph import build_search_analyzer_graph
 from job_search.scraper.dumb_scraper import DumbScraper
-from recipe_store import load_recipe, save_recipe, increment_failure, list_recipes, delete_recipe
+from job_search.recipe_store import load_recipe, save_recipe, increment_failure, list_recipes, delete_recipe
 
 import os
 import logging
@@ -294,7 +293,7 @@ def get_recipes():
 @app.delete("/search/recipes/{company_domain}")
 def invalidate_recipe(company_domain: str):
     """Force re-analysis of a site next time it's scraped."""
-    from recipe_store import RECIPES_DIR
+    from job_search.recipe_store import RECIPES_DIR
     path = os.path.join(RECIPES_DIR, f"{company_domain}.json")
     if os.path.exists(path):
         os.remove(path)
