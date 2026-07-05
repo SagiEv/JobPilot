@@ -5,20 +5,17 @@ const profileRepository = require('../repositories/profile.repository');
 const skillsRepository = require('../repositories/skills.repository');
 const experienceRepository = require('../repositories/experience.repository');
 
+const settingsService = require('../services/settings.service');
+
 exports.generateMessage = async (req, res) => {
     try {
         const userId = req.user.id;
         const { purpose, jobLink, description, addresseeName, githubPortfolio, recipientEmail, language } = req.body;
         const cvFile = req.file;
 
-        // Fetch user's groq_api_key from settings
-        const { data: settings, error: settingsError } = await supabase
-            .from('user_settings')
-            .select('groq_api_key')
-            .eq('user_id', userId)
-            .single();
+        const groqApiKey = await settingsService.getRawGroqToken(userId, req.token);
 
-        if (settingsError || !settings?.groq_api_key) {
+        if (!groqApiKey) {
             return res.status(400).json({ error: 'Groq API Key is missing in your settings.' });
         }
 
@@ -48,7 +45,7 @@ exports.generateMessage = async (req, res) => {
             skills_pool: skills || [],
             projects_pool: projects || [],
             experience_text: experienceText?.text || '',
-            groq_api_key: settings.groq_api_key
+            groq_api_key: groqApiKey
         });
 
         res.json({
