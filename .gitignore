@@ -7,3 +7,8 @@ npm-debug.log*
 .DS_Store
 .vscode/launch.json
 server
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class

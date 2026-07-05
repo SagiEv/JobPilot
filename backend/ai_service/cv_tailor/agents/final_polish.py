@@ -7,7 +7,7 @@ Uses: power LLM
 import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
-from state import TailoringState
+from cv_tailor.state import TailoringState
 from llm import get_power_llm
 
 SYSTEM = """You are a senior CV editor doing a final quality pass.

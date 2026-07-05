@@ -6,7 +6,7 @@ Uses: fast LLM (scoring task, deterministic)
 import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
-from state import TailoringState
+from cv_tailor.state import TailoringState
 from llm import get_fast_llm
 
 SYSTEM = """You are a strict but fair CV reviewer and ATS expert.
