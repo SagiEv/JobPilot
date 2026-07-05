@@ -321,7 +321,7 @@ async def generate_message(payload: MessageRequest):
         from langchain_groq import ChatGroq
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        llm = ChatGroq(temperature=0.7, groq_api_key=payload.groq_api_key, model_name="llama3-8b-8192")
+        llm = ChatGroq(temperature=0.7, groq_api_key=payload.groq_api_key, model_name="llama-3.1-8b-instant")
 
         language_instruction = "The output MUST be written entirely in English."
         if payload.language == "He":
