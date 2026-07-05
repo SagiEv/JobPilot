@@ -119,6 +119,9 @@ async function pollUserInbox(settings) {
                 // UID-based search for subsequent runs
                 try {
                     for await (const msg of client.fetch(searchCriteria, { uid: true, envelope: true, source: true })) {
+                        if (settings.smtp_last_uid && msg.uid <= parseInt(settings.smtp_last_uid)) {
+                            continue;
+                        }
                         messages.push(msg);
                     }
                 } catch (fetchErr) {
@@ -136,11 +139,22 @@ async function pollUserInbox(settings) {
             for (const msg of messages) {
                 try {
                     const parsed = await simpleParser(msg.source);
+                    const messageId = parsed.messageId || `uid-${msg.uid}`;
+
+                    // Check if we already processed this message
+                    const { data: existingEmail } = await emailLogsRepo.findByMessageId(userId, messageId);
+                    if (existingEmail) {
+                        console.log(`[MAIL POLLER] Skipping already processed message ${messageId}`);
+                        if (msg.uid && (!newLastUid || msg.uid > parseInt(newLastUid))) {
+                            newLastUid = String(msg.uid);
+                        }
+                        continue;
+                    }
+
                     const from = parsed.from?.value?.[0]?.address || '';
                     const subject = parsed.subject || '';
                     const bodyText = (parsed.text || '').substring(0, MAX_BODY_SNIPPET);
                     const receivedAt = parsed.date || new Date();
-                    const messageId = parsed.messageId || `uid-${msg.uid}`;
 
                     // Classify against user's applications
                     const result = classifyEmail(
