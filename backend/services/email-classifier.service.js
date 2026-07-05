@@ -38,6 +38,7 @@ function normalizeCompany(name) {
     if (!name) return '';
     return name
         .toLowerCase()
+        .replace(/\.(ai|io|com|net|org|co)\b/gi, '')
         .replace(COMPANY_SUFFIXES, '')
         .replace(/[^a-z0-9\s]/g, '')
         .replace(/\s+/g, ' ')
@@ -50,8 +51,30 @@ function normalizeCompany(name) {
  */
 function extractDomain(email) {
     if (!email) return '';
-    const match = email.match(/@([^.]+)/);
-    return match ? match[1].toLowerCase() : '';
+    
+    // Extract actual email address if format is "Name <address>"
+    const emailMatch = email.match(/<([^>]+)>/);
+    const cleanEmail = emailMatch ? emailMatch[1] : email;
+
+    const match = cleanEmail.match(/@([^.]+)/);
+    if (!match) return '';
+
+    const domain = match[1].toLowerCase();
+    
+    // Known ATS domains where the username before @ is the actual company name
+    const atsDomains = ['myworkday', 'myworkdaybio', 'greenhouse', 'lever', 'bamboohr', 'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors', 'comeet-notifications'];
+    
+    if (atsDomains.includes(domain)) {
+        const usernameMatch = cleanEmail.match(/^([^@]+)@/);
+        if (usernameMatch) {
+            let username = usernameMatch[1].toLowerCase();
+            // remove generic prefixes
+            username = username.replace(/^(no-reply|noreply|donotreply|do-not-reply|careers|jobs|hr|talent)_?-?/i, '');
+            if (username) return username;
+        }
+    }
+
+    return domain;
 }
 
 /**
@@ -63,7 +86,7 @@ function extractDomain(email) {
  */
 function classifyEmail(email, applications) {
     const { from, subject, bodySnippet } = email;
-    const text = `${subject || ''} ${bodySnippet || ''}`.toLowerCase();
+    const text = `${from || ''} ${subject || ''} ${bodySnippet || ''}`.toLowerCase();
     const senderDomain = extractDomain(from);
 
     let bestMatch = {
@@ -86,8 +109,13 @@ function classifyEmail(email, applications) {
         // Check if company name appears as a substring (strong signal)
         const substringMatch = text.includes(normCompany);
 
-        if (substringMatch) {
+        if (directSimilarity >= 0.8) {
+            score += 0.75;
+        } else if (substringMatch) {
             score += 0.55;
+            if (directSimilarity >= 0.5) {
+                score += 0.15; // Strong domain resemblance + substring match = highly likely match
+            }
         } else if (directSimilarity >= 0.5) {
             // Sender domain resembles company name
             score += 0.45;
@@ -96,11 +124,6 @@ function classifyEmail(email, applications) {
         } else {
             // No meaningful company match — skip
             continue;
-        }
-
-        // 2. Sender domain bonus
-        if (directSimilarity >= 0.6) {
-            score += 0.1;
         }
 
         // 3. Role/position match
@@ -145,14 +168,26 @@ function classifyEmail(email, applications) {
  * Detect status category from email text using keyword dictionaries.
  */
 function detectStatus(text) {
+    const STATUS_PRIORITY = {
+        offer: 100,
+        rejected: 80,
+        interview: 60,
+        assessment: 40,
+        follow_up: 20
+    };
+
     let bestStatus = 'unknown';
-    let bestCount = 0;
+    let bestScore = 0;
 
     for (const [status, keywords] of Object.entries(STATUS_KEYWORDS)) {
         const hits = keywords.filter(kw => text.includes(kw)).length;
-        if (hits > bestCount) {
-            bestCount = hits;
-            bestStatus = status;
+        if (hits > 0) {
+            // Priority is dominant; extra hits give a slight bonus
+            const score = STATUS_PRIORITY[status] + (hits * 2);
+            if (score > bestScore) {
+                bestScore = score;
+                bestStatus = status;
+            }
         }
     }
 

@@ -8,7 +8,7 @@ const applicationRepo = require('../repositories/applications.repository');
 const notificationsRepo = require('../repositories/notifications.repository');
 
 const AUTO_UPDATE_THRESHOLD = 0.7;
-const MAX_BODY_SNIPPET = 500;
+const MAX_BODY_SNIPPET = 3000;
 
 /**
  * Poll all users that have SMTP enabled and are due for polling.
@@ -151,7 +151,9 @@ async function pollUserInbox(settings) {
                         continue;
                     }
 
-                    const from = parsed.from?.value?.[0]?.address || '';
+                    const fromAddress = parsed.from?.value?.[0]?.address || '';
+                    const fromName = parsed.from?.value?.[0]?.name || '';
+                    const from = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
                     const subject = parsed.subject || '';
                     const bodyText = (parsed.text || '').substring(0, MAX_BODY_SNIPPET);
                     const receivedAt = parsed.date || new Date();
@@ -167,7 +169,7 @@ async function pollUserInbox(settings) {
                         application_id: result.applicationId,
                         from_address: from,
                         subject: subject.substring(0, 500),
-                        body_snippet: bodyText,
+                        body_snippet: bodyText.substring(0, 500),
                         received_at: receivedAt.toISOString(),
                         matched_company: result.matchedCompany,
                         matched_role: result.matchedRole,
@@ -180,6 +182,7 @@ async function pollUserInbox(settings) {
                     if (result.applicationId && result.confidence >= AUTO_UPDATE_THRESHOLD && result.classifiedStatus !== 'unknown') {
                         await applicationRepo.update(userId, result.applicationId, {
                             status: result.classifiedStatus,
+                            date: receivedAt.toISOString().split('T')[0]
                         });
                         console.log(`[MAIL POLLER] Auto-updated application ${result.applicationId} → ${result.classifiedStatus} (confidence: ${result.confidence.toFixed(2)})`);
 
