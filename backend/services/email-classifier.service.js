@@ -38,6 +38,7 @@ function normalizeCompany(name) {
     if (!name) return '';
     return name
         .toLowerCase()
+        .replace(/\.(ai|io|com|net|org|co)\b/gi, '')
         .replace(COMPANY_SUFFIXES, '')
         .replace(/[^a-z0-9\s]/g, '')
         .replace(/\s+/g, ' ')
@@ -108,8 +109,13 @@ function classifyEmail(email, applications) {
         // Check if company name appears as a substring (strong signal)
         const substringMatch = text.includes(normCompany);
 
-        if (substringMatch) {
+        if (directSimilarity >= 0.8) {
+            score += 0.75;
+        } else if (substringMatch) {
             score += 0.55;
+            if (directSimilarity >= 0.5) {
+                score += 0.15; // Strong domain resemblance + substring match = highly likely match
+            }
         } else if (directSimilarity >= 0.5) {
             // Sender domain resembles company name
             score += 0.45;
@@ -118,11 +124,6 @@ function classifyEmail(email, applications) {
         } else {
             // No meaningful company match — skip
             continue;
-        }
-
-        // 2. Sender domain bonus
-        if (directSimilarity >= 0.6) {
-            score += 0.1;
         }
 
         // 3. Role/position match
