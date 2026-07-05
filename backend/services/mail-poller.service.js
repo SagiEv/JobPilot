@@ -182,6 +182,7 @@ async function pollUserInbox(settings) {
                     if (result.applicationId && result.confidence >= AUTO_UPDATE_THRESHOLD && result.classifiedStatus !== 'unknown') {
                         await applicationRepo.update(userId, result.applicationId, {
                             status: result.classifiedStatus,
+                            date: receivedAt.toISOString().split('T')[0]
                         });
                         console.log(`[MAIL POLLER] Auto-updated application ${result.applicationId} → ${result.classifiedStatus} (confidence: ${result.confidence.toFixed(2)})`);
 
