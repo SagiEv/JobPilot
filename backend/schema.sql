@@ -99,3 +99,12 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 
 
+-- AI Analysis Reports table
+CREATE TABLE IF NOT EXISTS ai_analysis_reports (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  keep_report JSONB,
+  improve_report JSONB,
+  overall_trends TEXT
+);

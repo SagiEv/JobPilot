@@ -40,9 +40,31 @@ const remove = async (req, res) => {
     }
 };
 
+const getAiReports = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const reports = await interviewService.getAiReports(userId);
+        res.json(reports);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const generateAiReport = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const report = await interviewService.generateAiReport(userId);
+        res.json(report);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAll,
     create,
     update,
-    remove
+    remove,
+    getAiReports,
+    generateAiReport
 };
