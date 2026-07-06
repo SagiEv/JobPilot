@@ -164,7 +164,6 @@ const DashboardPage = () => {
         <div className="section dashboard-page" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 600, color: '#1a1a1a', margin: 0 }}>Welcome back, Job Hunter!</h1>
                     <p style={{ color: '#666', marginTop: '0.5rem' }}>Here is your career command center overview.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1.5rem', backgroundColor: '#fff', padding: '1rem', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>

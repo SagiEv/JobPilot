@@ -28,11 +28,7 @@ const SkillsPage = () => {
 
     return (
         <div className="section" id="sec-skills">
-            <div className="page-header">
-                <div className="page-header__left">
-                    <h2 className="section-title">Skills Matrix</h2>
-                </div>
-            </div>
+
 
             {/* Quick Add Tag Bar */}
             <div className="card skills-add-card">
