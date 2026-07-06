@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useInterviews() {
     const queryClient = useQueryClient();
 
     const { data: interviews = [], isLoading: loading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['interviews'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/interviews');
@@ -42,6 +43,7 @@ export function useInterviews() {
     });
 
     const { data: aiReports = [], isLoading: loadingReports } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['aiReports'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/interviews/reports');

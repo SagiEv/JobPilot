@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
 
 export function useContacts() {
@@ -8,6 +8,7 @@ export function useContacts() {
     const [uploadStatus, setUploadStatus] = useState('');
 
     const { data: contacts = [], isLoading: loading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['contacts'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/contacts');

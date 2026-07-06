@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useSkills() {
     const queryClient = useQueryClient();
 
     const { data: skills = [], isLoading: loading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['skills'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/skills');

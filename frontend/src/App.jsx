@@ -16,7 +16,7 @@ import { checkBackendHealth } from './services/apiService';
 import { restoreSession } from './services/authService';
 
 function App() {
-    const [activeTab, setActiveTab] = useState('profile');
+    const [activeTab, setActiveTab] = useState('dashboard');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [backendStatus, setBackendStatus] = useState('checking');
     const [isInitialising, setIsInitialising] = useState(true);

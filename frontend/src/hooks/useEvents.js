@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useEvents() {
     const queryClient = useQueryClient();
 
     const { data: events = [], isLoading: loading, refetch } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['events'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/events');

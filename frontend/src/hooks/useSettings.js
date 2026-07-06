@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 const DEFAULT_SETTINGS = {
     groq_token_set: false,
@@ -21,6 +21,7 @@ export function useSettings() {
     const [testing, setTesting] = useState(false);
 
     const { data: settings = DEFAULT_SETTINGS, isLoading: loading, error: queryError } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['settings'],
         queryFn: async () => {
             const res = await apiClient.get('/api/settings');

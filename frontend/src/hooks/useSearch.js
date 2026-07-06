@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useSearch() {
     const queryClient = useQueryClient();
@@ -13,6 +13,7 @@ export function useSearch() {
         schedule: 'Manual only',
         lastResults: []
     }, isLoading: loading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['searchSettings'],
         queryFn: async () => {
             const [settingsRes, sitesRes] = await Promise.all([
