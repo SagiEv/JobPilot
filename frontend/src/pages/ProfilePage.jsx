@@ -72,12 +72,12 @@ const ProfilePage = () => {
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
     const themes = [
-        { id: 'claude', name: 'Claude' },
-        { id: 'sales-hunter', name: 'Sales Hunter' },
-        { id: 'developer-mono', name: 'Developer Mono' },
-        { id: 'data-driven', name: 'Data Driven' },
-        { id: 'architects-portfolio', name: 'Architects Portfolio' },
-        { id: 'stackoverflow', name: 'Stackoverflow' }
+        { id: 'claude',                name: 'Claude',               desc: 'Clean & minimal',     accent: '#6c8ebf' },
+        { id: 'stackoverflow',         name: 'Stack Overflow',        desc: 'Dev community style', accent: '#f48024' },
+        { id: 'developer-mono',        name: 'Developer Mono',        desc: 'Monospace & sharp',   accent: '#00b4d8' },
+        { id: 'data-driven',           name: 'Data Driven',           desc: 'Bold & analytical',   accent: '#7b2d8b' },
+        { id: 'architects-portfolio',  name: 'Architects Portfolio',  desc: 'Structured & elegant',accent: '#2d6a4f' },
+        { id: 'sales-hunter',          name: 'Sales Hunter',          desc: 'Bold & persuasive',   accent: '#c1121f' },
     ];
 
     const openPreview = async () => {
@@ -210,17 +210,77 @@ const ProfilePage = () => {
             {showPreviewModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <div className="card" style={{ width: '90%', maxWidth: '900px', height: '90vh', display: 'flex', flexDirection: 'column', padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                        {/* ── Modal header ── */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                             <h3 style={{ margin: 0 }}>CV Preview</h3>
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                <select className="field-input" value={selectedTheme} onChange={handleThemeChange} style={{ margin: 0, padding: '5px 10px', backgroundColor: 'var(--bg)', color: 'var(--t1)' }}>
-                                    {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
-                                <button className="btn btn-primary" onClick={() => handleDownloadJSONResumeCV(selectedTheme)} disabled={isGeneratingCV || isPreviewLoading}>
-                                    {isGeneratingCV ? 'Generating PDF...' : 'Download as PDF'}
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => handleDownloadJSONResumeCV(selectedTheme)}
+                                    disabled={isGeneratingCV || isPreviewLoading}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                >
+                                    {isGeneratingCV ? 'Generating PDF…' : '⬇ Download PDF'}
                                 </button>
-                                <button className="btn" onClick={() => setShowPreviewModal(false)}>Close</button>
+                                <button className="btn" onClick={() => setShowPreviewModal(false)}>✕ Close</button>
                             </div>
+                        </div>
+
+                        {/* ── Theme picker strip ── */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            overflowX: 'auto',
+                            paddingBottom: '10px',
+                            marginBottom: '10px',
+                            scrollbarWidth: 'thin',
+                        }}>
+                            {themes.map(t => {
+                                const isActive = t.id === selectedTheme;
+                                return (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => handleThemeChange({ target: { value: t.id } })}
+                                        disabled={isPreviewLoading}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            gap: '4px',
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            border: isActive ? `2px solid ${t.accent}` : '2px solid transparent',
+                                            background: isActive ? `${t.accent}18` : 'var(--card-bg, rgba(255,255,255,0.04))',
+                                            cursor: isPreviewLoading ? 'not-allowed' : 'pointer',
+                                            opacity: isPreviewLoading ? 0.6 : 1,
+                                            minWidth: '120px',
+                                            flexShrink: 0,
+                                            transition: 'border-color 0.15s, background 0.15s',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{
+                                                width: '10px',
+                                                height: '10px',
+                                                borderRadius: '50%',
+                                                background: t.accent,
+                                                flexShrink: 0,
+                                            }} />
+                                            <span style={{
+                                                fontSize: '12px',
+                                                fontWeight: isActive ? 700 : 500,
+                                                color: isActive ? t.accent : 'var(--t1)',
+                                                whiteSpace: 'nowrap',
+                                            }}>{t.name}</span>
+                                        </div>
+                                        <span style={{
+                                            fontSize: '10px',
+                                            color: 'var(--t2, #888)',
+                                            whiteSpace: 'nowrap',
+                                        }}>{t.desc}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                         <div style={{ flex: 1, backgroundColor: '#fff', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
                             {isPreviewLoading ? (
