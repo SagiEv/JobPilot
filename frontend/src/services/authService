@@ -36,6 +36,14 @@ export const authService = {
         await supabase.auth.signOut();
         localStorage.removeItem('refresh_token');
         window.location.href = '/login';
+    },
+
+    async changePassword(newPassword) {
+        const { data, error } = await supabase.auth.updateUser({
+            password: newPassword
+        });
+        if (error) throw error;
+        return data;
     }
 };
 
