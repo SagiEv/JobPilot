@@ -28,6 +28,8 @@ const messagesRoutes = require('./routes/messages.routes');
 const eventsRoutes = require('./routes/events.routes');
 const { startMailPolling } = require('./cron/mail-poll-cron');
 const notificationsRoutes = require('./routes/notifications.routes');
+const rssRoutes = require('./routes/rss.routes');
+const { startRssPolling } = require('./cron/rss-poll-cron');
 
 // --- Mount Routes ---
 app.use('/auth', userRoutes);
@@ -46,6 +48,7 @@ app.use('/api/email', emailRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/rss-feeds', rssRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -69,6 +72,7 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
   startMailPolling();
+  startRssPolling();
 });
 
 module.exports = app;

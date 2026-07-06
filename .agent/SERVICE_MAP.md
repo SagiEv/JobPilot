@@ -10,6 +10,7 @@
 **Standard CRUD:** Node.js ↔ Supabase (PostgreSQL) / React ↔ Supabase (PostgreSQL)
 **Heavy AI Logic (CV Tailoring):** Node.js → REST → FastAPI (LangGraph/Groq)
 **Web Scraping:** Node.js (Puppeteer) or FastAPI (Playwright/BeautifulSoup)
+**Background Polling (RSS/Email):** Node.js Cron → API/IMAP Fetch → Python AI Classification → DB Write
 
 ### Network Boundaries
 **Frontend:** Interacts with Node.js API and Supabase directly.

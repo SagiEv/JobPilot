@@ -1,7 +1,7 @@
 ### Component Patterns
 **Architecture:** Functional components, React Hooks (`/src/hooks`).
 **State Management:** React Context API + Local State. Supabase Client for backend data.
-**Data Fetching:** Axios instance (`/src/api.js`) for Node.js API interactions.
+**Data Fetching:** React Query (`@tanstack/react-query`) for API caching and server state, relying on an Axios instance (`/src/services/apiClient.js`) for Node.js API interactions.
 **Styling:** Modern CSS (Utility classes / CSS Modules) compatible with Vite.
 **Folder Structure:** `/src/components` (Reusable UI), `/src/pages` (Application views), `/src/hooks` (Custom logic), `api.js` (Frontend API client).
 

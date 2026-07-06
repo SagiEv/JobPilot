@@ -1,5 +1,5 @@
 ### Orchestrator Role
-**Responsibility:** Primary API Gateway, file parsing (Multer, pdf-parse), Web Scraping (Puppeteer), standard CRUD, routing to FastAPI (AI Service).
+**Responsibility:** Primary API Gateway, Background Workers (Cron), file parsing (Multer, pdf-parse), Web Scraping (Puppeteer), standard CRUD, routing to FastAPI (AI Service).
 **Framework:** Node.js / Express.
 **Architecture:** MVC (`/routes`, `/controllers`, `/services`).
 
@@ -15,3 +15,7 @@
 ### Supabase Integration
 **SDK:** `@supabase/supabase-js`.
 **Auth & Data Access:** Validate requests and interact with Supabase (PostgreSQL with RLS). Service layer handles DB queries. Avoid direct DB calls in controllers.
+**Admin Actions:** `adminSupabase` client (Service Role Key) bypasses RLS for automated background worker processes (e.g. RSS Polling).
+
+### Background Workers
+**Cron Jobs:** Utilizes `node-cron` to orchestrate background tasks (e.g., IMAP polling, RSS feed ingestion) continuously alongside the main Express API.

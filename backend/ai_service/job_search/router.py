@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 import logging
 import os
-from .models import AnalyzeSiteRequest, SearchRequest
+from .models import AnalyzeSiteRequest, SearchRequest, JobClassificationRequest
 from .graph import build_search_analyzer_graph
 from .scraper.dumb_scraper import DumbScraper
 from .recipe_store import load_recipe, save_recipe, increment_failure, list_recipes, delete_recipe
@@ -211,3 +211,43 @@ def invalidate_recipe(company_domain: str):
         os.remove(path)
         return {"success": True, "message": f"Recipe {company_domain} deleted"}
     return {"success": False, "message": "Recipe not found"}
+
+@router.post("/classify-job")
+def classify_job(payload: JobClassificationRequest):
+    """
+    Classify a job posting to determine if it is relevant to a Junior Software Engineer.
+    """
+    from ..llm import get_fast_llm
+    from .models import JobClassificationResponse
+    
+    if not payload.groq_api_key:
+        raise HTTPException(status_code=400, detail="groq_api_key is required")
+
+    try:
+        llm = get_fast_llm(payload.groq_api_key)
+        structured_llm = llm.with_structured_output(JobClassificationResponse)
+        
+        prompt = f"""
+        You are a technical recruiter expert. Your task is to analyze a job posting from an RSS feed and determine if it is a good fit for a Junior Software Engineer (0-2 years of experience).
+
+        Job Title: {payload.title}
+        Company: {payload.company}
+        Description Snippet: {payload.description}
+
+        Evaluate the job based on the following criteria:
+        1. Is it a software engineering role? (Reject unrelated roles like sales, marketing, IT support, etc.)
+        2. Is it suitable for a junior or entry-level candidate (0-2 years of experience)? (Reject senior, lead, staff, or manager roles).
+
+        Provide a structured response:
+        - is_relevant: true/false
+        - category: The software domain (e.g., "Backend", "Frontend", "Full Stack", "Data", "Mobile", "DevOps", "Software Engineer").
+        - seniority: The seniority level (e.g., "Junior", "Graduate", "Entry Level", "Mid", "Senior").
+        - reason: A short 1-sentence reason for your decision.
+        """
+        
+        response = structured_llm.invoke(prompt)
+        return response
+        
+    except Exception as e:
+        logger.error(f"Classification failed for {payload.title}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
