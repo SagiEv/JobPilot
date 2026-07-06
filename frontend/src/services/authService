@@ -26,7 +26,7 @@ export const authService = {
     async loginWithGoogle() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${window.location.origin}/login` }
+            options: { redirectTo: window.location.origin }
         });
         if (error) throw error;
     },
@@ -35,7 +35,7 @@ export const authService = {
         setAccessToken(null);
         await supabase.auth.signOut();
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        window.location.href = '/';
     },
 
     async changePassword(newPassword) {
