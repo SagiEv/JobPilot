@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{basics.name}} - CV</title>
+    <style>
+        /* Architects Portfolio Theme CSS */
+        body { font-family: "Futura", "Trebuchet MS", sans-serif; padding: 40px; color: #000; }
+        .section-title { font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; margin-top: 30px; font-weight: normal; border-bottom: 1px solid #000; display: inline-block; padding-bottom: 5px; }
+        h1 { text-transform: uppercase; letter-spacing: 4px; font-weight: normal; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>{{basics.name}}</h1>
+    <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.9em; color: #555;">
+        {{#if basics.phone}}{{basics.phone}}{{/if}}
+        {{#if basics.email}} | <a href="mailto:{{basics.email}}">{{basics.email}}</a>{{/if}}
+        {{#if basics.linkedin}} | <a href="{{basics.linkedin}}">{{basics.linkedin}}</a>{{/if}}
+        {{#if basics.github}} | <a href="{{basics.github}}">{{basics.github}}</a>{{/if}}
+    </p>
+
+    {{#if cvData.summary}}
+    <div class="section-title">Summary</div>
+    <div>{{{cvData.summary}}}</div>
+    {{/if}}
+
+    {{#if cvData.technicalSkills}}
+    <div class="section-title">Technical Skills</div>
+    <div>{{{cvData.technicalSkills}}}</div>
+    {{/if}}
+
+    {{#if cvData.education}}
+    <div class="section-title">Education</div>
+    <div>{{{cvData.education}}}</div>
+    {{/if}}
+
+    {{#if cvData.projects}}
+    <div class="section-title">Projects</div>
+    <div>{{{cvData.projects}}}</div>
+    {{/if}}
+
+    {{#if cvData.experience}}
+    <div class="section-title">Experience</div>
+    <div>{{{cvData.experience}}}</div>
+    {{/if}}
+
+    {{#if cvData.additionalInformation}}
+    <div class="section-title">Additional Information</div>
+    <div>{{{cvData.additionalInformation}}}</div>
+    {{/if}}
+</body>
+</html>
