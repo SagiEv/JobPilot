@@ -21,3 +21,17 @@ class SearchRequest(BaseModel):
     keywords: List[str]
     anti_keywords: Optional[List[str]] = []
     groq_api_key: str                # Only used if a new site needs AI analysis
+
+class JobClassificationRequest(BaseModel):
+    title: str
+    company: str
+    location: str
+    url: str
+    description: str
+    groq_api_key: str
+
+class JobClassificationResponse(BaseModel):
+    is_relevant: bool
+    category: Optional[str] = None
+    seniority: Optional[str] = None
+    reason: Optional[str] = None

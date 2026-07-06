@@ -34,10 +34,12 @@
     "jsonresume-theme-stackoverflow": "^3.3.0",
     "mailparser": "^3.9.9",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.6.0",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.18.0",
     "puppeteer": "^25.3.0",
     "resumed": "^6.1.0",
+    "rss-parser": "^3.13.0",
     "string-similarity": "^4.0.4",
     "zod": "^4.4.3"
   },

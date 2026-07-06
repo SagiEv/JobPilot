@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import { useEvents } from '../hooks/useEvents';
 import { useNotifications } from '../hooks/useNotifications';
+import { useRss } from '../hooks/useRss';
 import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
 
 const DashboardPage = () => {
     const { applications, loading: appsLoading } = useApplications();
     const { events, loading: eventsLoading, addEvent } = useEvents();
+    const { jobs: rssJobs, jobsLoading: rssLoading } = useRss();
 
     // Returns 'YYYY-MM-DD' in the USER'S local timezone (no UTC shift)
     const localDateStr = (date) => {
@@ -369,12 +371,64 @@ const DashboardPage = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                {/* Auto Search Recent Results (Placeholder) */}
-                <div className="card" style={{ padding: '1.5rem', borderRadius: '12px', border: '1px dashed #ccc', backgroundColor: '#fafafa' }}>
-                    <h2 style={{ fontSize: '1.1rem', color: '#555', marginBottom: '0.5rem' }}>Auto Search Results</h2>
-                    <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '1rem' }}>We are scanning the web for jobs matching your profile. Results will appear here.</p>
-                    <div style={{ height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0', borderRadius: '8px' }}>
-                        <span style={{ color: '#aaa' }}>Placeholder (Coming Soon)</span>
+                {/* Role Suggestions (RSS Feeds) */}
+                <div className="card" style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid #e0e0e0', backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h2 style={{ fontSize: '1.1rem', color: '#333', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f6e56" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            Role Suggestions
+                        </h2>
+                        {rssJobs && rssJobs.length > 0 && (
+                            <span className="count-badge" style={{ backgroundColor: '#e6f4f1', color: '#0f6e56' }}>
+                                {rssJobs.length} New
+                            </span>
+                        )}
+                    </div>
+                    
+                    <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                        Fresh opportunities discovered via Google Alerts and matched for Junior Software roles.
+                    </p>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
+                        {rssLoading ? (
+                            <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888' }}>Loading suggestions...</div>
+                        ) : !rssJobs || rssJobs.length === 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px', padding: '2rem 1rem', height: '100%', textAlign: 'center' }}>
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" style={{ marginBottom: '1rem' }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                <span style={{ color: '#aaa', fontSize: '0.9rem' }}>No new jobs found right now.</span>
+                                <span style={{ color: '#aaa', fontSize: '0.8rem', marginTop: '0.25rem' }}>Make sure your RSS feeds are active in the Search tab.</span>
+                            </div>
+                        ) : (
+                            rssJobs.map(job => (
+                                <div key={job.id} style={{
+                                    display: 'flex', flexDirection: 'column', padding: '1rem', backgroundColor: '#fcfcfc', border: '1px solid #eaeaea', borderRadius: '8px', transition: 'all 0.2s ease', cursor: 'pointer'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0f6e56'; e.currentTarget.style.backgroundColor = '#f4fbf9'; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#eaeaea'; e.currentTarget.style.backgroundColor = '#fcfcfc'; }}
+                                onClick={() => window.open(job.url, '_blank')}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                        <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '0.95rem', lineHeight: '1.3' }}>{job.title}</div>
+                                        {job.category && (
+                                            <span style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: '#e2e8f0', color: '#4a5568', borderRadius: '4px', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
+                                                {job.category}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {job.company && <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>🏢 {job.company}</span>}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed #eaeaea' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#888' }}>
+                                            {timeAgo(job.published_at || job.created_at)}
+                                        </div>
+                                        <a href={job.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#0f6e56', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
+                                            Apply <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                        </a>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 

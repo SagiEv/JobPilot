@@ -108,3 +108,28 @@ CREATE TABLE IF NOT EXISTS ai_analysis_reports (
   improve_report JSONB,
   overall_trends TEXT
 );
+
+-- RSS Feeds table
+CREATE TABLE IF NOT EXISTS rss_feeds (
+  id SERIAL PRIMARY KEY,
+  url TEXT NOT NULL,
+  category TEXT,
+  enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ingested RSS Jobs table
+CREATE TABLE IF NOT EXISTS rss_jobs (
+  id SERIAL PRIMARY KEY,
+  feed_id INTEGER REFERENCES rss_feeds(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  company TEXT,
+  location TEXT,
+  url TEXT NOT NULL UNIQUE,
+  description TEXT,
+  published_at TIMESTAMP WITH TIME ZONE,
+  category TEXT,
+  seniority TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
