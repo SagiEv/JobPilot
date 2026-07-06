@@ -156,10 +156,10 @@ const ProfilePage = () => {
                 <h2 className="section-title" style={{ margin: 0 }}>My Profile</h2>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button className="btn btn-primary" onClick={openPreview} disabled={isGeneratingCV}>
-                        Make CV (JSONResume)
+                        CV Designs
                     </button>
                     <button className="btn" onClick={handleMakeCV} disabled={isGeneratingCV}>
-                        {isGeneratingCV ? 'Generating...' : 'Make CV (Old)'}
+                        {isGeneratingCV ? 'Downloading...' : 'Download CV'}
                     </button>
                 </div>
             </div>
