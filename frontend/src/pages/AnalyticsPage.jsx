@@ -112,7 +112,7 @@ const AnalyticsPage = () => {
         <div className="section an-page" id="sec-analytics">
 
             {/* ── Page header ───────────────────────────────────────── */}
-            <div className="page-header">
+            <div className="page-header desktop-only">
                 <div className="page-header__left">
                     <h2 className="section-title">Performance Analytics</h2>
                     <p className="section-subtitle">Track your job-search momentum at a glance</p>

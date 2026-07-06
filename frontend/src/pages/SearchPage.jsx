@@ -164,7 +164,7 @@ const SearchPage = () => {
 
     return (
         <div className="section" id="sec-search">
-            <div className="page-header">
+            <div className="page-header desktop-only">
                 <div className="page-header__left">
                     <h2 className="section-title">Job Search</h2>
                 </div>

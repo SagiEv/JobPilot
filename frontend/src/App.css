@@ -1394,7 +1394,17 @@ td:nth-child(3) {
     grid-template-columns: repeat(2, 1fr);
   }
   .adp-hero {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .adp-hero-status {
+    width: 100%;
+    margin-top: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .adp-role {
+    white-space: normal;
   }
   .adp-stepper {
     overflow-x: auto;
@@ -3047,10 +3057,14 @@ td:nth-child(3) {
   display: none !important;
 }
 
+
 @media (max-width: 768px) {
   /* Show mobile-only elements */
   .mobile-only {
     display: flex !important;
+  }
+  .desktop-only {
+    display: none !important;
   }
   
   .hamburger-btn, .sidebar-close-btn {
@@ -3155,6 +3169,22 @@ td:nth-child(3) {
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .search-outer {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 
