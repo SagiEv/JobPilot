@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 const QUERY_KEY = 'notifications';
 
@@ -12,6 +12,7 @@ export function useNotifications(limit = 20) {
         error,
         refetch,
     } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: [QUERY_KEY, limit],
         queryFn: async () => {
             const res = await apiClient.get(`/api/notifications?limit=${limit}`);
@@ -22,6 +23,7 @@ export function useNotifications(limit = 20) {
     });
 
     const { data: unreadCountData } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: [QUERY_KEY, 'unread-count'],
         queryFn: async () => {
             const res = await apiClient.get('/api/notifications/unread-count');

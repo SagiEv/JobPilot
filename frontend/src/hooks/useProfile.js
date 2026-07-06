@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useProfile() {
     const queryClient = useQueryClient();
     const [isGeneratingCV, setIsGeneratingCV] = useState(false);
 
     const { data: profile = {}, isLoading: loading, error: queryError } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['profile'],
         queryFn: async () => {
             const response = await apiClient.get('/api/profile/');

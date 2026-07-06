@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
 
 // Map between DB schema and frontend state
@@ -38,6 +38,7 @@ export function useApplications() {
     const [status, setStatus] = useState('');
 
     const { data: applications = [], isLoading: loading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['applications'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/applications');

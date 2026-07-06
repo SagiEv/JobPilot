@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useEmailIntegration() {
     const queryClient = useQueryClient();
     const [syncing, setSyncing] = useState(false);
 
     const { data: integration = null, isLoading: loading, error: queryError, refetch: fetchStatus } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['emailStatus'],
         queryFn: async () => {
             const res = await apiClient.get('/api/email/status');

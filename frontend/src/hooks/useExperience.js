@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useExperience() {
     const queryClient = useQueryClient();
 
     const { data: { projects = [], experienceTextObj = { id: null, text: '' } } = {}, isLoading: loading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['experience'],
         queryFn: async () => {
             const [projRes, textRes] = await Promise.all([

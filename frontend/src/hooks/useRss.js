@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
+import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useRss() {
     const queryClient = useQueryClient();
 
     // Fetch Feeds
     const { data: feeds = [], isLoading: feedsLoading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['rssFeeds'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/rss-feeds/feeds');
@@ -15,6 +16,7 @@ export function useRss() {
 
     // Fetch Jobs
     const { data: jobs = [], isLoading: jobsLoading } = useQuery({
+        enabled: !!getAccessToken(),
         queryKey: ['rssJobs'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/rss-feeds/jobs');
