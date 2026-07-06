@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
+import { authService } from '../services/authService';
 import PageLoader from '../components/PageLoader';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -93,6 +94,44 @@ const SettingsPage = () => {
 
     // Global feedback
     const [feedback, setFeedback] = useState(null);
+
+    // Account & Security state
+    const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [passwordExpanded, setPasswordExpanded] = useState(false);
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
+            return flash('error', 'Please fill in both password fields.');
+        }
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            return flash('error', 'Passwords do not match.');
+        }
+        if (passwordForm.newPassword.length < 6) {
+            return flash('error', 'Password must be at least 6 characters.');
+        }
+        setPasswordLoading(true);
+        try {
+            await authService.changePassword(passwordForm.newPassword);
+            flash('success', 'Password updated successfully.');
+            setPasswordForm({ newPassword: '', confirmPassword: '' });
+            setPasswordExpanded(false);
+        } catch (err) {
+            flash('error', err.message || 'Failed to update password.');
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        if (!window.confirm('Are you sure you want to log out?')) return;
+        try {
+            await authService.logout();
+        } catch {
+            flash('error', 'Failed to log out.');
+        }
+    };
 
     // Sync SMTP form from loaded settings
     useEffect(() => {
@@ -198,6 +237,79 @@ const SettingsPage = () => {
                         {feedback.type === 'success' ? <CheckIcon /> : '⚠'} {feedback.msg}
                     </div>
                 )}
+
+                {/* ── Account & Security ── */}
+                <div className="settings-section-label">Account & Security</div>
+                <div className="card settings-card" style={{ marginBottom: '2rem' }}>
+                    <div className="settings-service-row">
+                        <div className="settings-service-info" style={{ flex: 1 }}>
+                            <div className="settings-service-name">Change Password</div>
+                            <div className="settings-service-desc">Update your account password.</div>
+                        </div>
+                        <div className="settings-service-status">
+                            <button className="btn btn-sm" onClick={() => setPasswordExpanded(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {passwordExpanded ? 'Cancel' : 'Change'} <ChevronIcon open={passwordExpanded} />
+                            </button>
+                        </div>
+                    </div>
+                    <div 
+                        style={{ 
+                            maxHeight: passwordExpanded ? '500px' : '0',
+                            opacity: passwordExpanded ? 1 : 0,
+                            overflow: 'hidden',
+                            transition: 'max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out',
+                            marginTop: passwordExpanded ? '10px' : '0'
+                        }}
+                    >
+                        <div className="settings-service-row" style={{ paddingTop: 0 }}>
+                            <div style={{ flex: 1 }}>
+                                <form className="smtp-form-grid" style={{ marginTop: 0 }} onSubmit={handleChangePassword}>
+                                    <div className="smtp-field smtp-field-full">
+                                        <label className="field-label">New Password</label>
+                                        <input 
+                                            className="field-input" 
+                                            type="password" 
+                                            placeholder="Enter new password"
+                                            value={passwordForm.newPassword}
+                                            onChange={e => setPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
+                                            minLength={6}
+                                            disabled={passwordLoading}
+                                        />
+                                    </div>
+                                    <div className="smtp-field smtp-field-full">
+                                        <label className="field-label">Confirm Password</label>
+                                        <input 
+                                            className="field-input" 
+                                            type="password" 
+                                            placeholder="Confirm new password"
+                                            value={passwordForm.confirmPassword}
+                                            onChange={e => setPasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                                            minLength={6}
+                                            disabled={passwordLoading}
+                                        />
+                                    </div>
+                                    <div className="smtp-field smtp-field-full" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                        <button type="submit" className="btn btn-primary" disabled={passwordLoading || !passwordForm.newPassword}>
+                                            {passwordLoading ? 'Updating...' : 'Update Password'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="settings-service-row" style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 16 }}>
+                        <div className="settings-service-info">
+                            <div className="settings-service-name">Log Out</div>
+                            <div className="settings-service-desc">Sign out of your account on this device.</div>
+                        </div>
+                        <div className="settings-service-status">
+                            <button className="btn btn-danger-ghost" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <TrashIcon /> Log Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* ── Localization ── */}
                 <div className="settings-section-label">Localization</div>
@@ -323,8 +435,15 @@ const SettingsPage = () => {
                     )}
 
                     {/* Expanded form */}
-                    {smtpExpanded && (
-                        <div className="token-input-section">
+                    <div 
+                        style={{ 
+                            maxHeight: smtpExpanded ? '800px' : '0',
+                            opacity: smtpExpanded ? 1 : 0,
+                            overflow: 'hidden',
+                            transition: 'max-height 0.3s ease-in-out, opacity 0.3s ease-in-out'
+                        }}
+                    >
+                        <div className="token-input-section" style={{ borderTopColor: smtpExpanded ? 'var(--border)' : 'transparent', transition: 'border-color 0.3s ease-in-out' }}>
                             {/* Enable toggle */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                                 <div>
@@ -462,7 +581,7 @@ const SettingsPage = () => {
                                 </button>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {/* Email Logs viewer */}
                     {smtpConnected && (
@@ -475,7 +594,14 @@ const SettingsPage = () => {
                                 {logsOpen ? 'Hide' : 'View'} Email Logs <ChevronIcon open={logsOpen} />
                             </button>
 
-                            {logsOpen && (
+                            <div 
+                                style={{ 
+                                    maxHeight: logsOpen ? '500px' : '0',
+                                    opacity: logsOpen ? 1 : 0,
+                                    overflow: 'hidden',
+                                    transition: 'max-height 0.3s ease-in-out, opacity 0.3s ease-in-out'
+                                }}
+                            >
                                 <div style={{ marginTop: 12 }}>
                                     {logsLoading ? (
                                         <div className="token-input-hint" style={{ padding: '16px 0' }}>Loading…</div>
@@ -513,7 +639,7 @@ const SettingsPage = () => {
                                         </div>
                                     )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
                 </div>
