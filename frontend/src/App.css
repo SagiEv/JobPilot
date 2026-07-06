@@ -3057,10 +3057,14 @@ td:nth-child(3) {
   display: none !important;
 }
 
+
 @media (max-width: 768px) {
   /* Show mobile-only elements */
   .mobile-only {
     display: flex !important;
+  }
+  .desktop-only {
+    display: none !important;
   }
   
   .hamburger-btn, .sidebar-close-btn {

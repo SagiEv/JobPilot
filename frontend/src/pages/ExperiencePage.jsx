@@ -36,6 +36,9 @@ const ExperiencePage = () => {
     return (
         <div className="section" id="sec-experience">
             <div className="page-header">
+                <div className="page-header__left desktop-only">
+                    <h2 className="section-title">Portfolio</h2>
+                </div>
                 <div className="page-header__actions" style={{ marginLeft: 'auto' }}>
                     {!experienceText && !showExpForm && (
                         <button className="btn btn-sm" onClick={() => { setTempExp(''); setShowExpForm(true); }}>+ Add Experience</button>

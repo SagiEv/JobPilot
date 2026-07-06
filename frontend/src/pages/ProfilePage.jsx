@@ -152,8 +152,9 @@ const ProfilePage = () => {
 
     return (
         <div className="section profile-grid">
-            <div className="toolbar profile-span" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="toolbar profile-span" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 className="section-title desktop-only" style={{ margin: 0 }}>My Profile</h2>
+                <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
                     <button className="btn btn-primary" onClick={openPreview} disabled={isGeneratingCV}>
                         CV Designs
                     </button>

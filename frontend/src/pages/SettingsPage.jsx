@@ -227,6 +227,7 @@ const SettingsPage = () => {
 
                 {/* Header */}
                 <div className="settings-header">
+                    <h1 className="settings-title desktop-only">Settings</h1>
                     <p className="settings-subtitle">Manage your API tokens and application preferences.</p>
                 </div>
 

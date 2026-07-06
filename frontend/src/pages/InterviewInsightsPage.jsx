@@ -128,6 +128,9 @@ const InterviewInsightsPage = () => {
     return (
         <div className="section" id="sec-interview-insights">
             <div className="page-header">
+                <div className="page-header__left desktop-only">
+                    <h2 className="section-title">Interview Insights</h2>
+                </div>
                 <div className="page-header__actions" style={{ marginLeft: 'auto' }}>
                     <button className="btn btn-secondary" onClick={() => setShowAiModal(true)} title="AI Analysis" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
