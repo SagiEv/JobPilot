@@ -170,6 +170,54 @@ function extractDomain(email) {
 }
 
 /**
+ * For known aggregator senders (LinkedIn, Indeed…), extract the real target
+ * company name from the subject line or body snippet, since the sender domain
+ * carries no company identity.
+ *
+ * Returns a normalised company string or '' if no pattern matched.
+ *
+ * @param {string} subject
+ * @param {string} bodySnippet
+ * @returns {string}
+ */
+function extractCompanyFromSubject(subject, bodySnippet) {
+    const src = subject || '';
+    const body = bodySnippet || '';
+
+    // Ordered list of [regex, captureGroup] patterns.
+    // Each regex is tried against the subject first, then the body.
+    const PATTERNS = [
+        // LinkedIn application confirmation: "Sagi, your application was sent to Jones Software"
+        /your application was sent to ([^.!?\n]+)/i,
+        // LinkedIn apply confirm: "You applied to Software Engineer at Acme Corp"
+        /you applied to .+ at ([^.!?\n,]+)/i,
+        // LinkedIn: "Acme Corp wants to connect" / "Acme Corp viewed your profile"
+        /^([A-Z][\w\s&.-]+?) (?:wants to|has viewed|viewed your|is hiring)/i,
+        // LinkedIn job alert: "New jobs at Acme Corp"
+        /new jobs? at ([^.!?\n,]+)/i,
+        // LinkedIn message forward: "Message from Jane at Acme Corp"
+        /(?:message|response) from .+ at ([^.!?\n,]+)/i,
+        // Indeed / generic: "Your application to Acme Corp"
+        /your application (?:to|for(?: the)?) ([^.!?\n,]+?)(?:\s+(?:has|is|was|job|role|position))/i,
+        // Generic: "Application for … at Acme Corp"
+        /application (?:for .+ )?at ([^.!?\n,]+)/i,
+        // Generic subject "Acme Corp – Application Received" or "Acme Corp | Your application"
+        /^([A-Z][\w\s&.-]+?)\s*[–|\-]\s*(?:application|your application|job application)/i,
+    ];
+
+    for (const re of PATTERNS) {
+        // Try subject first
+        let m = src.match(re);
+        if (!m) m = body.match(re);
+        if (m && m[1]) {
+            return normalizeCompany(m[1].trim());
+        }
+    }
+
+    return '';
+}
+
+/**
  * Classify a single email against the user's applications.
  *
  * @param {{ from: string, subject: string, bodySnippet: string }} email
@@ -180,6 +228,13 @@ function classifyEmail(email, applications) {
     const { from, subject, bodySnippet } = email;
     const text = `${from || ''} ${subject || ''} ${bodySnippet || ''}`.toLowerCase();
     const senderDomain = extractDomain(from);
+
+    // For aggregator senders (LinkedIn, Indeed…) extractDomain returns ''.
+    // Extract the real company name from the subject/body instead.
+    const isAggregator = senderDomain === '';
+    const aggregatorCompany = isAggregator
+        ? extractCompanyFromSubject(subject, bodySnippet)
+        : '';
 
     let bestMatch = {
         applicationId: null,
@@ -194,36 +249,55 @@ function classifyEmail(email, applications) {
         const normCompany = normalizeCompany(app.company);
         if (!normCompany) continue;
 
-        // 1. Company name fuzzy match against email text
-        const companyInText = stringSimilarity.findBestMatch(normCompany, [text]);
-        const directSimilarity = stringSimilarity.compareTwoStrings(normCompany, senderDomain);
-
-        // Check if company name appears as a substring (strong signal)
-        const substringMatch = text.includes(normCompany);
-
-        if (directSimilarity >= 0.8) {
-            score += 0.75;
-        } else if (substringMatch) {
-            score += 0.55;
-            if (directSimilarity >= 0.5) {
-                score += 0.15; // Strong domain resemblance + substring match = highly likely match
+        if (isAggregator) {
+            // ── Aggregator path ──────────────────────────────────────────────
+            // Use the company extracted from the subject as the primary signal.
+            // Fall back to substring match within the full text blob only if
+            // subject extraction failed, to avoid the old noise-matching bug.
+            if (aggregatorCompany) {
+                const sim = stringSimilarity.compareTwoStrings(normCompany, aggregatorCompany);
+                if (sim >= 0.85) {
+                    score += 0.85; // Near-exact subject match — very high confidence
+                } else if (sim >= 0.6) {
+                    score += 0.65; // Close match (e.g. "moonactive" vs "moon active")
+                } else if (aggregatorCompany.includes(normCompany) || normCompany.includes(aggregatorCompany)) {
+                    score += 0.60; // Substring containment
+                } else {
+                    continue; // Subject extraction succeeded but company doesn't match — skip
+                }
+            } else {
+                // Subject extraction failed; fall back to plain substring match
+                // but require a higher threshold to reduce noise.
+                if (!text.includes(normCompany)) continue;
+                score += 0.45;
             }
-        } else if (directSimilarity >= 0.5) {
-            // Sender domain resembles company name
-            score += 0.45;
-        } else if (companyInText.bestMatch.rating >= 0.3) {
-            score += 0.3;
         } else {
-            // No meaningful company match — skip
-            continue;
+            // ── Standard (non-aggregator) path ───────────────────────────────
+            const companyInText = stringSimilarity.findBestMatch(normCompany, [text]);
+            const directSimilarity = stringSimilarity.compareTwoStrings(normCompany, senderDomain);
+            const substringMatch = text.includes(normCompany);
+
+            if (directSimilarity >= 0.8) {
+                score += 0.75;
+            } else if (substringMatch) {
+                score += 0.55;
+                if (directSimilarity >= 0.5) {
+                    score += 0.15;
+                }
+            } else if (directSimilarity >= 0.5) {
+                score += 0.45;
+            } else if (companyInText.bestMatch.rating >= 0.3) {
+                score += 0.3;
+            } else {
+                continue;
+            }
         }
 
-        // 3. Role/position match
+        // Role/position match (shared between both paths)
         const normRole = (app.position || '').toLowerCase().trim();
         if (normRole && text.includes(normRole)) {
             score += 0.2;
         } else if (normRole) {
-            // Try fuzzy on individual role words (e.g. "software engineer")
             const roleWords = normRole.split(/\s+/).filter(w => w.length > 3);
             const wordHits = roleWords.filter(w => text.includes(w));
             if (wordHits.length >= Math.ceil(roleWords.length / 2)) {
@@ -231,7 +305,7 @@ function classifyEmail(email, applications) {
             }
         }
 
-        // 4. Status keyword detection
+        // Status keyword detection
         const detectedStatus = detectStatus(text);
         if (detectedStatus !== 'unknown') {
             score += 0.15;
@@ -286,4 +360,4 @@ function detectStatus(text) {
     return bestStatus;
 }
 
-module.exports = { classifyEmail, normalizeCompany, extractDomain, detectStatus };
+module.exports = { classifyEmail, normalizeCompany, extractDomain, extractCompanyFromSubject, detectStatus };
