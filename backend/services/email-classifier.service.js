@@ -26,7 +26,32 @@ const STATUS_KEYWORDS = {
         'following up', 'checking in', 'next steps', 'update on your application',
         'status update', 'where we are', 'wanted to let you know', 'keep you posted'
     ],
+    // Informational only — application received/confirmation. Never triggers a status
+    // update or notification; used purely for conflict resolution inside detectStatus().
+    applied: [
+        'application was sent', 'application has been submitted',
+        'we received your application', 'thank you for applying',
+        'thank you for your application', 'application received',
+        'successfully submitted', 'your application to',
+        'we have received your application', 'confirmation of your application',
+        'your application has been received', 'application confirmation',
+        'we got your application', 'we\'ve received your application'
+    ],
 };
+
+// Confirmation phrases that are strong enough to suppress a 'rejected' classification
+// on their own. If any of these are present, the email is a confirmation, not a rejection.
+const CONFIRMATION_SUPPRESSORS = [
+    'application was sent',
+    'application has been submitted',
+    'successfully submitted',
+    'we received your application',
+    'your application has been received',
+    'thank you for your application',
+    'application received',
+    'we\'ve received your application',
+    'we have received your application',
+];
 
 // Common company suffixes to strip for better matching
 const COMPANY_SUFFIXES = /\b(inc|ltd|llc|gmbh|corp|co|company|group|holdings|plc|ag|sa|srl|bv)\b\.?/gi;
@@ -332,6 +357,16 @@ function classifyEmail(email, applications) {
 
 /**
  * Detect status category from email text using keyword dictionaries.
+ *
+ * Priority order: offer > rejected > interview > assessment > follow_up > applied
+ *
+ * Conflict resolution rules:
+ *  1. If strong CONFIRMATION_SUPPRESSORS are present, 'rejected' is suppressed
+ *     regardless of which rejection keywords were also matched.
+ *  2. If both 'applied' and 'rejected' fire, the one with more keyword hits wins;
+ *     on a tie, 'applied' wins (safer — avoids false rejections).
+ *  3. 'applied' is never returned as the winner if any higher-priority status
+ *     also fired, since confirmations sometimes mention interviews/offers.
  */
 function detectStatus(text) {
     const STATUS_PRIORITY = {
@@ -339,16 +374,38 @@ function detectStatus(text) {
         rejected: 80,
         interview: 60,
         assessment: 40,
-        follow_up: 20
+        follow_up: 20,
+        applied: 10,
     };
 
+    // Tally hits per status
+    const hitCounts = {};
+    for (const [status, keywords] of Object.entries(STATUS_KEYWORDS)) {
+        hitCounts[status] = keywords.filter(kw => text.includes(kw)).length;
+    }
+
+    // Rule 1: Confirmation suppression — strong confirmation phrase overrides 'rejected'
+    const hasConfirmationSignal = CONFIRMATION_SUPPRESSORS.some(phrase => text.includes(phrase));
+    if (hasConfirmationSignal && hitCounts.rejected > 0) {
+        // Zero out rejected hits so it cannot win
+        hitCounts.rejected = 0;
+    }
+
+    // Rule 2: applied vs rejected conflict — more hits wins; tie goes to 'applied'
+    if (hitCounts.applied > 0 && hitCounts.rejected > 0) {
+        if (hitCounts.applied >= hitCounts.rejected) {
+            hitCounts.rejected = 0;
+        } else {
+            hitCounts.applied = 0;
+        }
+    }
+
+    // Pick the winner using priority + hit bonus
     let bestStatus = 'unknown';
     let bestScore = 0;
 
-    for (const [status, keywords] of Object.entries(STATUS_KEYWORDS)) {
-        const hits = keywords.filter(kw => text.includes(kw)).length;
+    for (const [status, hits] of Object.entries(hitCounts)) {
         if (hits > 0) {
-            // Priority is dominant; extra hits give a slight bonus
             const score = STATUS_PRIORITY[status] + (hits * 2);
             if (score > bestScore) {
                 bestScore = score;
