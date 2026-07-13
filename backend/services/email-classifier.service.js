@@ -243,6 +243,37 @@ function extractCompanyFromSubject(subject, bodySnippet) {
 }
 
 /**
+ * Extract a job/requisition ID from email subject or body text.
+ * Matches common formats used by ATS systems and job boards:
+ *   "Job ID: 12345", "Req #ABC-123", "Job Ref: XYZ-9", "Position ID 00042",
+ *   "Requisition 2024-ENG-001", "#R123456"
+ *
+ * @param {string} subject
+ * @param {string} bodySnippet
+ * @returns {string} Normalised job ID (lowercase, trimmed), or ''
+ */
+function extractJobId(subject, bodySnippet) {
+    const JOB_ID_PATTERNS = [
+        /\bjob\s*(?:id|#|no\.?|number|ref(?:erence)?)\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\breq(?:uisition)?\s*(?:id|#|no\.?)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\bposition\s*(?:id|#|no\.?|code)\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\bref(?:erence)?\s*(?:id|#|no\.?)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\bopening\s*(?:id|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        // Standalone hash-prefixed IDs at word boundary (e.g. "#R123456" or "#2024-ENG-01")
+        /(?:^|\s)#([A-Z0-9][A-Z0-9_\-]{2,30})(?:\s|$)/i,
+    ];
+
+    const sources = [subject || '', bodySnippet || ''];
+    for (const src of sources) {
+        for (const re of JOB_ID_PATTERNS) {
+            const m = src.match(re);
+            if (m && m[1]) return m[1].toLowerCase().trim();
+        }
+    }
+    return '';
+}
+
+/**
  * Classify a single email against the user's applications.
  *
  * @param {{ from: string, subject: string, bodySnippet: string }} email
@@ -260,6 +291,9 @@ function classifyEmail(email, applications) {
     const aggregatorCompany = isAggregator
         ? extractCompanyFromSubject(subject, bodySnippet)
         : '';
+
+    // Extract job ID once — used as a tiebreaker when multiple apps share a company.
+    const emailJobId = extractJobId(subject, bodySnippet);
 
     let bestMatch = {
         applicationId: null,
@@ -318,15 +352,27 @@ function classifyEmail(email, applications) {
             }
         }
 
-        // Role/position match (shared between both paths)
+        // ── Role / Job-ID disambiguation (shared between both paths) ──────────
+        // These scores act as tiebreakers when multiple applications share the
+        // same company. Weights are intentionally higher than before so a correct
+        // role/ID match meaningfully separates two same-company candidates.
+
         const normRole = (app.position || '').toLowerCase().trim();
+        const normRoleId = (app.role_id || '').toLowerCase().trim();
+
+        // Job ID match — strongest tiebreaker, unambiguous
+        if (normRoleId && emailJobId && normRoleId === emailJobId) {
+            score += 0.50;
+        }
+
+        // Role/position match
         if (normRole && text.includes(normRole)) {
-            score += 0.2;
+            score += 0.30; // exact full-role substring (up from 0.20)
         } else if (normRole) {
             const roleWords = normRole.split(/\s+/).filter(w => w.length > 3);
             const wordHits = roleWords.filter(w => text.includes(w));
             if (wordHits.length >= Math.ceil(roleWords.length / 2)) {
-                score += 0.15;
+                score += 0.20; // partial word match (up from 0.15)
             }
         }
 
