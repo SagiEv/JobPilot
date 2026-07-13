@@ -26,10 +26,60 @@ const STATUS_KEYWORDS = {
         'following up', 'checking in', 'next steps', 'update on your application',
         'status update', 'where we are', 'wanted to let you know', 'keep you posted'
     ],
+    // Informational only — application received/confirmation. Never triggers a status
+    // update or notification; used purely for conflict resolution inside detectStatus().
+    applied: [
+        'application was sent', 'application has been submitted',
+        'we received your application', 'thank you for applying',
+        'thank you for your application', 'application received',
+        'successfully submitted', 'your application to',
+        'we have received your application', 'confirmation of your application',
+        'your application has been received', 'application confirmation',
+        'we got your application', 'we\'ve received your application'
+    ],
 };
+
+// Confirmation phrases that are strong enough to suppress a 'rejected' classification
+// on their own. If any of these are present, the email is a confirmation, not a rejection.
+const CONFIRMATION_SUPPRESSORS = [
+    'application was sent',
+    'application has been submitted',
+    'successfully submitted',
+    'we received your application',
+    'your application has been received',
+    'thank you for your application',
+    'application received',
+    'we\'ve received your application',
+    'we have received your application',
+];
 
 // Common company suffixes to strip for better matching
 const COMPANY_SUFFIXES = /\b(inc|ltd|llc|gmbh|corp|co|company|group|holdings|plc|ag|sa|srl|bv)\b\.?/gi;
+
+// Known ATS provider domain segments — company name comes from the subdomain prefix or username
+const ATS_DOMAIN_SEGMENTS = new Set([
+    'myworkday', 'myworkdaybio', 'myworkdayjobs', 'greenhouse', 'lever', 'bamboohr',
+    'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors',
+    'comeet-notifications', 'comeet', 'taleo', 'jobvite', 'recruitee',
+    'pinpointhq', 'teamtailor', 'personio', 'recruitly',
+]);
+
+// Generic subdomains that carry no company-identity signal
+const GENERIC_SUBDOMAINS = new Set([
+    'mail', 'email', 'mailer', 'smtp', 'send', 'reply', 'noreply',
+    'no-reply', 'donotreply', 'do-not-reply', 'careers', 'jobs',
+    'notifications', 'alerts', 'info', 'support', 'contact', 'hr',
+    'talent', 'recruiting', 'recruitment', 'bounce', 'bounce-handler',
+]);
+
+// Aggregator senders whose domain is irrelevant — real company is in subject/body
+const AGGREGATOR_DOMAINS = new Set([
+    'linkedin.com', 'indeed.com', 'glassdoor.com', 'ziprecruiter.com',
+    'monster.com', 'careerbuilder.com', 'dice.com',
+]);
+
+// Common TLDs to ignore when selecting the meaningful domain segment
+const COMMON_TLDS = new Set(['com', 'net', 'org', 'io', 'ai', 'co', 'gov', 'edu', 'uk', 'us', 'de', 'fr', 'il']);
 
 /**
  * Normalize a company name for matching.
@@ -46,35 +96,184 @@ function normalizeCompany(name) {
 }
 
 /**
- * Extract domain from an email address.
- * e.g. "hr@google.com" → "google"
+ * Extract the local-part (username) from an email address, stripping generic prefixes.
+ * e.g. "no-reply@kaltura.comeet-notifications.com" → local = "no-reply" (stripped → "")
+ * e.g. "kaltura@comeet-notifications.com"           → local = "kaltura"
+ */
+function _extractCleanUsername(address) {
+    const match = address.match(/^([^@]+)@/);
+    if (!match) return '';
+    return match[1]
+        .toLowerCase()
+        .replace(/^(no-reply|noreply|donotreply|do-not-reply|careers|jobs|hr|talent|info|support|hello|notifications|alerts|bounce)[-_]?/i, '')
+        .trim();
+}
+
+/**
+ * Extract the display name from a "Name <address>" formatted From header,
+ * stripping generic words like "Careers", "Talent", "Jobs".
+ * e.g. "Microsoft Careers <donotreply@email.careers.microsoft.com>" → "Microsoft"
+ */
+function _extractDisplayName(email) {
+    const nameMatch = email.match(/^(.+?)\s*</);
+    if (!nameMatch) return '';
+    return nameMatch[1]
+        .trim()
+        .replace(/\b(careers|talent|jobs|recruiting|recruitment|hr|hiring|noreply|notifications|alerts|team|support)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Extract a meaningful company identifier from an email From header.
+ *
+ * Strategy (in priority order):
+ *  1. If the full domain is a known aggregator → return empty string so the
+ *     caller falls back to subject-line extraction (handled in classifyEmail).
+ *  2. If any domain segment is a known ATS provider:
+ *     a. Try the subdomain prefix (e.g. "kaltura" from kaltura.comeet-notifications.com).
+ *     b. Try the clean username (e.g. "kaltura" from no-reply@kaltura.comeet-notifications.com — after stripping prefix).
+ *  3. Walk domain segments right-to-left (skipping TLDs and generic words);
+ *     return the first meaningful segment.
+ *     e.g. "donotreply@email.careers.microsoft.com" → "microsoft"
+ *  4. Fall back to display name (e.g. "Microsoft Careers <…>" → "microsoft").
+ *
+ * @param {string} email - Raw From header value ("Name <addr>" or plain address)
+ * @returns {string} Lowercase company identifier, or '' if indeterminate.
  */
 function extractDomain(email) {
     if (!email) return '';
-    
-    // Extract actual email address if format is "Name <address>"
-    const emailMatch = email.match(/<([^>]+)>/);
-    const cleanEmail = emailMatch ? emailMatch[1] : email;
 
-    const match = cleanEmail.match(/@([^.]+)/);
-    if (!match) return '';
+    // Separate display name and address
+    const addrMatch = email.match(/<([^>]+)>/);
+    const address = addrMatch ? addrMatch[1].trim() : email.trim();
 
-    const domain = match[1].toLowerCase();
-    
-    // Known ATS domains where the username before @ is the actual company name
-    const atsDomains = ['myworkday', 'myworkdaybio', 'greenhouse', 'lever', 'bamboohr', 'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors', 'comeet-notifications'];
-    
-    if (atsDomains.includes(domain)) {
-        const usernameMatch = cleanEmail.match(/^([^@]+)@/);
-        if (usernameMatch) {
-            let username = usernameMatch[1].toLowerCase();
-            // remove generic prefixes
-            username = username.replace(/^(no-reply|noreply|donotreply|do-not-reply|careers|jobs|hr|talent)_?-?/i, '');
-            if (username) return username;
+    // Isolate full domain string
+    const atIndex = address.indexOf('@');
+    if (atIndex === -1) return '';
+    const fullDomain = address.slice(atIndex + 1).toLowerCase(); // e.g. "email.careers.microsoft.com"
+    const segments = fullDomain.split('.');
+
+    // 1. Known aggregator → caller must use subject extraction
+    // Check by joining last two segments (e.g. "linkedin.com")
+    const rootDomain = segments.slice(-2).join('.');
+    if (AGGREGATOR_DOMAINS.has(rootDomain)) {
+        return ''; // Signal to classifyEmail to use subject-line extraction
+    }
+
+    // 2. ATS detection — scan all segments
+    const atsSegment = segments.find(seg => ATS_DOMAIN_SEGMENTS.has(seg));
+    if (atsSegment) {
+        // 2a. Subdomain prefix: take the segment immediately before the ATS segment,
+        //     unless it looks like an ATS instance-ID (e.g. "wd12", "us1", "r2").
+        //     Instance IDs are typically ≤5 chars and contain digits.
+        const atsIdx = segments.indexOf(atsSegment);
+        if (atsIdx > 0) {
+            const candidate = segments[atsIdx - 1];
+            const isInstanceId = candidate && candidate.length <= 5 && /\d/.test(candidate);
+            if (candidate && !isInstanceId && !GENERIC_SUBDOMAINS.has(candidate) && !COMMON_TLDS.has(candidate)) {
+                return candidate;
+            }
+        }
+        // 2b. Clean username
+        const username = _extractCleanUsername(address);
+        if (username) return username;
+    }
+
+    // 3. Walk segments right-to-left, skipping TLDs and generic words
+    // Segments in order: [subdomain…, company, tld] — iterate from right
+    const reversed = [...segments].reverse();
+    for (const seg of reversed) {
+        if (COMMON_TLDS.has(seg)) continue;
+        if (GENERIC_SUBDOMAINS.has(seg)) continue;
+        if (seg.length < 2) continue;
+        return seg;
+    }
+
+    // 4. Display name fallback
+    const displayName = _extractDisplayName(email);
+    if (displayName) return displayName.toLowerCase().split(/\s+/)[0]; // first word
+
+    return '';
+}
+
+/**
+ * For known aggregator senders (LinkedIn, Indeed…), extract the real target
+ * company name from the subject line or body snippet, since the sender domain
+ * carries no company identity.
+ *
+ * Returns a normalised company string or '' if no pattern matched.
+ *
+ * @param {string} subject
+ * @param {string} bodySnippet
+ * @returns {string}
+ */
+function extractCompanyFromSubject(subject, bodySnippet) {
+    const src = subject || '';
+    const body = bodySnippet || '';
+
+    // Ordered list of [regex, captureGroup] patterns.
+    // Each regex is tried against the subject first, then the body.
+    const PATTERNS = [
+        // LinkedIn application confirmation: "Sagi, your application was sent to Jones Software"
+        /your application was sent to ([^.!?\n]+)/i,
+        // LinkedIn apply confirm: "You applied to Software Engineer at Acme Corp"
+        /you applied to .+ at ([^.!?\n,]+)/i,
+        // LinkedIn: "Acme Corp wants to connect" / "Acme Corp viewed your profile"
+        /^([A-Z][\w\s&.-]+?) (?:wants to|has viewed|viewed your|is hiring)/i,
+        // LinkedIn job alert: "New jobs at Acme Corp"
+        /new jobs? at ([^.!?\n,]+)/i,
+        // LinkedIn message forward: "Message from Jane at Acme Corp"
+        /(?:message|response) from .+ at ([^.!?\n,]+)/i,
+        // Indeed / generic: "Your application to Acme Corp"
+        /your application (?:to|for(?: the)?) ([^.!?\n,]+?)(?:\s+(?:has|is|was|job|role|position))/i,
+        // Generic: "Application for … at Acme Corp"
+        /application (?:for .+ )?at ([^.!?\n,]+)/i,
+        // Generic subject "Acme Corp – Application Received" or "Acme Corp | Your application"
+        /^([A-Z][\w\s&.-]+?)\s*[–|\-]\s*(?:application|your application|job application)/i,
+    ];
+
+    for (const re of PATTERNS) {
+        // Try subject first
+        let m = src.match(re);
+        if (!m) m = body.match(re);
+        if (m && m[1]) {
+            return normalizeCompany(m[1].trim());
         }
     }
 
-    return domain;
+    return '';
+}
+
+/**
+ * Extract a job/requisition ID from email subject or body text.
+ * Matches common formats used by ATS systems and job boards:
+ *   "Job ID: 12345", "Req #ABC-123", "Job Ref: XYZ-9", "Position ID 00042",
+ *   "Requisition 2024-ENG-001", "#R123456"
+ *
+ * @param {string} subject
+ * @param {string} bodySnippet
+ * @returns {string} Normalised job ID (lowercase, trimmed), or ''
+ */
+function extractJobId(subject, bodySnippet) {
+    const JOB_ID_PATTERNS = [
+        /\bjob\s*(?:id|#|no\.?|number|ref(?:erence)?)\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\breq(?:uisition)?\s*(?:id|#|no\.?)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\bposition\s*(?:id|#|no\.?|code)\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\bref(?:erence)?\s*(?:id|#|no\.?)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        /\bopening\s*(?:id|#)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_\-]{1,30})/i,
+        // Standalone hash-prefixed IDs at word boundary (e.g. "#R123456" or "#2024-ENG-01")
+        /(?:^|\s)#([A-Z0-9][A-Z0-9_\-]{2,30})(?:\s|$)/i,
+    ];
+
+    const sources = [subject || '', bodySnippet || ''];
+    for (const src of sources) {
+        for (const re of JOB_ID_PATTERNS) {
+            const m = src.match(re);
+            if (m && m[1]) return m[1].toLowerCase().trim();
+        }
+    }
+    return '';
 }
 
 /**
@@ -89,6 +288,16 @@ function classifyEmail(email, applications) {
     const text = `${from || ''} ${subject || ''} ${bodySnippet || ''}`.toLowerCase();
     const senderDomain = extractDomain(from);
 
+    // For aggregator senders (LinkedIn, Indeed…) extractDomain returns ''.
+    // Extract the real company name from the subject/body instead.
+    const isAggregator = senderDomain === '';
+    const aggregatorCompany = isAggregator
+        ? extractCompanyFromSubject(subject, bodySnippet)
+        : '';
+
+    // Extract job ID once — used as a tiebreaker when multiple apps share a company.
+    const emailJobId = extractJobId(subject, bodySnippet);
+
     let bestMatch = {
         applicationId: null,
         matchedCompany: null,
@@ -102,44 +311,75 @@ function classifyEmail(email, applications) {
         const normCompany = normalizeCompany(app.company);
         if (!normCompany) continue;
 
-        // 1. Company name fuzzy match against email text
-        const companyInText = stringSimilarity.findBestMatch(normCompany, [text]);
-        const directSimilarity = stringSimilarity.compareTwoStrings(normCompany, senderDomain);
-
-        // Check if company name appears as a substring (strong signal)
-        const substringMatch = text.includes(normCompany);
-
-        if (directSimilarity >= 0.8) {
-            score += 0.75;
-        } else if (substringMatch) {
-            score += 0.55;
-            if (directSimilarity >= 0.5) {
-                score += 0.15; // Strong domain resemblance + substring match = highly likely match
+        if (isAggregator) {
+            // ── Aggregator path ──────────────────────────────────────────────
+            // Use the company extracted from the subject as the primary signal.
+            // Fall back to substring match within the full text blob only if
+            // subject extraction failed, to avoid the old noise-matching bug.
+            if (aggregatorCompany) {
+                const sim = stringSimilarity.compareTwoStrings(normCompany, aggregatorCompany);
+                if (sim >= 0.85) {
+                    score += 0.85; // Near-exact subject match — very high confidence
+                } else if (sim >= 0.6) {
+                    score += 0.65; // Close match (e.g. "moonactive" vs "moon active")
+                } else if (aggregatorCompany.includes(normCompany) || normCompany.includes(aggregatorCompany)) {
+                    score += 0.60; // Substring containment
+                } else {
+                    continue; // Subject extraction succeeded but company doesn't match — skip
+                }
+            } else {
+                // Subject extraction failed; fall back to plain substring match
+                // but require a higher threshold to reduce noise.
+                if (!text.includes(normCompany)) continue;
+                score += 0.45;
             }
-        } else if (directSimilarity >= 0.5) {
-            // Sender domain resembles company name
-            score += 0.45;
-        } else if (companyInText.bestMatch.rating >= 0.3) {
-            score += 0.3;
         } else {
-            // No meaningful company match — skip
-            continue;
+            // ── Standard (non-aggregator) path ───────────────────────────────
+            const companyInText = stringSimilarity.findBestMatch(normCompany, [text]);
+            const directSimilarity = stringSimilarity.compareTwoStrings(normCompany, senderDomain);
+            const substringMatch = text.includes(normCompany);
+
+            if (directSimilarity >= 0.8) {
+                score += 0.75;
+            } else if (substringMatch) {
+                score += 0.55;
+                if (directSimilarity >= 0.5) {
+                    score += 0.15;
+                }
+            } else if (directSimilarity >= 0.5) {
+                score += 0.45;
+            } else if (companyInText.bestMatch.rating >= 0.3) {
+                score += 0.3;
+            } else {
+                continue;
+            }
         }
 
-        // 3. Role/position match
+        // ── Role / Job-ID disambiguation (shared between both paths) ──────────
+        // These scores act as tiebreakers when multiple applications share the
+        // same company. Weights are intentionally higher than before so a correct
+        // role/ID match meaningfully separates two same-company candidates.
+
         const normRole = (app.position || '').toLowerCase().trim();
+        const normRoleId = (app.role_id || '').toLowerCase().trim();
+
+        // Job ID match — strongest tiebreaker, unambiguous
+        if (normRoleId && emailJobId && normRoleId === emailJobId) {
+            score += 0.50;
+        }
+
+        // Role/position match
         if (normRole && text.includes(normRole)) {
-            score += 0.2;
+            score += 0.30; // exact full-role substring (up from 0.20)
         } else if (normRole) {
-            // Try fuzzy on individual role words (e.g. "software engineer")
             const roleWords = normRole.split(/\s+/).filter(w => w.length > 3);
             const wordHits = roleWords.filter(w => text.includes(w));
             if (wordHits.length >= Math.ceil(roleWords.length / 2)) {
-                score += 0.15;
+                score += 0.20; // partial word match (up from 0.15)
             }
         }
 
-        // 4. Status keyword detection
+        // Status keyword detection
         const detectedStatus = detectStatus(text);
         if (detectedStatus !== 'unknown') {
             score += 0.15;
@@ -166,6 +406,16 @@ function classifyEmail(email, applications) {
 
 /**
  * Detect status category from email text using keyword dictionaries.
+ *
+ * Priority order: offer > rejected > interview > assessment > follow_up > applied
+ *
+ * Conflict resolution rules:
+ *  1. If strong CONFIRMATION_SUPPRESSORS are present, 'rejected' is suppressed
+ *     regardless of which rejection keywords were also matched.
+ *  2. If both 'applied' and 'rejected' fire, the one with more keyword hits wins;
+ *     on a tie, 'applied' wins (safer — avoids false rejections).
+ *  3. 'applied' is never returned as the winner if any higher-priority status
+ *     also fired, since confirmations sometimes mention interviews/offers.
  */
 function detectStatus(text) {
     const STATUS_PRIORITY = {
@@ -173,16 +423,38 @@ function detectStatus(text) {
         rejected: 80,
         interview: 60,
         assessment: 40,
-        follow_up: 20
+        follow_up: 20,
+        applied: 10,
     };
 
+    // Tally hits per status
+    const hitCounts = {};
+    for (const [status, keywords] of Object.entries(STATUS_KEYWORDS)) {
+        hitCounts[status] = keywords.filter(kw => text.includes(kw)).length;
+    }
+
+    // Rule 1: Confirmation suppression — strong confirmation phrase overrides 'rejected'
+    const hasConfirmationSignal = CONFIRMATION_SUPPRESSORS.some(phrase => text.includes(phrase));
+    if (hasConfirmationSignal && hitCounts.rejected > 0) {
+        // Zero out rejected hits so it cannot win
+        hitCounts.rejected = 0;
+    }
+
+    // Rule 2: applied vs rejected conflict — more hits wins; tie goes to 'applied'
+    if (hitCounts.applied > 0 && hitCounts.rejected > 0) {
+        if (hitCounts.applied >= hitCounts.rejected) {
+            hitCounts.rejected = 0;
+        } else {
+            hitCounts.applied = 0;
+        }
+    }
+
+    // Pick the winner using priority + hit bonus
     let bestStatus = 'unknown';
     let bestScore = 0;
 
-    for (const [status, keywords] of Object.entries(STATUS_KEYWORDS)) {
-        const hits = keywords.filter(kw => text.includes(kw)).length;
+    for (const [status, hits] of Object.entries(hitCounts)) {
         if (hits > 0) {
-            // Priority is dominant; extra hits give a slight bonus
             const score = STATUS_PRIORITY[status] + (hits * 2);
             if (score > bestScore) {
                 bestScore = score;
@@ -194,4 +466,4 @@ function detectStatus(text) {
     return bestStatus;
 }
 
-module.exports = { classifyEmail, normalizeCompany, extractDomain, detectStatus };
+module.exports = { classifyEmail, normalizeCompany, extractDomain, extractCompanyFromSubject, detectStatus };

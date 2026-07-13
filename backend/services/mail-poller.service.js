@@ -10,6 +10,25 @@ const notificationsRepo = require('../repositories/notifications.repository');
 const AUTO_UPDATE_THRESHOLD = 0.7;
 const MAX_BODY_SNIPPET = 3000;
 
+// Statuses that must never be overwritten by automated email classification.
+// Once an application reaches one of these states, only the user can change it.
+const TERMINAL_STATUSES = new Set(['rejected', 'offer', 'accepted', 'declined']);
+
+// Statuses that are purely informational — they are logged but must not
+// trigger a DB status update or an in-app notification.
+const SILENT_STATUSES = new Set(['applied', 'unknown']);
+
+// Allowed status progressions. An auto-update is only applied when the
+// classified status is a valid next step from the current application status.
+// Anything not listed here (or where current status is TERMINAL) is blocked.
+const STATUS_TRANSITIONS = {
+    applied:    new Set(['assessment', 'interview', 'follow_up', 'rejected', 'offer']),
+    follow_up:  new Set(['assessment', 'interview', 'rejected', 'offer']),
+    assessment: new Set(['interview', 'rejected', 'offer']),
+    interview:  new Set(['rejected', 'offer']),
+    // 'offer', 'rejected', 'accepted', 'declined' are terminal — no transitions allowed.
+};
+
 /**
  * Poll all users that have SMTP enabled and are due for polling.
  */
@@ -179,33 +198,48 @@ async function pollUserInbox(settings) {
                     });
 
                     // Auto-update application status if confidence is high enough
-                    if (result.applicationId && result.confidence >= AUTO_UPDATE_THRESHOLD && result.classifiedStatus !== 'unknown') {
-                        await applicationRepo.update(userId, result.applicationId, {
-                            status: result.classifiedStatus,
-                            date: receivedAt.toISOString().split('T')[0]
-                        });
-                        console.log(`[MAIL POLLER] Auto-updated application ${result.applicationId} → ${result.classifiedStatus} (confidence: ${result.confidence.toFixed(2)})`);
+                    if (
+                        result.applicationId &&
+                        result.confidence >= AUTO_UPDATE_THRESHOLD &&
+                        !SILENT_STATUSES.has(result.classifiedStatus)
+                    ) {
+                        const currentApp = applications.find(a => a.id === result.applicationId);
+                        const currentStatus = currentApp?.status || 'applied';
 
-                        // Create in-app notification
-                        const statusLabels = {
-                            interview: 'Interview Scheduled',
-                            rejected: 'Application Rejected',
-                            offer: 'Offer Received',
-                            assessment: 'Assessment Requested',
-                            follow_up: 'Follow-up Received',
-                        };
-                        const label = statusLabels[result.classifiedStatus] || result.classifiedStatus;
-                        const company = result.matchedCompany || 'Unknown Company';
-                        const role = result.matchedRole ? ` — ${result.matchedRole}` : '';
+                        // Guard 1: Never overwrite a terminal status
+                        if (TERMINAL_STATUSES.has(currentStatus)) {
+                            console.log(`[MAIL POLLER] Skipping auto-update for app ${result.applicationId}: current status "${currentStatus}" is terminal`);
+                        // Guard 2: Only allow valid status progressions
+                        } else if (STATUS_TRANSITIONS[currentStatus] && !STATUS_TRANSITIONS[currentStatus].has(result.classifiedStatus)) {
+                            console.log(`[MAIL POLLER] Skipping auto-update for app ${result.applicationId}: transition "${currentStatus}" → "${result.classifiedStatus}" is not allowed`);
+                        } else {
+                            await applicationRepo.update(userId, result.applicationId, {
+                                status: result.classifiedStatus,
+                                date: receivedAt.toISOString().split('T')[0]
+                            });
+                            console.log(`[MAIL POLLER] Auto-updated application ${result.applicationId} → ${result.classifiedStatus} (confidence: ${result.confidence.toFixed(2)})`);
 
-                        await notificationsRepo.insert({
-                            user_id: userId,
-                            type: 'email_sync',
-                            title: `${label}: ${company}${role}`,
-                            body: `Status updated to "${result.classifiedStatus}" based on email from ${from}. Subject: "${subject.substring(0, 100)}"`,
-                            read: false,
-                            application_id: result.applicationId,
-                        });
+                            // Create in-app notification
+                            const statusLabels = {
+                                interview: 'Interview Scheduled',
+                                rejected: 'Application Rejected',
+                                offer: 'Offer Received',
+                                assessment: 'Assessment Requested',
+                                follow_up: 'Follow-up Received',
+                            };
+                            const label = statusLabels[result.classifiedStatus] || result.classifiedStatus;
+                            const company = result.matchedCompany || 'Unknown Company';
+                            const role = result.matchedRole ? ` — ${result.matchedRole}` : '';
+
+                            await notificationsRepo.insert({
+                                user_id: userId,
+                                type: 'email_sync',
+                                title: `${label}: ${company}${role}`,
+                                body: `Status updated to "${result.classifiedStatus}" based on email from ${from}. Subject: "${subject.substring(0, 100)}"`,
+                                read: false,
+                                application_id: result.applicationId,
+                            });
+                        }
                     }
 
                     // Track highest UID
