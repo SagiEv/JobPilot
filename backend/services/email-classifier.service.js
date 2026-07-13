@@ -58,7 +58,7 @@ const COMPANY_SUFFIXES = /\b(inc|ltd|llc|gmbh|corp|co|company|group|holdings|plc
 
 // Known ATS provider domain segments — company name comes from the subdomain prefix or username
 const ATS_DOMAIN_SEGMENTS = new Set([
-    'myworkday', 'myworkdaybio', 'greenhouse', 'lever', 'bamboohr',
+    'myworkday', 'myworkdaybio', 'myworkdayjobs', 'greenhouse', 'lever', 'bamboohr',
     'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors',
     'comeet-notifications', 'comeet', 'taleo', 'jobvite', 'recruitee',
     'pinpointhq', 'teamtailor', 'personio', 'recruitly',
@@ -164,11 +164,14 @@ function extractDomain(email) {
     // 2. ATS detection — scan all segments
     const atsSegment = segments.find(seg => ATS_DOMAIN_SEGMENTS.has(seg));
     if (atsSegment) {
-        // 2a. Subdomain prefix: take the segment immediately before the ATS segment
+        // 2a. Subdomain prefix: take the segment immediately before the ATS segment,
+        //     unless it looks like an ATS instance-ID (e.g. "wd12", "us1", "r2").
+        //     Instance IDs are typically ≤5 chars and contain digits.
         const atsIdx = segments.indexOf(atsSegment);
         if (atsIdx > 0) {
             const candidate = segments[atsIdx - 1];
-            if (candidate && !GENERIC_SUBDOMAINS.has(candidate) && !COMMON_TLDS.has(candidate)) {
+            const isInstanceId = candidate && candidate.length <= 5 && /\d/.test(candidate);
+            if (candidate && !isInstanceId && !GENERIC_SUBDOMAINS.has(candidate) && !COMMON_TLDS.has(candidate)) {
                 return candidate;
             }
         }

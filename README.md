@@ -1,4 +1,16 @@
+<div align="center">
+  <img src="icon.ico" alt="JobPilot Logo" width="120" height="120" />
+</div>
+
 # JobPilot — Career Command Center (Web App)
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/LangChain-121212?style=for-the-badge&logo=langchain&logoColor=white" alt="LangChain" />
+</p>
 
 A full-stack web application for managing job applications, networking, automated job search, and AI-assisted CV tailoring.
 
@@ -200,10 +212,10 @@ Testing: JUnit, Mockito, Playwright, Selenium, automated testing
 Use **bold** for the degree title line, followed by the date range in parentheses. Add plain text lines for GPA and coursework.
 
 ```
-B.Sc. Software Engineering, Ben-Gurion University (October 2021 – September 2025)
-GPA: 83
+B.Sc. Computer Science, University of Technology (October 2021 – September 2025)
+GPA: 3.8
 Relevant Coursework: Data Structures & Algorithms, Operating Systems, Machine Learning.
-Academic Highlights: Operating Systems (94), Object-Oriented Programming (89).
+Academic Highlights: Operating Systems (A), Object-Oriented Programming (A-).
 ```
 
 **Quill formatting:**
@@ -225,12 +237,12 @@ Each project starts with a **bold title line** followed by the tech stack in par
 
 ```
 JobPilot – AI-Powered Full-Stack Platform (React, Node.js, FastAPI, LangChain)
-GitHub: https://github.com/SagiEv/JobPilot/
+GitHub: https://github.com/username/JobPilot
 • Developed a full-stack platform for tracking job applications and managing workflows.
 • Built AI-powered resume tailoring using FastAPI and LangGraph pipelines.
 
-SwipeLab – Gamified Research Labeling Platform (React Native, Java Spring Boot, PostgreSQL, Docker)
-GitHub: https://github.com/SagiEv/SwipeLab
+AwesomeProject – Research Labeling Platform (React Native, Java Spring Boot, PostgreSQL, Docker)
+GitHub: https://github.com/username/AwesomeProject
 • Developed a collaborative image labeling system for 30+ users.
 ```
 
@@ -248,10 +260,10 @@ GitHub: https://github.com/SagiEv/SwipeLab
 Same pattern as Projects — bold title line with date range, followed by bullet points.
 
 ```
-Military Service – Artillery Corps Combat Soldier (07/2017 – 03/2020)
-• Led a 10-soldier division in high-pressure environments.
-• Recognized for leadership and effective management under stress.
-• Awarded "Excellent Soldier" certificate for outstanding performance.
+Project Manager – Tech Solutions Inc. (07/2017 – 03/2020)
+• Led a 10-person cross-functional team in fast-paced environments.
+• Recognized for leadership and effective management under tight deadlines.
+• Awarded "Employee of the Year" certificate for outstanding performance.
 
 Software Engineer – Acme Corp (01/2022 – 06/2024)
 • Built microservices architecture using Java Spring Boot and PostgreSQL.
@@ -277,7 +289,7 @@ Free-form paragraph text — no special formatting required. Write in plain text
 Format as one or more `Category: value, value` lines.
 
 ```
-Languages: Hebrew (Native), English (Highly proficient)
+Languages: English (Native), Spanish (Conversational)
 Interests: Open-source development, competitive programming
 ```
 
