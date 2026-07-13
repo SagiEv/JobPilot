@@ -31,6 +31,31 @@ const STATUS_KEYWORDS = {
 // Common company suffixes to strip for better matching
 const COMPANY_SUFFIXES = /\b(inc|ltd|llc|gmbh|corp|co|company|group|holdings|plc|ag|sa|srl|bv)\b\.?/gi;
 
+// Known ATS provider domain segments — company name comes from the subdomain prefix or username
+const ATS_DOMAIN_SEGMENTS = new Set([
+    'myworkday', 'myworkdaybio', 'greenhouse', 'lever', 'bamboohr',
+    'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors',
+    'comeet-notifications', 'comeet', 'taleo', 'jobvite', 'recruitee',
+    'pinpointhq', 'teamtailor', 'personio', 'recruitly',
+]);
+
+// Generic subdomains that carry no company-identity signal
+const GENERIC_SUBDOMAINS = new Set([
+    'mail', 'email', 'mailer', 'smtp', 'send', 'reply', 'noreply',
+    'no-reply', 'donotreply', 'do-not-reply', 'careers', 'jobs',
+    'notifications', 'alerts', 'info', 'support', 'contact', 'hr',
+    'talent', 'recruiting', 'recruitment', 'bounce', 'bounce-handler',
+]);
+
+// Aggregator senders whose domain is irrelevant — real company is in subject/body
+const AGGREGATOR_DOMAINS = new Set([
+    'linkedin.com', 'indeed.com', 'glassdoor.com', 'ziprecruiter.com',
+    'monster.com', 'careerbuilder.com', 'dice.com',
+]);
+
+// Common TLDs to ignore when selecting the meaningful domain segment
+const COMMON_TLDS = new Set(['com', 'net', 'org', 'io', 'ai', 'co', 'gov', 'edu', 'uk', 'us', 'de', 'fr', 'il']);
+
 /**
  * Normalize a company name for matching.
  */
@@ -46,35 +71,102 @@ function normalizeCompany(name) {
 }
 
 /**
- * Extract domain from an email address.
- * e.g. "hr@google.com" → "google"
+ * Extract the local-part (username) from an email address, stripping generic prefixes.
+ * e.g. "no-reply@kaltura.comeet-notifications.com" → local = "no-reply" (stripped → "")
+ * e.g. "kaltura@comeet-notifications.com"           → local = "kaltura"
+ */
+function _extractCleanUsername(address) {
+    const match = address.match(/^([^@]+)@/);
+    if (!match) return '';
+    return match[1]
+        .toLowerCase()
+        .replace(/^(no-reply|noreply|donotreply|do-not-reply|careers|jobs|hr|talent|info|support|hello|notifications|alerts|bounce)[-_]?/i, '')
+        .trim();
+}
+
+/**
+ * Extract the display name from a "Name <address>" formatted From header,
+ * stripping generic words like "Careers", "Talent", "Jobs".
+ * e.g. "Microsoft Careers <donotreply@email.careers.microsoft.com>" → "Microsoft"
+ */
+function _extractDisplayName(email) {
+    const nameMatch = email.match(/^(.+?)\s*</);
+    if (!nameMatch) return '';
+    return nameMatch[1]
+        .trim()
+        .replace(/\b(careers|talent|jobs|recruiting|recruitment|hr|hiring|noreply|notifications|alerts|team|support)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Extract a meaningful company identifier from an email From header.
+ *
+ * Strategy (in priority order):
+ *  1. If the full domain is a known aggregator → return empty string so the
+ *     caller falls back to subject-line extraction (handled in classifyEmail).
+ *  2. If any domain segment is a known ATS provider:
+ *     a. Try the subdomain prefix (e.g. "kaltura" from kaltura.comeet-notifications.com).
+ *     b. Try the clean username (e.g. "kaltura" from no-reply@kaltura.comeet-notifications.com — after stripping prefix).
+ *  3. Walk domain segments right-to-left (skipping TLDs and generic words);
+ *     return the first meaningful segment.
+ *     e.g. "donotreply@email.careers.microsoft.com" → "microsoft"
+ *  4. Fall back to display name (e.g. "Microsoft Careers <…>" → "microsoft").
+ *
+ * @param {string} email - Raw From header value ("Name <addr>" or plain address)
+ * @returns {string} Lowercase company identifier, or '' if indeterminate.
  */
 function extractDomain(email) {
     if (!email) return '';
-    
-    // Extract actual email address if format is "Name <address>"
-    const emailMatch = email.match(/<([^>]+)>/);
-    const cleanEmail = emailMatch ? emailMatch[1] : email;
 
-    const match = cleanEmail.match(/@([^.]+)/);
-    if (!match) return '';
+    // Separate display name and address
+    const addrMatch = email.match(/<([^>]+)>/);
+    const address = addrMatch ? addrMatch[1].trim() : email.trim();
 
-    const domain = match[1].toLowerCase();
-    
-    // Known ATS domains where the username before @ is the actual company name
-    const atsDomains = ['myworkday', 'myworkdaybio', 'greenhouse', 'lever', 'bamboohr', 'ashbyhq', 'smartrecruiters', 'workable', 'icims', 'successfactors', 'comeet-notifications'];
-    
-    if (atsDomains.includes(domain)) {
-        const usernameMatch = cleanEmail.match(/^([^@]+)@/);
-        if (usernameMatch) {
-            let username = usernameMatch[1].toLowerCase();
-            // remove generic prefixes
-            username = username.replace(/^(no-reply|noreply|donotreply|do-not-reply|careers|jobs|hr|talent)_?-?/i, '');
-            if (username) return username;
-        }
+    // Isolate full domain string
+    const atIndex = address.indexOf('@');
+    if (atIndex === -1) return '';
+    const fullDomain = address.slice(atIndex + 1).toLowerCase(); // e.g. "email.careers.microsoft.com"
+    const segments = fullDomain.split('.');
+
+    // 1. Known aggregator → caller must use subject extraction
+    // Check by joining last two segments (e.g. "linkedin.com")
+    const rootDomain = segments.slice(-2).join('.');
+    if (AGGREGATOR_DOMAINS.has(rootDomain)) {
+        return ''; // Signal to classifyEmail to use subject-line extraction
     }
 
-    return domain;
+    // 2. ATS detection — scan all segments
+    const atsSegment = segments.find(seg => ATS_DOMAIN_SEGMENTS.has(seg));
+    if (atsSegment) {
+        // 2a. Subdomain prefix: take the segment immediately before the ATS segment
+        const atsIdx = segments.indexOf(atsSegment);
+        if (atsIdx > 0) {
+            const candidate = segments[atsIdx - 1];
+            if (candidate && !GENERIC_SUBDOMAINS.has(candidate) && !COMMON_TLDS.has(candidate)) {
+                return candidate;
+            }
+        }
+        // 2b. Clean username
+        const username = _extractCleanUsername(address);
+        if (username) return username;
+    }
+
+    // 3. Walk segments right-to-left, skipping TLDs and generic words
+    // Segments in order: [subdomain…, company, tld] — iterate from right
+    const reversed = [...segments].reverse();
+    for (const seg of reversed) {
+        if (COMMON_TLDS.has(seg)) continue;
+        if (GENERIC_SUBDOMAINS.has(seg)) continue;
+        if (seg.length < 2) continue;
+        return seg;
+    }
+
+    // 4. Display name fallback
+    const displayName = _extractDisplayName(email);
+    if (displayName) return displayName.toLowerCase().split(/\s+/)[0]; // first word
+
+    return '';
 }
 
 /**
