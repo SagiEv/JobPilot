@@ -34,8 +34,8 @@ INSTRUCTIONS:
 - Output ONLY the summary text — no headers, no "Summary:" label"""
 
 
-def summary_rewriter_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_power_llm(groq_api_key)
+def summary_rewriter_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_power_llm(api_keys=api_keys, provider=provider, model=model)
 
     job = state["job_analysis"]
     cv_data = state.get("cv_data", {}) or {}

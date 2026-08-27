@@ -1,6 +1,7 @@
 const settingsService = require('../services/settings.service');
 const { testImapConnection } = require('../services/mail-poller.service');
 const { decrypt } = require('../utils/encryption');
+const { validateAiToken } = require('../utils/ai_validator');
 const settingsRepository = require('../repositories/settings.repository');
 const emailLogsRepo = require('../repositories/email-logs.repository');
 
@@ -66,5 +67,33 @@ exports.getEmailLogs = async (req, res) => {
         res.json(data || []);
     } catch (err) {
         res.status(400).json({ error: err.message });
+    }
+};
+
+exports.testAiToken = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { provider } = req.body;
+        if (!provider) {
+            return res.status(400).json({ success: false, error: 'Provider is required.' });
+        }
+        
+        const { data: settings } = await settingsRepository.findSettings(userId, req.token);
+        const encryptedKey = settings?.[`${provider}_token_encrypted`];
+        const unencryptedKey = settings?.[`${provider}_token`];
+        
+        const rawToken = encryptedKey ? decrypt(encryptedKey) : unencryptedKey;
+        if (!rawToken) {
+            return res.status(400).json({ success: false, error: 'No token configured for this provider.' });
+        }
+        
+        const result = await validateAiToken(provider, rawToken);
+        if (result.valid) {
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, error: result.error });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 };

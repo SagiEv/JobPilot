@@ -13,10 +13,13 @@ exports.generateMessage = async (req, res) => {
         const { purpose, jobLink, description, addresseeName, githubPortfolio, recipientEmail, language } = req.body;
         const cvFile = req.file;
 
-        const groqApiKey = await settingsService.getRawGroqToken(userId, req.token);
+        const aiConfigs = await settingsService.getAllAiConfigs(userId, req.token);
+        const routingProvider = aiConfigs?.ai_routing?.mailCreator?.provider || 'groq';
+        const routingModel = aiConfigs?.ai_routing?.mailCreator?.model || null;
 
-        if (!groqApiKey) {
-            return res.status(400).json({ error: 'Groq API Key is missing in your settings.' });
+        const tokenKey = `${routingProvider}_token`;
+        if (!aiConfigs || !aiConfigs[tokenKey]) {
+            return res.status(400).json({ error: `API key for ${routingProvider} is not configured. Please add it in Settings.` });
         }
 
         let cvText = '';
@@ -45,7 +48,14 @@ exports.generateMessage = async (req, res) => {
             skills_pool: skills || [],
             projects_pool: projects || [],
             experience_text: experienceText?.text || '',
-            groq_api_key: groqApiKey
+            api_keys: {
+                groq_token: aiConfigs.groq_token,
+                openai_token: aiConfigs.openai_token,
+                claude_token: aiConfigs.claude_token,
+                gemini_token: aiConfigs.gemini_token
+            },
+            provider: routingProvider,
+            model: routingModel
         });
 
         res.json({

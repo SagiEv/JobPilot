@@ -8,11 +8,11 @@ router = APIRouter()
 
 @router.post("/tailor")
 async def tailor_cv(payload: TailorRequest):
-    if not payload.job_description or not payload.groq_api_key:
-        raise HTTPException(status_code=400, detail="Missing job_description or groq_api_key")
+    if not payload.job_description:
+        raise HTTPException(status_code=400, detail="Missing job_description")
 
     try:
-        graph = build_graph(payload.groq_api_key)
+        graph = build_graph(payload.api_keys, payload.provider, payload.model)
         
         initial_state = {
             "job_description_raw": payload.job_description,

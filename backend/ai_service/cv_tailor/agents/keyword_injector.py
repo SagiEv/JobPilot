@@ -40,8 +40,8 @@ Return JSON:
 }}"""
 
 
-def keyword_injector_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_fast_llm(groq_api_key)
+def keyword_injector_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_fast_llm(api_keys=api_keys, provider=provider, model=model)
 
     ats_keywords = state["job_analysis"].get("ats_keywords", [])
     tech_stack = state["job_analysis"].get("tech_stack", [])

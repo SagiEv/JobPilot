@@ -51,8 +51,8 @@ ATS RULES TO CHECK:
 - CV length: 400-900 words ideally"""
 
 
-def ats_validator_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_fast_llm(groq_api_key)
+def ats_validator_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_fast_llm(api_keys=api_keys, provider=provider, model=model)
 
     job = state["job_analysis"]
     required_kw = list(set(

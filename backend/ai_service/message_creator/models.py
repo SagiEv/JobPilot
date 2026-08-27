@@ -13,4 +13,6 @@ class MessageRequest(BaseModel):
     skills_pool: Optional[List[Dict[str, Any]]] = []
     projects_pool: Optional[List[Dict[str, Any]]] = []
     experience_text: Optional[str] = ""
-    groq_api_key: str
+    api_keys: Dict[str, Optional[str]] = {}
+    provider: Optional[str] = "groq"
+    model: Optional[str] = None

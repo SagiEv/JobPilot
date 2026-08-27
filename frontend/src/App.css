@@ -2579,7 +2579,7 @@ td:nth-child(3) {
 }
 
 .settings-grid {
-  max-width: 720px;
+  max-width: 960px;
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
@@ -2621,6 +2621,7 @@ td:nth-child(3) {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  flex-wrap: wrap;
 }
 
 .settings-service-icon {
@@ -2682,6 +2683,7 @@ td:nth-child(3) {
 .token-preview-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
   padding: 10px 12px;
@@ -3533,3 +3535,139 @@ td:nth-child(3) {
   font-size: 12px;
 }
 
+
+/* Settings Tabs */
+.settings-tabs-container {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t2);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.settings-tab:hover {
+  color: var(--t1);
+}
+
+.settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Nested Provider Tabs */
+.provider-tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: var(--bg2);
+  padding: 6px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+}
+
+.provider-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  cursor: pointer;
+  border-radius: var(--r);
+  transition: all 0.2s ease;
+}
+
+.provider-tab:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.provider-tab.active {
+  background: var(--bg);
+  color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.provider-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--t3);
+}
+
+.provider-status-dot.configured {
+  background: var(--success-c);
+}
+
+
+/* AI Integration Grid Layout */
+.ai-integration-layout {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.ai-integration-layout > div {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .ai-integration-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Feature Routing — label on top, select below */
+.ai-routing-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+}
+
+.ai-routing-row:first-child {
+  padding-top: 0;
+}
+
+.ai-routing-row + .ai-routing-row {
+  border-top: 1px solid var(--border);
+}
+
+.ai-routing-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-routing-select {
+  flex-shrink: 0;
+}
+
+/* Custom Select */
+.custom-select-option:last-child {
+  border-bottom: none !important;
+}
+
+.custom-select-option:hover {
+  background: var(--bg2);
+}
+
+.custom-select-trigger.disabled {
+  opacity: 0.6;
+  background: var(--bg3);
+}

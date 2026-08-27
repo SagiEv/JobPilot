@@ -3,7 +3,9 @@ from typing import Optional, List, Dict, Any
 
 class TailorRequest(BaseModel):
     job_description: str
-    groq_api_key: str
+    api_keys: Dict[str, Optional[str]] = {}
+    provider: Optional[str] = "groq"
+    model: Optional[str] = None
     base_cv: Optional[str] = ""
     cv_data: Optional[Dict[str, Any]] = {}
     skills_pool: Optional[List[Dict[str, Any]]] = []

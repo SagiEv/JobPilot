@@ -35,8 +35,8 @@ Polish the CV: fix verb strength, tense consistency, remove filler, inject the n
 Output ONLY the final Markdown CV."""
 
 
-def final_polish_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_power_llm(groq_api_key)
+def final_polish_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_power_llm(api_keys=api_keys, provider=provider, model=model)
 
     cv_draft = state.get("restructured_cv", {}).get("markdown", "")
     rewritten_summary = state.get("rewritten_summary", "")

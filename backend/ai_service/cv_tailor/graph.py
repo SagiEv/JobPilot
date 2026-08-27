@@ -2,10 +2,6 @@
 LangGraph pipeline definition — wires all 8 agents into a directed graph
 with a conditional ATS validation loop (max 2 retries).
 """
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-
 from langgraph.graph import StateGraph, END
 from cv_tailor.state import TailoringState
 
@@ -21,33 +17,33 @@ from cv_tailor.agents.final_polish import final_polish_node
 MAX_ATS_RETRIES = 2
 
 
-def build_graph(groq_api_key: str):
+def build_graph(api_keys: dict, provider: str, model: str):
     """Build and compile the LangGraph pipeline for a given API key."""
 
     # ── Node wrappers (bind API key) ──────────────────────────────────
     def node_job_analyst(state):
-        return job_analyst_node(state, groq_api_key)
+        return job_analyst_node(state, api_keys, provider, model)
 
     def node_cv_scorer(state):
-        return cv_scorer_node(state, groq_api_key)
+        return cv_scorer_node(state, api_keys, provider, model)
 
     def node_profile_selector(state):
-        return profile_selector_node(state, groq_api_key)
+        return profile_selector_node(state, api_keys, provider, model)
 
     def node_keyword_injector(state):
-        return keyword_injector_node(state, groq_api_key)
+        return keyword_injector_node(state, api_keys, provider, model)
 
     def node_cv_restructurer(state):
-        return cv_restructurer_node(state, groq_api_key)
+        return cv_restructurer_node(state, api_keys, provider, model)
 
     def node_ats_validator(state):
-        return ats_validator_node(state, groq_api_key)
+        return ats_validator_node(state, api_keys, provider, model)
 
     def node_summary_rewriter(state):
-        return summary_rewriter_node(state, groq_api_key)
+        return summary_rewriter_node(state, api_keys, provider, model)
 
     def node_final_polish(state):
-        return final_polish_node(state, groq_api_key)
+        return final_polish_node(state, api_keys, provider, model)
 
     # ── ATS loop conditional edge ────────────────────────────────────
     def should_retry_ats(state: TailoringState) -> str:
