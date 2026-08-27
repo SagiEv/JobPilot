@@ -6,7 +6,7 @@ from interfaces.llm_provider import LLMProvider
 class GeminiProvider(LLMProvider):
     def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096) -> BaseChatModel:
         if not model_name:
-            model_name = "gemini-1.5-pro"
+            model_name = "gemini-1.5-pro-latest"
             
         return ChatGoogleGenerativeAI(
             model=model_name,

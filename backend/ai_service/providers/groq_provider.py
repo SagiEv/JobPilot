@@ -6,7 +6,7 @@ from interfaces.llm_provider import LLMProvider
 class GroqProvider(LLMProvider):
     def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096) -> BaseChatModel:
         if not model_name:
-            model_name = "llama-3.1-8b-instant"
+            model_name = "llama-3.3-70b-versatile"
             
         return ChatGroq(
             model=model_name,
