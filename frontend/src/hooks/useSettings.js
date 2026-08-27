@@ -5,6 +5,13 @@ import apiClient, { getAccessToken } from '../services/apiClient';
 const DEFAULT_SETTINGS = {
     groq_token_set: false,
     groq_token_preview: null,
+    openai_token_set: false,
+    openai_token_preview: null,
+    claude_token_set: false,
+    claude_token_preview: null,
+    gemini_token_set: false,
+    gemini_token_preview: null,
+    ai_routing: {},
     timezone: 'Asia/Jerusalem',
     smtp_email: null,
     smtp_host: null,
@@ -44,12 +51,12 @@ export function useSettings() {
         }
     });
 
-    const saveGroqToken = async (token) => {
-        return saveSettingsMutation.mutateAsync({ groq_token: token });
+    const saveAiToken = async (provider, token) => {
+        return saveSettingsMutation.mutateAsync({ [`${provider}_token`]: token });
     };
 
-    const clearGroqToken = async () => {
-        return saveSettingsMutation.mutateAsync({ groq_token: '' });
+    const saveAiRouting = async (ai_routing) => {
+        return saveSettingsMutation.mutateAsync({ ai_routing });
     };
 
     const saveTimezone = async (timezone) => {
@@ -91,13 +98,22 @@ export function useSettings() {
         return res.data;
     };
 
+    const testAiToken = async (provider) => {
+        try {
+            const res = await apiClient.post('/api/settings/test-ai-token', { provider });
+            return res.data;
+        } catch (err) {
+            return { success: false, error: err.response?.data?.error || err.message };
+        }
+    };
+
     return {
         settings,
         loading,
         saving: saveSettingsMutation.isPending,
         error: error || (saveSettingsMutation.isError ? 'Failed to save settings.' : null),
-        saveGroqToken,
-        clearGroqToken,
+        saveAiToken,
+        saveAiRouting,
         saveTimezone,
         saveSmtpSettings,
         clearSmtpPassword,
@@ -106,5 +122,6 @@ export function useSettings() {
         testResult,
         setTestResult,
         getEmailLogs,
+        testAiToken,
     };
 }

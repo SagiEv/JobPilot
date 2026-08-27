@@ -54,8 +54,8 @@ Instructions:
 7. Output ONLY the Markdown CV — nothing else"""
 
 
-def cv_restructurer_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_power_llm(groq_api_key)
+def cv_restructurer_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_power_llm(api_keys=api_keys, provider=provider, model=model)
 
     def fmt_projects(pool):
         return "\n".join([

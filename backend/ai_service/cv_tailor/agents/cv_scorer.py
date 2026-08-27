@@ -42,8 +42,8 @@ Return a single JSON object:
 }}"""
 
 
-def cv_scorer_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_fast_llm(groq_api_key)
+def cv_scorer_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_fast_llm(api_keys=api_keys, provider=provider, model=model)
 
     skills_text = ", ".join(
         [f"{s.get('name', '')} ({s.get('level', '')})" for s in state.get("skills_pool", [])]

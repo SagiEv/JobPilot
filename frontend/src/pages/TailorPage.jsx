@@ -1,12 +1,14 @@
 import React from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { useTailor } from '../hooks/useTailor';
+import ProviderBadge from '../components/ProviderBadge';
 
 const TailorPage = () => {
     const { settings, loading: settingsLoading } = useSettings();
-    const groqReady = settings.groq_token_set;
+    const activeProvider = settings?.ai_routing?.cvTailoring?.provider || 'groq';
+    const aiReady = settings?.[`${activeProvider}_token_set`];
 
-    const { state, actions, refs } = useTailor(groqReady);
+    const { state, actions, refs } = useTailor(aiReady);
     const { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, output, report, scores, isProcessing } = state;
 
     return (
@@ -117,28 +119,25 @@ const TailorPage = () => {
 
                     <div className="ai-engine-bar">
                         {/* Status indicator */}
-                        <div className={`ai-engine-status ${groqReady ? 'ai-status-ready' : 'ai-status-missing'}`}>
-                            <span className={`ai-dot ${groqReady ? 'ai-dot-active' : 'ai-dot-off'}`} />
-                            {settingsLoading ? (
-                                <span>Checking Groq connection…</span>
-                            ) : groqReady ? (
-                                <span>Groq API connected — 8-agent CV pipeline ready</span>
-                            ) : (
-                                <span>
-                                    Groq API key not configured —{' '}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <ProviderBadge feature="cvTailoring" />
+                            {!aiReady && !settingsLoading && (
+                                <span style={{ fontSize: '13px', color: '#666' }}>
+                                    API key not configured —{' '}
                                     <span
                                         className="ai-settings-link"
                                         role="button"
+                                        style={{ color: '#0f6e56', cursor: 'pointer', textDecoration: 'underline' }}
                                         onClick={() => window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'settings' }))}
                                     >
-                                        go to Settings to add your key
+                                        go to Settings
                                     </span>
                                 </span>
                             )}
                         </div>
 
                         {/* RE-ADDED: Agents preview chips */}
-                        {groqReady && (
+                        {aiReady && (
                             <div className="ai-agents-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', margin: '0 15px' }}>
                                 {[
                                     'Job Analyst',
@@ -159,7 +158,7 @@ const TailorPage = () => {
                             id="run-ai-tailor-btn"
                             className="btn btn-primary"
                             onClick={actions.runAITailor}
-                            disabled={isProcessing || !groqReady || settingsLoading}
+                            disabled={isProcessing || !aiReady || settingsLoading}
                             style={{ marginLeft: 'auto', flexShrink: 0 }}
                         >
                             {isProcessing ? 'Running pipeline…' : '✦ Run AI Tailor'}

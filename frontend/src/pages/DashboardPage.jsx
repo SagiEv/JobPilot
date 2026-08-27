@@ -5,6 +5,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useRss } from '../hooks/useRss';
 import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
+import ProviderBadge from '../components/ProviderBadge';
 
 const DashboardPage = () => {
     const { applications, loading: appsLoading } = useApplications();
@@ -152,7 +153,7 @@ const DashboardPage = () => {
             setComposedMessage(res.data.message);
         } catch(err) {
             console.error(err);
-            alert("Failed to generate message. Ensure you have set your Groq API Key in settings.");
+            alert("Failed to generate message. Ensure you have configured your API Key in Settings.");
         } finally {
             setIsComposing(false);
         }
@@ -438,6 +439,7 @@ const DashboardPage = () => {
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                         Quick Message Sender
                     </h2>
+                    <div style={{ marginBottom: '1rem' }}><ProviderBadge feature="mailCreator" /></div>
                     <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '1rem' }}>Instantly generate referral requests or application messages.</p>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

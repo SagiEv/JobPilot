@@ -35,8 +35,8 @@ JOB DESCRIPTION:
 {job_description}"""
 
 
-def job_analyst_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_power_llm(groq_api_key)
+def job_analyst_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_power_llm(api_keys=api_keys, provider=provider, model=model)
     prompt = PROMPT_TEMPLATE.format(job_description=state["job_description_raw"])
     messages = [
         SystemMessage(content=SYSTEM),

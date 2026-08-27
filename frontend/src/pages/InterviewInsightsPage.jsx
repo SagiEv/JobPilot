@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useInterviews } from '../hooks/useInterviews';
 import PageLoader from '../components/PageLoader';
+import ProviderBadge from '../components/ProviderBadge';
 
 const InterviewInsightsPage = () => {
     const { 
@@ -364,6 +365,7 @@ const InterviewInsightsPage = () => {
                                 </svg>
                                 AI Insights Analysis
                             </h2>
+                            <ProviderBadge feature="interviewInsights" />
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button className="btn btn-primary" onClick={() => generateAiReport()} disabled={isGeneratingReport} style={{ padding: '6px 12px', fontSize: '13px' }}>
                                     {isGeneratingReport ? 'Analyzing...' : '+ New Analysis'}

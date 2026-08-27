@@ -21,7 +21,8 @@ A full-stack web application for managing job applications, networking, automate
 - **Analytics & Insights** — Gain interview insights and visualize application analytics to improve your job hunt.
 - **Network Edge** — Manage professional contacts, relations, and interaction history.
 - **Automated Job Search** — Configure automated searches and web scraping across job boards.
-- **AI CV Tailoring** — AI-assisted resume customization using LangGraph and Groq, accepting PDF uploads or database profile data to tailor your CV to specific job descriptions.
+- **Multi-Provider LLM Support** — Configurable AI integration supporting multiple providers (e.g., Groq, OpenAI, etc.) for executing agentic workflows.
+- **AI CV Tailoring** — AI-assisted resume customization using LangGraph and multiple LLM providers, accepting PDF uploads or database profile data to tailor your CV to specific job descriptions.
 - **Settings Management** — Secure configuration for AI engine API keys and other app settings.
 
 ## Tech Stack

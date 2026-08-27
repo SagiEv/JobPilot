@@ -1,4 +1,4 @@
-from langchain_groq import ChatGroq
+from router.llm_router import LLMRouter
 from langchain_core.messages import HumanMessage, SystemMessage
 import json
 import logging
@@ -7,7 +7,13 @@ from .models import InterviewAnalysisRequest
 logger = logging.getLogger(__name__)
 
 async def analyze_interview_feedback(payload: InterviewAnalysisRequest) -> dict:
-    llm = ChatGroq(temperature=0.7, groq_api_key=payload.groq_api_key, model_name="llama-3.1-8b-instant")
+    llm = LLMRouter.get_model(
+        provider=payload.provider,
+        model=payload.model,
+        api_keys=payload.api_keys,
+        temperature=0.4,
+        max_tokens=4096
+    )
 
     interviews_text = json.dumps(payload.interviews_data, indent=2)
 

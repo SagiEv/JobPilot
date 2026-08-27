@@ -94,7 +94,11 @@ CREATE TABLE IF NOT EXISTS skills (
 CREATE TABLE IF NOT EXISTS app_settings (
   id SERIAL PRIMARY KEY,
   user_id UUID UNIQUE NOT NULL,
-  groq_token TEXT,
+  groq_token TEXT, -- Kept for backward compatibility, will be encrypted transparently
+  openai_token_encrypted TEXT,
+  claude_token_encrypted TEXT,
+  gemini_token_encrypted TEXT,
+  ai_routing JSONB,
   timezone TEXT DEFAULT 'Asia/Jerusalem'
 );
 

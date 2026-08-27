@@ -8,8 +8,6 @@ router = APIRouter()
 
 @router.post("/generate-message")
 async def generate_message(payload: MessageRequest):
-    if not payload.groq_api_key:
-        raise HTTPException(status_code=400, detail="Missing groq_api_key")
     
     try:
         message = await generate_networking_message(payload)

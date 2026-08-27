@@ -1,4 +1,4 @@
-from langchain_groq import ChatGroq
+from router.llm_router import LLMRouter
 from langchain_core.messages import HumanMessage, SystemMessage
 import logging
 from .models import MessageRequest
@@ -6,7 +6,13 @@ from .models import MessageRequest
 logger = logging.getLogger(__name__)
 
 async def generate_networking_message(payload: MessageRequest) -> str:
-    llm = ChatGroq(temperature=0.7, groq_api_key=payload.groq_api_key, model_name="llama-3.1-8b-instant")
+    llm = LLMRouter.get_model(
+        provider=payload.provider,
+        model=payload.model,
+        api_keys=payload.api_keys,
+        temperature=0.7,
+        max_tokens=1024
+    )
 
     language_instruction = "The output MUST be written entirely in English."
     if payload.language == "He":

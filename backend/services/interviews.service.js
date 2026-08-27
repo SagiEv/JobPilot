@@ -50,17 +50,29 @@ const generateAiReport = async (userId) => {
         improve: i.improve
     }));
 
-    // 2. Fetch Groq API Key
-    const { data: settings } = await settingsRepository.findSettings(userId);
-    if (!settings || !settings.groq_token) {
-        throw new Error('Missing Groq API token. Please configure it in settings.');
+    // 2. Fetch AI Configs
+    const settingsService = require('./settings.service');
+    const aiConfigs = await settingsService.getAllAiConfigs(userId);
+    const routingProvider = aiConfigs?.ai_routing?.interviewInsights?.provider || 'groq';
+    const routingModel = aiConfigs?.ai_routing?.interviewInsights?.model || null;
+
+    const tokenKey = `${routingProvider}_token`;
+    if (!aiConfigs || !aiConfigs[tokenKey]) {
+        throw new Error(`API key for ${routingProvider} is not configured. Please add it in Settings.`);
     }
 
     // 3. Call AI Service
     let aiResponse;
     try {
         aiResponse = await axios.post('http://127.0.0.1:8001/analyze-interviews', {
-            groq_api_key: settings.groq_token,
+            api_keys: {
+                groq_token: aiConfigs.groq_token,
+                openai_token: aiConfigs.openai_token,
+                claude_token: aiConfigs.claude_token,
+                gemini_token: aiConfigs.gemini_token
+            },
+            provider: routingProvider,
+            model: routingModel,
             interviews_data: interviewsData
         });
     } catch (err) {

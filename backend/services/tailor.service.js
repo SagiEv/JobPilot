@@ -10,10 +10,14 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
 const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null) => {
 
-    // 1. Get Groq token
-    const groqApiKey = await settingsService.getRawGroqToken(userId, token);
-    if (!groqApiKey) {
-        throw new Error('Groq API key not configured. Please add it in Settings.');
+    // 1. Get AI configs
+    const aiConfigs = await settingsService.getAllAiConfigs(userId, token);
+    const routing = aiConfigs?.ai_routing?.cvTailoring || { provider: 'groq', model: null };
+    
+    // Validate provider token
+    const tokenKey = `${routing.provider}_token`;
+    if (!aiConfigs || !aiConfigs[tokenKey]) {
+        throw new Error(`API key for ${routing.provider} is not configured. Please add it in Settings.`);
     }
 
     // 2. Fetch context based on user choice
@@ -48,7 +52,14 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     // 3. Assemble payload
     const payload = {
         job_description: jobDescription,
-        groq_api_key: groqApiKey,
+        api_keys: {
+            groq_token: aiConfigs.groq_token,
+            openai_token: aiConfigs.openai_token,
+            claude_token: aiConfigs.claude_token,
+            gemini_token: aiConfigs.gemini_token
+        },
+        provider: routing.provider,
+        model: routing.model,
         base_cv: baseCvText,
         cv_data: cvData,
         skills_pool: skills || [],

@@ -45,8 +45,8 @@ Return JSON:
 }}"""
 
 
-def profile_selector_node(state: TailoringState, groq_api_key: str) -> dict:
-    llm = get_power_llm(groq_api_key)
+def profile_selector_node(state: TailoringState, api_keys: dict, provider: str, model: str) -> dict:
+    llm = get_power_llm(api_keys=api_keys, provider=provider, model=model)
 
     def fmt_skills(pool):
         return json.dumps([
