@@ -41,20 +41,21 @@ export const JobProvider = ({ children }) => {
                     delete pollingIntervals.current[jobId];
                     
                     if (onComplete) {
-                        onComplete(jobData);
+                        try {
+                            onComplete(jobData);
+                        } catch (e) {
+                            console.error("onComplete callback failed", e);
+                        }
                     }
                     
-                    // If the user navigates away, onComplete might still fire if it's a closure, 
-                    // but we can also just show a global toast unconditionally if we want.
-                    // Let's assume onComplete handles local UI, and if it's not provided we use a global toast.
-                    if (!onComplete) {
-                        if (jobData.status === 'completed') {
-                            addToast('Your AI task is ready!', 'success');
-                        } else {
-                            const errorMsg = jobData.error_message || 'Task failed';
-                            const suggestion = jobData.result_data?.suggested_model ? ` Try switching to ${jobData.result_data.suggested_model}.` : '';
-                            addToast(`Error: ${errorMsg}.${suggestion}`, 'error');
-                        }
+                    // Always show the global toast for success/failure
+                    // so the user sees it even if they navigated away.
+                    if (jobData.status === 'completed') {
+                        addToast('Your AI task is ready!', 'success');
+                    } else {
+                        const errorMsg = jobData.error_message || 'Task failed';
+                        const suggestion = jobData.result_data?.suggested_model ? ` Try switching to ${jobData.result_data.suggested_model}.` : '';
+                        addToast(`Error: ${errorMsg}.${suggestion}`, 'error');
                     }
                 }
             } catch (err) {

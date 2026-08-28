@@ -50,12 +50,10 @@ export const useTailor = (groqReady) => {
                             overall: finalResult.overall_score,
                             projected: finalResult.projected_score
                         });
-                        addToast('Your AI Tailored CV is ready!', 'success');
                     } else {
                         const errorMsg = finalJobData.error_message || 'Unknown error';
                         const suggestion = finalJobData.result_data?.suggested_model ? `\n\nSuggestion: Try switching your AI model to ${finalJobData.result_data.suggested_model} in Settings.` : '';
                         setOutput('Failed to tailor CV: ' + errorMsg + suggestion);
-                        addToast(`AI Task Failed: ${errorMsg}`, 'error');
                     }
                 });
             } else {
