@@ -48,10 +48,11 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     const { getEmbedding } = require('./embedding.service');
     const supabase = require('../supabaseClient');
 
-    const safeJobDesc = (jobDescription || "").substring(0, 15000);
-    const safeBaseCv = (baseCvText || "").substring(0, 20000);
+    const cleanText = (txt) => txt ? txt.replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim() : "";
+    const safeJobDesc = cleanText(jobDescription).substring(0, 15000);
+    const safeBaseCv = cleanText(baseCvText).substring(0, 20000);
     const { data: experienceText } = await experienceRepository.findExperienceText(userId);
-    const safeExpText = (experienceText?.text || "").substring(0, 10000);
+    const safeExpText = cleanText(experienceText?.text).substring(0, 10000);
 
     // ── Vector Search (RAG) ──
     const jobEmbedding = await getEmbedding(safeJobDesc);
