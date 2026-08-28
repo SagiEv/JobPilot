@@ -69,13 +69,15 @@ def profile_selector_node(state: TailoringState, api_keys: dict, provider: str, 
         experience_text=state.get("experience_text", "") or "No experience text available",
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
         raw = response.content.strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         selections = json.loads(raw)
-    except Exception as e:
+    except (json.JSONDecodeError, Exception) as e:
         selections = {
             "skills_to_highlight": [],
             "skills_to_add_from_pool": [],

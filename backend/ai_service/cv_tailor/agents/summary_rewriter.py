@@ -74,8 +74,10 @@ def summary_rewriter_node(state: TailoringState, api_keys: dict, provider: str, 
         current_summary=current_summary,
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
         rewritten = response.content.strip()
     except Exception as e:
         rewritten = current_summary  # Fallback to original

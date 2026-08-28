@@ -53,13 +53,15 @@ def keyword_injector_node(state: TailoringState, api_keys: dict, provider: str, 
         profile_selections=json.dumps(state.get("profile_selections", {}), indent=2),
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
         raw = response.content.strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         injections = json.loads(raw)
-    except Exception as e:
+    except (json.JSONDecodeError, Exception) as e:
         injections = {
             "injections": [],
             "sections_to_rename": [],

@@ -87,8 +87,10 @@ def cv_restructurer_node(state: TailoringState, api_keys: dict, provider: str, m
         experience_text=state.get("experience_text", "") or "No experience text",
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
         cv_md = response.content.strip()
         restructured = {"markdown": cv_md, "restructure_success": True}
     except Exception as e:

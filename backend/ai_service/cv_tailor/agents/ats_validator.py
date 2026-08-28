@@ -81,13 +81,15 @@ def ats_validator_node(state: TailoringState, api_keys: dict, provider: str, mod
         cv_markdown=cv_md,
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
         raw = response.content.strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         result = json.loads(raw)
-    except Exception as e:
+    except (json.JSONDecodeError, Exception) as e:
         result = {
             "ats_score": 7.0,
             "is_compliant": True,  # Don't block pipeline on validator failure

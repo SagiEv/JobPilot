@@ -58,13 +58,15 @@ def cv_scorer_node(state: TailoringState, api_keys: dict, provider: str, model: 
         SystemMessage(content=SYSTEM),
         HumanMessage(content=prompt),
     ]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
         raw = response.content.strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         score = json.loads(raw)
-    except Exception as e:
+    except (json.JSONDecodeError, Exception) as e:
         score = {
             "overall_score": 5.0,
             "breakdown": {
