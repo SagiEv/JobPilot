@@ -11,6 +11,8 @@ class TailoringState(TypedDict):
     experience_text: str             # experience_text.text
 
     # ── Agent outputs (built up incrementally) ────────────────────────
+    retrieved_projects: List[Dict]   # Pool Retriever
+    retrieved_skills: List[Dict]     # Pool Retriever
     job_analysis: Dict[str, Any]     # Job Analyst
     cv_score: Dict[str, Any]         # CV Scorer
     profile_selections: Dict[str, Any]  # Profile Selector

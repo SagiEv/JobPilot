@@ -1,4 +1,5 @@
 const supabase = require('../supabaseClient');
+const { getEmbedding } = require('../services/embedding.service');
 
 // --- Project Methods ---
 const findAllProjects = async (userId) => {
@@ -6,17 +7,35 @@ const findAllProjects = async (userId) => {
 };
 
 const createProject = async (userId, projectData) => {
+    const textToEmbed = `${projectData.title || ''} ${projectData.description || ''} ${projectData.tech_stack || ''}`;
+    const embedding = await getEmbedding(textToEmbed);
+
     return await supabase
         .from('projects')
-        .insert({ ...projectData, user_id: userId })
+        .insert({ ...projectData, user_id: userId, embedding })
         .select()
         .single();
 };
 
 const updateProject = async (userId, id, updateData) => {
+    let embedding = undefined;
+    // Only re-embed if relevant text fields changed
+    if (updateData.title !== undefined || updateData.description !== undefined || updateData.tech_stack !== undefined) {
+        // Fetch current to merge with updates for accurate embedding
+        const { data: current } = await supabase.from('projects').select('*').eq('id', id).single();
+        if (current) {
+            const merged = { ...current, ...updateData };
+            const textToEmbed = `${merged.title || ''} ${merged.description || ''} ${merged.tech_stack || ''}`;
+            embedding = await getEmbedding(textToEmbed);
+        }
+    }
+
+    const payload = { ...updateData };
+    if (embedding) payload.embedding = embedding;
+
     return await supabase
         .from('projects')
-        .update(updateData)
+        .update(payload)
         .eq('id', id)
         .eq('user_id', userId)
         .select()

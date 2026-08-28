@@ -45,26 +45,55 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         throw new Error("No CV provided. Please use profile CV or upload a PDF.");
     }
 
-    const { data: skills } = await skillsRepository.findAll(userId);
-    const { data: projects } = await experienceRepository.findAllProjects(userId);
+    const { getEmbedding } = require('./embedding.service');
+    const supabase = require('../supabaseClient');
+
+    const safeJobDesc = (jobDescription || "").substring(0, 15000);
+    const safeBaseCv = (baseCvText || "").substring(0, 20000);
     const { data: experienceText } = await experienceRepository.findExperienceText(userId);
+    const safeExpText = (experienceText?.text || "").substring(0, 10000);
+
+    // ── Vector Search (RAG) ──
+    const jobEmbedding = await getEmbedding(safeJobDesc);
+    let projects = [];
+    let skills = [];
+
+    if (jobEmbedding) {
+        // Run vector search via Supabase RPC
+        const { data: matchedProjects } = await supabase.rpc('match_projects', {
+            query_embedding: jobEmbedding,
+            match_threshold: 0.1,
+            match_count: 5,
+            p_user_id: userId
+        });
+        const { data: matchedSkills } = await supabase.rpc('match_skills', {
+            query_embedding: jobEmbedding,
+            match_threshold: 0.1,
+            match_count: 20,
+            p_user_id: userId
+        });
+        projects = matchedProjects || [];
+        skills = matchedSkills || [];
+    } else {
+        // Fallback to all if embedding failed
+        const { data: allProjects } = await experienceRepository.findAllProjects(userId);
+        const { data: allSkills } = await skillsRepository.findAll(userId);
+        projects = allProjects || [];
+        skills = allSkills || [];
+    }
 
     // 3. Assemble payload
-    const cleanSkills = (skills || []).map(s => ({
+    const cleanSkills = skills.map(s => ({
         name: s.name,
         level: s.level,
         category: s.category
     }));
 
-    const cleanProjects = (projects || []).map(p => ({
+    const cleanProjects = projects.map(p => ({
         title: p.title,
         description: p.description,
         tech_stack: p.tech_stack
     }));
-
-    const safeJobDesc = (jobDescription || "").substring(0, 15000);
-    const safeBaseCv = (baseCvText || "").substring(0, 20000);
-    const safeExpText = (experienceText?.text || "").substring(0, 10000);
 
     const payload = {
         job_description: safeJobDesc,
