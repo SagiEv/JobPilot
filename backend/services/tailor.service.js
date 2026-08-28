@@ -50,8 +50,24 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     const { data: experienceText } = await experienceRepository.findExperienceText(userId);
 
     // 3. Assemble payload
+    const cleanSkills = (skills || []).map(s => ({
+        name: s.name,
+        level: s.level,
+        category: s.category
+    }));
+
+    const cleanProjects = (projects || []).map(p => ({
+        title: p.title,
+        description: p.description,
+        tech_stack: p.tech_stack
+    }));
+
+    const safeJobDesc = (jobDescription || "").substring(0, 15000);
+    const safeBaseCv = (baseCvText || "").substring(0, 20000);
+    const safeExpText = (experienceText?.text || "").substring(0, 10000);
+
     const payload = {
-        job_description: jobDescription,
+        job_description: safeJobDesc,
         api_keys: {
             groq_token: aiConfigs.groq_token,
             openai_token: aiConfigs.openai_token,
@@ -60,11 +76,11 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         },
         provider: routing.provider,
         model: routing.model,
-        base_cv: baseCvText,
+        base_cv: safeBaseCv,
         cv_data: cvData,
-        skills_pool: skills || [],
-        projects_pool: projects || [],
-        experience_text: experienceText?.text || "",
+        skills_pool: cleanSkills,
+        projects_pool: cleanProjects,
+        experience_text: safeExpText,
         mode: mode
     };
 
