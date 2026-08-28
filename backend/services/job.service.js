@@ -1,4 +1,4 @@
-const { supabase } = require('../supabaseClient');
+const { adminSupabase } = require('../supabaseClient');
 
 /**
  * Creates a new async job record
@@ -7,7 +7,7 @@ const { supabase } = require('../supabaseClient');
  * @returns {Promise<string>} jobId
  */
 async function createJob(userId, type) {
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
         .from('ai_jobs')
         .insert([{ user_id: userId, type: type, status: 'pending' }])
         .select('id')
@@ -27,7 +27,7 @@ async function createJob(userId, type) {
  * @param {object} resultData - JSON data to save
  */
 async function completeJob(jobId, resultData) {
-    const { error } = await supabase
+    const { error } = await adminSupabase
         .from('ai_jobs')
         .update({ 
             status: 'completed', 
@@ -61,7 +61,7 @@ async function failJob(jobId, errorData) {
         message = errorData.message;
     }
     
-    const { error } = await supabase
+    const { error } = await adminSupabase
         .from('ai_jobs')
         .update({ 
             status: 'failed', 
@@ -81,7 +81,7 @@ async function failJob(jobId, errorData) {
  * @param {string} jobId - UUID of the job
  */
 async function getJob(jobId) {
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
         .from('ai_jobs')
         .select('*')
         .eq('id', jobId)
