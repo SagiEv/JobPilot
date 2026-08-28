@@ -8,7 +8,7 @@ const axios = require('axios');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
-const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null) => {
+const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null, pipeline_mode = 'standard') => {
 
     // 1. Get AI configs
     const aiConfigs = await settingsService.getAllAiConfigs(userId, token);
@@ -105,7 +105,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
             gemini_token: aiConfigs.gemini_token
         },
         provider: routing.provider,
-        pipeline_mode: routing.pipeline_mode || 'standard',
+        pipeline_mode: pipeline_mode,
         model: routing.model,
         base_cv: safeBaseCv,
         cv_data: cvData,
@@ -119,7 +119,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     try {
         const response = await axios.post(`${AI_SERVICE_URL}/tailor`, payload, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 120000 // Pipeline might take up to 2 minutes
+            timeout: 300000 // Pipeline might take up to 5 minutes
         });
         return response.data;
     } catch (error) {
@@ -138,9 +138,9 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
 
 const jobService = require('./job.service');
 
-const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null) => {
+const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null, pipeline_mode = 'standard') => {
     try {
-        const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token);
+        const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token, pipeline_mode);
         await jobService.completeJob(jobId, result);
     } catch (error) {
         // Pass the detail object directly if it exists, otherwise pass the string message

@@ -2,18 +2,24 @@ import { useState, useRef, useEffect } from 'react';
 import { runTailor } from '../services/dataService';
 import { useJobs } from '../components/JobProvider';
 
-export const useTailor = (groqReady, activeProvider = 'AI') => {
+export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode = 'standard') => {
     const { startJob, lastTailorResult, setLastTailorResult } = useJobs();
     const [jobUrl, setJobUrl] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [cvFile, setCvFile] = useState(null);
     const [useProfileCv, setUseProfileCv] = useState(true);
     const [tailorFocus, setTailorFocus] = useState('full');
+    const [pipelineMode, setPipelineMode] = useState(initialPipelineMode);
     const [output, setOutput] = useState('');
     const [report, setReport] = useState(null);
     const [scores, setScores] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Sync if initial mode changes (e.g., settings loaded)
+    useEffect(() => {
+        setPipelineMode(initialPipelineMode);
+    }, [initialPipelineMode]);
 
     // Restore state if a job completes while on this page or navigated here via toast
     useEffect(() => {
@@ -45,12 +51,12 @@ export const useTailor = (groqReady, activeProvider = 'AI') => {
         }
 
         setIsProcessing(true);
-        setOutput(`Starting the 8-agent CV tailoring pipeline (${activeProvider})...\nThis may take 1-2 minutes...`);
+        setOutput(`Starting the CV tailoring pipeline (${activeProvider}, ${pipelineMode} mode)...\nThis may take some time...`);
         setReport(null);
         setScores(null);
 
         try {
-            const result = await runTailor(jobDescription, tailorFocus, cvFile, useProfileCv);
+            const result = await runTailor(jobDescription, tailorFocus, cvFile, useProfileCv, pipelineMode);
             
             if (result.jobId) {
                 setOutput(`Job queued. Waiting for AI Service (${activeProvider}) to process (this won't timeout)...`);
@@ -59,7 +65,6 @@ export const useTailor = (groqReady, activeProvider = 'AI') => {
                     setIsProcessing(false);
                     if (finalJobData.status === 'completed') {
                         // The global toast and useEffect(lastTailorResult) will handle success
-                        // But we can also set it here directly if we want
                     } else {
                         const errorMsg = finalJobData.error_message || 'Unknown error';
                         const suggestion = finalJobData.result_data?.suggested_model ? `\n\nSuggestion: Try switching your AI model to ${finalJobData.result_data.suggested_model} in Settings.` : '';
@@ -96,12 +101,13 @@ export const useTailor = (groqReady, activeProvider = 'AI') => {
     };
 
     return {
-        state: { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, output, report, scores, isProcessing },
+        state: { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, pipelineMode, output, report, scores, isProcessing },
         actions: {
             setJobUrl,
             setJobDescription,
             setUseProfileCv,
             setTailorFocus,
+            setPipelineMode,
             handleFileUpload,
             runAITailor,
             handleDownload,

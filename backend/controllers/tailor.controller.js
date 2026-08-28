@@ -4,7 +4,7 @@ const jobService = require('../services/job.service');
 exports.tailorCv = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { job_description, mode, use_profile_cv } = req.body;
+        const { job_description, mode, use_profile_cv, pipeline_mode } = req.body;
         const cv_file = req.file;
 
         if (!job_description) {
@@ -20,7 +20,7 @@ exports.tailorCv = async (req, res) => {
         res.status(202).json({ jobId, status: 'pending' });
 
         // 3. Start async execution in background (do not await)
-        tailorService.runTailoringAsync(userId, jobId, job_description, mode, useProfile, cv_file, req.token)
+        tailorService.runTailoringAsync(userId, jobId, job_description, mode, useProfile, cv_file, req.token, pipeline_mode)
             .catch(err => console.error("Async tailoring background error:", err));
 
     } catch (err) {

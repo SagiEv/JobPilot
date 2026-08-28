@@ -4,7 +4,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 class LLMProvider(ABC):
     @abstractmethod
-    def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096) -> BaseChatModel:
+    def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096, max_retries: int = 3) -> BaseChatModel:
         """Instantiate and return the LangChain chat model."""
         pass
 

@@ -9,10 +9,10 @@ class RateLimiter:
         # Simple redis client
         self.redis_client = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
         
-        # Hardcoded free tier limits
+        # Hardcoded free tier limits (Loosened since we pace internally via graph delays)
         self.limits = {
-            "gemini": {"rpm": 15}, 
-            "groq": {"rpm": 30}
+            "gemini": {"rpm": 60}, 
+            "groq": {"rpm": 60}
         }
         
     def is_limited(self, provider: str) -> bool:

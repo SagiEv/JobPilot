@@ -9,9 +9,10 @@ const TailorPage = () => {
     const { settings, loading: settingsLoading } = useSettings();
     const activeProvider = settings?.ai_routing?.cvTailoring?.provider || 'groq';
     const aiReady = settings?.[`${activeProvider}_token_set`];
+    const initialPipelineMode = settings?.ai_routing?.cvTailoring?.pipeline_mode || 'standard';
 
-    const { state, actions, refs } = useTailor(aiReady, activeProvider);
-    const { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, output, report, scores, isProcessing } = state;
+    const { state, actions, refs } = useTailor(aiReady, activeProvider, initialPipelineMode);
+    const { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, pipelineMode, output, report, scores, isProcessing } = state;
     
     const { profile } = useProfile();
     const estimatedTokens = useTokenEstimate(jobDescription, jobUrl, cvFile, useProfileCv, profile);
@@ -116,6 +117,55 @@ const TailorPage = () => {
                             <option value="reorder">Reorder experience by relevance</option>
                             <option value="summary">Adjust summary / objective</option>
                         </select>
+                    </div>
+
+                    {/* Option 4: Pipeline Mode Selection */}
+                    <div className="field-group" style={{ marginTop: '16px' }}>
+                        <div className="field-label" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            Pipeline Mode
+                            <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
+                                Default: {initialPipelineMode}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '4px', gap: '4px', border: '1px solid #e2e8f0' }}>
+                            <div 
+                                onClick={() => actions.setPipelineMode('standard')}
+                                style={{ 
+                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', 
+                                    padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', 
+                                    background: pipelineMode === 'standard' ? 'white' : 'transparent', 
+                                    boxShadow: pipelineMode === 'standard' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', 
+                                    color: pipelineMode === 'standard' ? '#0f172a' : '#64748b', 
+                                    fontWeight: pipelineMode === 'standard' ? '600' : '500', 
+                                    transition: 'all 0.2s',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={pipelineMode === 'standard' ? '#8b5cf6' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+                                </svg>
+                                Full Pipeline
+                            </div>
+                            <div 
+                                onClick={() => actions.setPipelineMode('fast')}
+                                style={{ 
+                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', 
+                                    padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', 
+                                    background: pipelineMode === 'fast' ? 'white' : 'transparent', 
+                                    boxShadow: pipelineMode === 'fast' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', 
+                                    color: pipelineMode === 'fast' ? '#0f172a' : '#64748b', 
+                                    fontWeight: pipelineMode === 'fast' ? '600' : '500', 
+                                    transition: 'all 0.2s',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={pipelineMode === 'fast' ? '#eab308' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                                </svg>
+                                Fast
+                            </div>
+                        </div>
                     </div>
                 </div>
 

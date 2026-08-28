@@ -15,7 +15,7 @@ class LLMRouter:
     }
 
     @classmethod
-    def get_model(cls, provider: str, model: str, api_keys: dict, temperature: float = 0.7, max_tokens: int = 4096) -> BaseChatModel:
+    def get_model(cls, provider: str, model: str, api_keys: dict, temperature: float = 0.7, max_tokens: int = 4096, max_retries: int = 3) -> BaseChatModel:
         if not provider:
             provider = "groq"
             
@@ -50,5 +50,6 @@ class LLMRouter:
             model_name=model, 
             api_key=api_key, 
             temperature=temperature, 
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            max_retries=max_retries
         )

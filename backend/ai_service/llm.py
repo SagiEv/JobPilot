@@ -11,6 +11,7 @@ def get_fast_llm(api_keys: dict, provider: str = "groq", model: str = None):
         api_keys=api_keys,
         temperature=0.1,
         max_tokens=4096,
+        max_retries=3
     )
 
 def get_power_llm(api_keys: dict, provider: str = "groq", model: str = None):
@@ -20,4 +21,5 @@ def get_power_llm(api_keys: dict, provider: str = "groq", model: str = None):
         api_keys=api_keys,
         temperature=0.3,
         max_tokens=8192,
+        max_retries=3
     )

@@ -4,7 +4,7 @@ from langchain_anthropic import ChatAnthropic
 from interfaces.llm_provider import LLMProvider
 
 class ClaudeProvider(LLMProvider):
-    def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096) -> BaseChatModel:
+    def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096, max_retries: int = 3) -> BaseChatModel:
         if not model_name:
             model_name = "claude-3-5-sonnet-20240620"
             
@@ -13,6 +13,7 @@ class ClaudeProvider(LLMProvider):
             api_key=api_key,
             temperature=temperature,
             max_tokens=max_tokens,
+            max_retries=max_retries,
         )
 
     def get_available_models(self) -> List[Dict[str, Any]]:
