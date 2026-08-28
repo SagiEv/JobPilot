@@ -8,7 +8,7 @@ const TailorPage = () => {
     const activeProvider = settings?.ai_routing?.cvTailoring?.provider || 'groq';
     const aiReady = settings?.[`${activeProvider}_token_set`];
 
-    const { state, actions, refs } = useTailor(aiReady);
+    const { state, actions, refs } = useTailor(aiReady, activeProvider);
     const { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, output, report, scores, isProcessing } = state;
 
     return (

@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { runTailor } from '../services/dataService';
 import { useJobs } from '../components/JobProvider';
 
-export const useTailor = (groqReady) => {
-    const { startJob, addToast } = useJobs();
+export const useTailor = (groqReady, activeProvider = 'AI') => {
+    const { startJob, lastTailorResult, setLastTailorResult } = useJobs();
     const [jobUrl, setJobUrl] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [cvFile, setCvFile] = useState(null);
@@ -14,6 +14,20 @@ export const useTailor = (groqReady) => {
     const [scores, setScores] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Restore state if a job completes while on this page or navigated here via toast
+    useEffect(() => {
+        if (lastTailorResult) {
+            setOutput(lastTailorResult.tailored_cv || 'CV Tailored Successfully.');
+            setReport(lastTailorResult.tailoring_report);
+            setScores({
+                overall: lastTailorResult.overall_score,
+                projected: lastTailorResult.projected_score
+            });
+            setIsProcessing(false);
+            setLastTailorResult(null); // Clear it so it doesn't re-trigger
+        }
+    }, [lastTailorResult, setLastTailorResult]);
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -31,7 +45,7 @@ export const useTailor = (groqReady) => {
         }
 
         setIsProcessing(true);
-        setOutput('Starting the 8-agent CV tailoring pipeline...\nThis may take 1-2 minutes...');
+        setOutput(`Starting the 8-agent CV tailoring pipeline (${activeProvider})...\nThis may take 1-2 minutes...`);
         setReport(null);
         setScores(null);
 
@@ -39,23 +53,19 @@ export const useTailor = (groqReady) => {
             const result = await runTailor(jobDescription, tailorFocus, cvFile, useProfileCv);
             
             if (result.jobId) {
-                setOutput('Job queued. Waiting for AI Service to process (this won\'t timeout)...');
+                setOutput(`Job queued. Waiting for AI Service (${activeProvider}) to process (this won't timeout)...`);
+                
                 startJob(result.jobId, (finalJobData) => {
                     setIsProcessing(false);
                     if (finalJobData.status === 'completed') {
-                        const finalResult = finalJobData.result_data;
-                        setOutput(finalResult.tailored_cv || 'CV Tailored Successfully.');
-                        setReport(finalResult.tailoring_report);
-                        setScores({
-                            overall: finalResult.overall_score,
-                            projected: finalResult.projected_score
-                        });
+                        // The global toast and useEffect(lastTailorResult) will handle success
+                        // But we can also set it here directly if we want
                     } else {
                         const errorMsg = finalJobData.error_message || 'Unknown error';
                         const suggestion = finalJobData.result_data?.suggested_model ? `\n\nSuggestion: Try switching your AI model to ${finalJobData.result_data.suggested_model} in Settings.` : '';
                         setOutput('Failed to tailor CV: ' + errorMsg + suggestion);
                     }
-                });
+                }, `CV Tailoring (${activeProvider})`);
             } else {
                 // Fallback if backend doesn't return jobId for some reason
                 setIsProcessing(false);

@@ -9,19 +9,24 @@ export const useJobs = () => useContext(JobContext);
 export const JobProvider = ({ children }) => {
     const [jobs, setJobs] = useState({});
     const [toasts, setToasts] = useState([]);
+    const [lastTailorResult, setLastTailorResult] = useState(null);
     const pollingIntervals = useRef({});
 
-    const addToast = useCallback((message, type = 'info') => {
+    const addToast = useCallback((message, type = 'info', onClick = null) => {
         const id = Date.now();
-        setToasts(prev => [...prev, { id, message, type }]);
+        setToasts(prev => [...prev, { id, message, type, onClick }]);
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 5000);
     }, []);
 
-    const startJob = useCallback((jobId, onComplete = null) => {
+    const startJob = useCallback((jobId, onComplete = null, jobName = null) => {
         setJobs(prev => ({ ...prev, [jobId]: { status: 'pending' } }));
         
+        if (jobName) {
+            addToast(`Processing: ${jobName}...`, 'info');
+        }
+
         if (pollingIntervals.current[jobId]) return;
 
         const poll = async () => {
@@ -48,10 +53,11 @@ export const JobProvider = ({ children }) => {
                         }
                     }
                     
-                    // Always show the global toast for success/failure
-                    // so the user sees it even if they navigated away.
                     if (jobData.status === 'completed') {
-                        addToast('Your AI task is ready!', 'success');
+                        setLastTailorResult(jobData.result_data);
+                        addToast('Your AI task is ready! Click to view.', 'success', () => {
+                            window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'tailor' }));
+                        });
                     } else {
                         const errorMsg = jobData.error_message || 'Task failed';
                         const suggestion = jobData.result_data?.suggested_model ? ` Try switching to ${jobData.result_data.suggested_model}.` : '';
@@ -75,7 +81,7 @@ export const JobProvider = ({ children }) => {
     }, []);
 
     return (
-        <JobContext.Provider value={{ jobs, startJob, addToast }}>
+        <JobContext.Provider value={{ jobs, startJob, addToast, lastTailorResult, setLastTailorResult }}>
             {children}
             <div style={{
                 position: 'fixed',
@@ -87,15 +93,24 @@ export const JobProvider = ({ children }) => {
                 gap: '10px'
             }}>
                 {toasts.map(toast => (
-                    <div key={toast.id} style={{
-                        padding: '12px 20px',
-                        background: toast.type === 'error' ? '#ef4444' : toast.type === 'success' ? '#10b981' : '#3b82f6',
-                        color: 'white',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        fontFamily: 'sans-serif',
-                        transition: 'opacity 0.3s'
-                    }}>
+                    <div 
+                        key={toast.id} 
+                        onClick={toast.onClick ? () => {
+                            toast.onClick();
+                            setToasts(prev => prev.filter(t => t.id !== toast.id));
+                        } : undefined}
+                        style={{
+                            padding: '12px 20px',
+                            background: toast.type === 'error' ? '#ef4444' : toast.type === 'success' ? '#10b981' : '#3b82f6',
+                            color: 'white',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                            fontFamily: 'sans-serif',
+                            transition: 'opacity 0.3s',
+                            cursor: toast.onClick ? 'pointer' : 'default',
+                            opacity: 0.95
+                        }}
+                    >
                         {toast.message}
                     </div>
                 ))}
