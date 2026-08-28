@@ -1,6 +1,8 @@
 import React from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { useTailor } from '../hooks/useTailor';
+import { useProfile } from '../hooks/useProfile';
+import { useTokenEstimate } from '../hooks/useTokenEstimate';
 import ProviderBadge from '../components/ProviderBadge';
 
 const TailorPage = () => {
@@ -10,6 +12,10 @@ const TailorPage = () => {
 
     const { state, actions, refs } = useTailor(aiReady, activeProvider);
     const { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, output, report, scores, isProcessing } = state;
+    
+    const { profile } = useProfile();
+    const estimatedTokens = useTokenEstimate(jobDescription, jobUrl, cvFile, useProfileCv, profile);
+
 
     return (
         <div className="section" id="sec-tailor">
@@ -121,6 +127,11 @@ const TailorPage = () => {
                         {/* Status indicator */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <ProviderBadge feature="cvTailoring" />
+                            {aiReady && (
+                                <span style={{ fontSize: '12px', color: '#888', background: '#f0f0f0', padding: '2px 8px', borderRadius: '12px' }}>
+                                    ~{estimatedTokens.toLocaleString()} ctx tokens
+                                </span>
+                            )}
                             {!aiReady && !settingsLoading && (
                                 <span style={{ fontSize: '13px', color: '#666' }}>
                                     API key not configured —{' '}
