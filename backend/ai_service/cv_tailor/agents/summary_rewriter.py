@@ -6,7 +6,7 @@ Uses: power LLM (prose quality critical)
 import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_power_llm
+from llm import get_power_llm, extract_text
 
 SYSTEM = """You are a professional CV copywriter specializing in compelling executive summaries.
 Output ONLY the rewritten summary paragraph — no labels, no JSON, no explanation."""
@@ -78,7 +78,7 @@ def summary_rewriter_node(state: TailoringState, api_keys: dict, provider: str, 
     response = llm.invoke(messages)
     
     try:
-        rewritten = response.content.strip()
+        rewritten = extract_text(response).strip()
     except Exception as e:
         rewritten = current_summary  # Fallback to original
     return {"rewritten_summary": rewritten}

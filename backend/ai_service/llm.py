@@ -23,3 +23,10 @@ def get_power_llm(api_keys: dict, provider: str = "groq", model: str = None):
         max_tokens=8192,
         max_retries=3
     )
+
+def extract_text(response) -> str:
+    """Safely extracts text from a LangChain AIMessage, handling string or list-of-dicts formats."""
+    raw = response.content
+    if isinstance(raw, list):
+        return "".join([part.get("text", "") for part in raw if isinstance(part, dict) and "text" in part])
+    return str(raw)

@@ -7,7 +7,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_fast_llm
+from llm import get_fast_llm, extract_text
 
 SYSTEM = """You are an ATS keyword strategy expert. Return ONLY valid JSON."""
 
@@ -57,7 +57,7 @@ def keyword_injector_node(state: TailoringState, api_keys: dict, provider: str, 
     response = llm.invoke(messages)
     
     try:
-        raw = response.content.strip()
+        raw = extract_text(response).strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         injections = json.loads(raw)

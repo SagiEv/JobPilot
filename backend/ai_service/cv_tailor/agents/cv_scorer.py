@@ -7,7 +7,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_fast_llm
+from llm import get_fast_llm, extract_text
 
 SYSTEM = """You are a strict but fair CV reviewer and ATS expert.
 Grade CVs objectively. Return ONLY valid JSON — no markdown fences, no explanation."""
@@ -62,7 +62,7 @@ def cv_scorer_node(state: TailoringState, api_keys: dict, provider: str, model: 
     response = llm.invoke(messages)
     
     try:
-        raw = response.content.strip()
+        raw = extract_text(response).strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         score = json.loads(raw)

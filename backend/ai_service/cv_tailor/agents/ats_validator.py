@@ -7,7 +7,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_fast_llm
+from llm import get_fast_llm, extract_text
 
 SYSTEM = """You are an ATS (Applicant Tracking System) compliance expert.
 Evaluate CVs strictly. Return ONLY valid JSON."""
@@ -85,7 +85,7 @@ def ats_validator_node(state: TailoringState, api_keys: dict, provider: str, mod
     response = llm.invoke(messages)
     
     try:
-        raw = response.content.strip()
+        raw = extract_text(response).strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         result = json.loads(raw)

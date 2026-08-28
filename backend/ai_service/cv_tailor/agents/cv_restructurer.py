@@ -6,7 +6,7 @@ Uses: power LLM (creative + largest task)
 import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_power_llm
+from llm import get_power_llm, extract_text
 
 SYSTEM = """You are an expert CV writer who creates compelling, ATS-optimized CVs.
 Output ONLY the final CV in clean Markdown — no JSON, no explanation, no preamble.
@@ -91,7 +91,7 @@ def cv_restructurer_node(state: TailoringState, api_keys: dict, provider: str, m
     response = llm.invoke(messages)
     
     try:
-        cv_md = response.content.strip()
+        cv_md = extract_text(response).strip()
         restructured = {"markdown": cv_md, "restructure_success": True}
     except Exception as e:
         restructured = {
