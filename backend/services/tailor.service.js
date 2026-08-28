@@ -77,7 +77,15 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         return response.data;
     } catch (error) {
         console.error('AI Service Error:', error.response?.data || error.message);
-        throw new Error(error.response?.data?.detail || 'Failed to connect to AI tailoring service. Is it running?');
+        const errDetail = error.response?.data?.detail;
+        
+        if (errDetail && typeof errDetail === 'object') {
+            const err = new Error(errDetail.error || 'AI Service Error');
+            err.detail = errDetail; // Preserve the object!
+            throw err;
+        } else {
+            throw new Error(errDetail || 'Failed to connect to AI tailoring service. Is it running?');
+        }
     }
 };
 
@@ -88,11 +96,8 @@ const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', u
         const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token);
         await jobService.completeJob(jobId, result);
     } catch (error) {
-        // Pass the error object to failJob which can parse standard messages or suggested_models
-        let errorData = error.message;
-        if (error.response?.data) {
-            errorData = error.response.data;
-        }
+        // Pass the detail object directly if it exists, otherwise pass the string message
+        const errorData = error.detail || error.message;
         await jobService.failJob(jobId, errorData);
     }
 };
