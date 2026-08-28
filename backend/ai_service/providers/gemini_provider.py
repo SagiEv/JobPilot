@@ -22,6 +22,6 @@ class GeminiProvider(LLMProvider):
             {"id": "gemini-3.1-pro", "name": "Gemini 3.1 Pro"},
             {"id": "gemini-3.5-flash-lite", "name": "Gemini 3.5 Flash-Lite"},
             # You can keep older models like 2.5 or 1.5 if you have specific legacy needs
-            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"}
+            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
             {"id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite"}
         ]
