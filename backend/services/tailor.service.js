@@ -105,6 +105,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
             gemini_token: aiConfigs.gemini_token
         },
         provider: routing.provider,
+        pipeline_mode: routing.pipeline_mode || 'standard',
         model: routing.model,
         base_cv: safeBaseCv,
         cv_data: cvData,

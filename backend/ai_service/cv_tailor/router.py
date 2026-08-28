@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 import logging
 from .models import TailorRequest
 from .graph import build_graph
+from .agents.single_shot_tailor import single_shot_tailor_node
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -12,6 +13,10 @@ async def tailor_cv(payload: TailorRequest):
         raise HTTPException(status_code=400, detail="Missing job_description")
 
     try:
+        if payload.pipeline_mode.lower() == "fast":
+            logger.info(f"Starting Single-Shot AI tailoring pipeline (Fast Mode with {payload.provider})...")
+            return single_shot_tailor_node(payload, payload.api_keys, payload.provider, payload.model)
+
         graph = build_graph(payload.api_keys, payload.provider, payload.model)
         
         initial_state = {

@@ -586,32 +586,58 @@ const SettingsPage = () => {
                                     }));
                                     
                                     return (
-                                        <div key={feature} className="ai-routing-row">
-                                            <div className="ai-routing-label">
-                                                <div className="settings-service-name" style={{ textTransform: 'capitalize' }}>{feature.replace(/([A-Z])/g, ' $1').trim()}</div>
-                                                <div className="settings-service-desc">Select the LLM provider for this feature.</div>
+                                        <div key={feature} className="ai-routing-row" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                <div className="ai-routing-label">
+                                                    <div className="settings-service-name" style={{ textTransform: 'capitalize' }}>{feature.replace(/([A-Z])/g, ' $1').trim()}</div>
+                                                    <div className="settings-service-desc">Select the LLM provider for this feature.</div>
+                                                </div>
+                                                <div className="ai-routing-select">
+                                                    {availableProviders.length > 0 ? (
+                                                        <CustomSelect 
+                                                            value={routing.provider} 
+                                                            options={customOptions}
+                                                            onChange={async (newVal) => {
+                                                                const newRouting = { ...settings.ai_routing, [feature]: { ...routing, provider: newVal } };
+                                                                try { await saveAiRouting(newRouting); flash('success', 'Routing updated.'); }
+                                                                catch { flash('error', 'Failed to update routing.'); }
+                                                            }}
+                                                            disabled={saving}
+                                                        />
+                                                    ) : (
+                                                        <CustomSelect 
+                                                            value=""
+                                                            options={[]}
+                                                            placeholder="No keys configured"
+                                                            disabled={true}
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="ai-routing-select">
-                                                {availableProviders.length > 0 ? (
-                                                    <CustomSelect 
-                                                        value={routing.provider} 
-                                                        options={customOptions}
-                                                        onChange={async (newVal) => {
-                                                            const newRouting = { ...settings.ai_routing, [feature]: { provider: newVal, model: '' } };
-                                                            try { await saveAiRouting(newRouting); flash('success', 'Routing updated.'); }
-                                                            catch { flash('error', 'Failed to update routing.'); }
-                                                        }}
-                                                        disabled={saving}
-                                                    />
-                                                ) : (
-                                                    <CustomSelect 
-                                                        value=""
-                                                        options={[]}
-                                                        placeholder="No keys configured"
-                                                        disabled={true}
-                                                    />
-                                                )}
-                                            </div>
+                                            {feature === 'cvTailoring' && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 16, borderLeft: '2px solid var(--border)' }}>
+                                                    <div className="ai-routing-label">
+                                                        <div className="settings-service-name" style={{ fontSize: '0.9rem' }}>Pipeline Mode</div>
+                                                        <div className="settings-service-desc" style={{ fontSize: '0.8rem' }}>Standard (8-Agent) vs Fast (1-Shot). Fast is recommended for Gemini.</div>
+                                                    </div>
+                                                    <div className="ai-routing-select">
+                                                        <select
+                                                            className="field-input"
+                                                            style={{ width: '220px' }}
+                                                            value={routing.pipeline_mode || 'standard'}
+                                                            onChange={async (e) => {
+                                                                const newRouting = { ...settings.ai_routing, [feature]: { ...routing, pipeline_mode: e.target.value } };
+                                                                try { await saveAiRouting(newRouting); flash('success', 'Pipeline mode updated.'); }
+                                                                catch { flash('error', 'Failed to update pipeline mode.'); }
+                                                            }}
+                                                            disabled={saving}
+                                                        >
+                                                            <option value="standard">Standard (8-Agent)</option>
+                                                            <option value="fast">Fast (1-Shot)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
