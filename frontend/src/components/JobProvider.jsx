@@ -59,9 +59,27 @@ export const JobProvider = ({ children }) => {
                             window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'tailor' }));
                         });
                     } else {
-                        const errorMsg = jobData.error_message || 'Task failed';
-                        const suggestion = jobData.result_data?.suggested_model ? ` Try switching to ${jobData.result_data.suggested_model}.` : '';
-                        addToast(`Error: ${errorMsg}.${suggestion}`, 'error');
+                        let humanMsg = "The AI service encountered an error.";
+                        const rawError = jobData.error_message || '';
+                        
+                        if (rawError.includes('Service busy')) {
+                            humanMsg = "The selected AI model is currently busy.";
+                        } else if (rawError.includes('413') || rawError.includes('Payload Too Large')) {
+                            humanMsg = "The text is too large for this model.";
+                        } else if (rawError) {
+                            humanMsg = rawError;
+                        }
+
+                        const suggested = jobData.result_data?.suggested_model;
+                        if (suggested) {
+                            const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+                            humanMsg += ` Click here to switch to ${capitalize(suggested)} in Settings.`;
+                            addToast(humanMsg, 'error', () => {
+                                window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'settings' }));
+                            });
+                        } else {
+                            addToast(`Error: ${humanMsg}`, 'error');
+                        }
                     }
                 }
             } catch (err) {

@@ -36,6 +36,9 @@ async def tailor_cv(payload: TailorRequest):
             "projected_score": result_state.get("projected_score", 0),
             "tailoring_report": result_state.get("tailoring_report", {}),
         }
+    except HTTPException as he:
+        # Propagate rate limit and other HTTP exceptions directly
+        raise he
     except Exception as e:
         logger.error(f"Error in pipeline: {e}")
         raise HTTPException(status_code=500, detail=str(e))
