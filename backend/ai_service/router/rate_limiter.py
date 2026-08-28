@@ -11,7 +11,7 @@ class RateLimiter:
         
         # Hardcoded free tier limits
         self.limits = {
-            "gemini": {"rpm": 5}, 
+            "gemini": {"rpm": 15}, 
             "groq": {"rpm": 30}
         }
         
