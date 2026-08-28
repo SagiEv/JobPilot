@@ -58,8 +58,8 @@ Perform the full analysis and restructuring, and return the structured response.
         # Convert Pydantic object to dict mapping exactly to what router.py expects
         return {
             "success": True,
-            "tailored_cv_markdown": response.tailored_cv_markdown,
-            "cv_score": response.cv_score.model_dump(),
+            "tailored_cv": response.tailored_cv_markdown,
+            "overall_score": response.cv_score.overall_score,
             "projected_score": response.projected_score,
             "tailoring_report": response.tailoring_report.model_dump()
         }
