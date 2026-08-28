@@ -14,6 +14,7 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
     const [report, setReport] = useState(null);
     const [scores, setScores] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(null);
     const fileInputRef = useRef(null);
 
     // Sync if initial mode changes (e.g., settings loaded)
@@ -51,6 +52,7 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
         }
 
         setIsProcessing(true);
+        setErrorMsg(null);
         setOutput(`Starting the CV tailoring pipeline (${activeProvider}, ${pipelineMode} mode)...\nThis may take some time...`);
         setReport(null);
         setScores(null);
@@ -66,19 +68,21 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
                     if (finalJobData.status === 'completed') {
                         // The global toast and useEffect(lastTailorResult) will handle success
                     } else {
-                        const errorMsg = finalJobData.error_message || 'Unknown error';
-                        const suggestion = finalJobData.result_data?.suggested_model ? `\n\nSuggestion: Try switching your AI model to ${finalJobData.result_data.suggested_model} in Settings.` : '';
-                        setOutput('Failed to tailor CV: ' + errorMsg + suggestion);
+                        const errText = finalJobData.error_message || 'Unknown error';
+                        const suggestion = finalJobData.result_data?.suggested_model ? ` Suggestion: Try switching your AI model to ${finalJobData.result_data.suggested_model} in Settings.` : '';
+                        setErrorMsg('Failed to tailor CV: ' + errText + suggestion);
+                        setOutput(''); // Clear the queued message
                     }
                 }, `CV Tailoring (${activeProvider})`);
             } else {
-                // Fallback if backend doesn't return jobId for some reason
                 setIsProcessing(false);
-                setOutput('Error: Backend did not return a job ID.');
+                setErrorMsg('Error: Backend did not return a job ID.');
+                setOutput('');
             }
         } catch (err) {
             setIsProcessing(false);
-            setOutput('Error connecting to the backend: ' + err.message);
+            setErrorMsg('Error connecting to the backend: ' + err.message);
+            setOutput('');
         }
     };
 
@@ -101,7 +105,7 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
     };
 
     return {
-        state: { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, pipelineMode, output, report, scores, isProcessing },
+        state: { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, pipelineMode, output, report, scores, isProcessing, errorMsg },
         actions: {
             setJobUrl,
             setJobDescription,

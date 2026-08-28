@@ -6,7 +6,7 @@ import { useTokenEstimate } from '../hooks/useTokenEstimate';
 import ProviderBadge from '../components/ProviderBadge';
 
 const TailorPage = () => {
-    const { settings, loading: settingsLoading } = useSettings();
+    const { settings, saveAiRouting, loading: settingsLoading } = useSettings();
     const activeProvider = settings?.ai_routing?.cvTailoring?.provider || 'groq';
     const aiReady = settings?.[`${activeProvider}_token_set`];
     const initialPipelineMode = settings?.ai_routing?.cvTailoring?.pipeline_mode || 'standard';
@@ -121,11 +121,27 @@ const TailorPage = () => {
 
                     {/* Option 4: Pipeline Mode Selection */}
                     <div className="field-group" style={{ marginTop: '16px' }}>
-                        <div className="field-label" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div className="field-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             Pipeline Mode
-                            <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 'normal' }}>
-                                Default: {initialPipelineMode}
-                            </span>
+                            {pipelineMode !== initialPipelineMode ? (
+                                <span 
+                                    onClick={async () => {
+                                        try {
+                                            const newRouting = { ...settings.ai_routing, cvTailoring: { ...settings.ai_routing?.cvTailoring, pipeline_mode: pipelineMode } };
+                                            await saveAiRouting(newRouting);
+                                        } catch (e) {
+                                            console.error("Failed to save default mode", e);
+                                        }
+                                    }}
+                                    style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    Set as Default
+                                </span>
+                            ) : (
+                                <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 'bold' }}>
+                                    ✓ Default
+                                </span>
+                            )}
                         </div>
                         <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '4px', gap: '4px', border: '1px solid #e2e8f0' }}>
                             <div 
@@ -243,6 +259,13 @@ const TailorPage = () => {
                             </div>
                         )}
                     </div>
+
+                    {state.errorMsg && (
+                        <div style={{ padding: '12px 16px', background: '#fffbeb', borderLeft: '4px solid #f59e0b', color: '#b45309', borderRadius: '4px', marginBottom: '14px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: '2px', flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{state.errorMsg}</span>
+                        </div>
+                    )}
 
                     <div className="output-area" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
                         {output || 'Ready to tailor your CV...'}
