@@ -15,11 +15,15 @@ const queryClient = new QueryClient({
   },
 })
 
+import { JobProvider } from './components/JobProvider';
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <JobProvider>
+          <App />
+        </JobProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

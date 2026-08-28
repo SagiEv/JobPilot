@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { runTailor } from '../services/dataService';
+import { useJobs } from '../components/JobProvider';
 
 export const useTailor = (groqReady) => {
+    const { startJob, addToast } = useJobs();
     const [jobUrl, setJobUrl] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [cvFile, setCvFile] = useState(null);
@@ -35,20 +37,35 @@ export const useTailor = (groqReady) => {
 
         try {
             const result = await runTailor(jobDescription, tailorFocus, cvFile, useProfileCv);
-            if (result.success) {
-                setOutput(result.tailored_cv || 'CV Tailored Successfully.');
-                setReport(result.tailoring_report);
-                setScores({
-                    overall: result.overall_score,
-                    projected: result.projected_score
+            
+            if (result.jobId) {
+                setOutput('Job queued. Waiting for AI Service to process (this won\'t timeout)...');
+                startJob(result.jobId, (finalJobData) => {
+                    setIsProcessing(false);
+                    if (finalJobData.status === 'completed') {
+                        const finalResult = finalJobData.result_data;
+                        setOutput(finalResult.tailored_cv || 'CV Tailored Successfully.');
+                        setReport(finalResult.tailoring_report);
+                        setScores({
+                            overall: finalResult.overall_score,
+                            projected: finalResult.projected_score
+                        });
+                        addToast('Your AI Tailored CV is ready!', 'success');
+                    } else {
+                        const errorMsg = finalJobData.error_message || 'Unknown error';
+                        const suggestion = finalJobData.result_data?.suggested_model ? `\n\nSuggestion: Try switching your AI model to ${finalJobData.result_data.suggested_model} in Settings.` : '';
+                        setOutput('Failed to tailor CV: ' + errorMsg + suggestion);
+                        addToast(`AI Task Failed: ${errorMsg}`, 'error');
+                    }
                 });
             } else {
-                setOutput('Failed to tailor CV: ' + (result.error || 'Unknown error'));
+                // Fallback if backend doesn't return jobId for some reason
+                setIsProcessing(false);
+                setOutput('Error: Backend did not return a job ID.');
             }
         } catch (err) {
-            setOutput('Error connecting to the AI service: ' + err.message);
-        } finally {
             setIsProcessing(false);
+            setOutput('Error connecting to the backend: ' + err.message);
         }
     };
 
@@ -71,11 +88,12 @@ export const useTailor = (groqReady) => {
     };
 
     return {
-        state: { jobUrl, jobDescription, cvFile, useProfileCv, output, report, scores, isProcessing },
+        state: { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, output, report, scores, isProcessing },
         actions: {
             setJobUrl,
             setJobDescription,
             setUseProfileCv,
+            setTailorFocus,
             handleFileUpload,
             runAITailor,
             handleDownload,

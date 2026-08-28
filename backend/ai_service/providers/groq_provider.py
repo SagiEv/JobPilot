@@ -13,6 +13,7 @@ class GroqProvider(LLMProvider):
             api_key=api_key,
             temperature=temperature,
             max_tokens=max_tokens,
+            max_retries=0,
         )
 
     def get_available_models(self) -> List[Dict[str, Any]]:

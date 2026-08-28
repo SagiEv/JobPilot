@@ -81,4 +81,20 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     }
 };
 
-module.exports = { runTailoring };
+const jobService = require('./job.service');
+
+const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null) => {
+    try {
+        const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token);
+        await jobService.completeJob(jobId, result);
+    } catch (error) {
+        // Pass the error object to failJob which can parse standard messages or suggested_models
+        let errorData = error.message;
+        if (error.response?.data) {
+            errorData = error.response.data;
+        }
+        await jobService.failJob(jobId, errorData);
+    }
+};
+
+module.exports = { runTailoring, runTailoringAsync };
