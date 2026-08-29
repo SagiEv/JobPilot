@@ -211,10 +211,25 @@ const ApplicationsPage = () => {
                                         )}
                                     </td>
                                 )}
-                                <td>
+                                <td style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-start' }}>
                                     <button className="btn-link" onClick={() => setViewingAppId(app.id)}>
                                         Details ↗
                                     </button>
+                                    {app.STATUS?.toLowerCase() !== 'rejected' && (
+                                        <button 
+                                            title="Quick Reject"
+                                            onClick={() => updateApplication(app.id, 'Rejected', app.STAGE)}
+                                            style={{ 
+                                                background: 'none', border: 'none', color: 'var(--danger-c)', 
+                                                cursor: 'pointer', fontSize: '16px', padding: '4px', lineHeight: 1,
+                                                opacity: 0.7, transition: 'opacity 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.target.style.opacity = 1}
+                                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}
