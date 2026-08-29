@@ -36,7 +36,6 @@ const updateInterview = async (userId, id, data) => {
 };
 
 const axios = require('axios');
-const settingsRepository = require('../repositories/settings.repository');
 
 const deleteInterview = async (userId, id) => {
     const { error } = await interviewRepository.remove(userId, id);
