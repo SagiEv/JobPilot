@@ -5,8 +5,7 @@ const { authenticate } = require('../middleware/auth');
 
 router.get('/', authenticate, async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 20;
-        const { data, error } = await notificationsRepo.findByUser(req.user.id, limit);
+        const { data, error } = await notificationsRepo.findByUser(req.user.id);
         if (error) throw new Error(error.message);
         res.json(data || []);
     } catch (err) {

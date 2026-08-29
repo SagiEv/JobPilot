@@ -3,7 +3,7 @@ import apiClient, { getAccessToken } from '../services/apiClient';
 
 const QUERY_KEY = 'notifications';
 
-export function useNotifications(limit = 20) {
+export function useNotifications() {
     const queryClient = useQueryClient();
 
     const {
@@ -13,9 +13,9 @@ export function useNotifications(limit = 20) {
         refetch,
     } = useQuery({
         enabled: !!getAccessToken(),
-        queryKey: [QUERY_KEY, limit],
+        queryKey: [QUERY_KEY],
         queryFn: async () => {
-            const res = await apiClient.get(`/api/notifications?limit=${limit}`);
+            const res = await apiClient.get(`/api/notifications`);
             return res.data || [];
         },
         staleTime: 30_000, // refetch every 30s
