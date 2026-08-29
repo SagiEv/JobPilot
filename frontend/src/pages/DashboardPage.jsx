@@ -6,8 +6,11 @@ import { useRss } from '../hooks/useRss';
 import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
 import ProviderBadge from '../components/ProviderBadge';
+import { useSettings } from '../hooks/useSettings';
+import { formatDate } from '../utils/helpers';
 
 const DashboardPage = () => {
+    const { settings } = useSettings();
     const { applications, loading: appsLoading } = useApplications();
     const { events, loading: eventsLoading, addEvent } = useEvents();
     const { jobs: rssJobs, jobsLoading: rssLoading } = useRss();
@@ -121,8 +124,10 @@ const DashboardPage = () => {
         // Ensure date is sent as a UTC ISO string so timezone offset is preserved
         const finalDate = interviewForm.date ? new Date(interviewForm.date).toISOString() : null;
 
+        const { application_search, ...payload } = interviewForm;
+
         await addEvent({
-            ...interviewForm,
+            ...payload,
             date: finalDate,
             type: 'interview',
             interviewers: parsedInterviewers,
@@ -364,7 +369,7 @@ const DashboardPage = () => {
                                         <div style={{ fontSize: '0.9rem', color: '#666' }}>{interview.company} • {interview.type}</div>
                                     </div>
                                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                                        <div style={{ color: '#0f6e56', fontWeight: 500 }}>{new Date(interview.date).toLocaleDateString()}</div>
+                                        <div style={{ color: '#0f6e56', fontWeight: 500 }}>{formatDate(interview.date, settings?.timezone)}</div>
                                         <div style={{ fontSize: '0.85rem', color: '#888' }}>{new Date(interview.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                         <button className="btn btn-sm btn-primary" onClick={() => window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'interview' }))} style={{ marginTop: '4px', padding: '2px 8px', fontSize: '0.8rem' }}>Get Ready</button>
                                     </div>
@@ -655,7 +660,8 @@ const DashboardPage = () => {
                                             setInterviewForm({
                                                 ...interviewForm,
                                                 application_search: val,
-                                                application_id: selected ? selected.id : ''
+                                                application_id: selected ? selected.id : '',
+                                                company: selected ? selected.COMPANY : interviewForm.company
                                             });
                                         }}
                                     />
