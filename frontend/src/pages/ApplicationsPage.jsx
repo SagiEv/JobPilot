@@ -12,7 +12,7 @@ const ApplicationsPage = () => {
     // UI State
     const [viewingAppId, setViewingAppId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState('all'); // 'all' | 'active' | 'interview' | 'archived'
+    const [filterType, setFilterType] = useState('active'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
 
@@ -39,9 +39,10 @@ const ApplicationsPage = () => {
                         return status.includes('interview') || status.includes('phone') || status.includes('tech');
                     case 'archived':
                         return status === 'rejected';
+                    case 'all':
                     default:
-                        // 'all' view hides rejected by default
-                        return status !== 'rejected';
+                        // 'all' view shows everything including rejected
+                        return true;
                 }
             })
             .sort((a, b) => {
@@ -72,14 +73,6 @@ const ApplicationsPage = () => {
             {/* Interactive Stats Bar with Selection Indicators */}
             <div className="stats-bar">
                 <div
-                    className={`stat-card ${filterType === 'all' ? 'selected-stat' : ''}`}
-                    onClick={() => setFilterType('all')}
-                >
-                    <div className="stat-num">{stats.total}</div>
-                    <div className="stat-lbl">Total Tracking</div>
-                </div>
-
-                <div
                     className={`stat-card ${filterType === 'active' ? 'selected-stat' : ''}`}
                     onClick={() => setFilterType('active')}
                 >
@@ -103,6 +96,14 @@ const ApplicationsPage = () => {
                         {applications.filter(a => a.STATUS?.toLowerCase() === 'rejected').length}
                     </div>
                     <div className="stat-lbl">Archived</div>
+                </div>
+
+                <div
+                    className={`stat-card ${filterType === 'all' ? 'selected-stat' : ''}`}
+                    onClick={() => setFilterType('all')}
+                >
+                    <div className="stat-num">{stats.total}</div>
+                    <div className="stat-lbl">Total Tracking</div>
                 </div>
             </div>
 
@@ -151,7 +152,7 @@ const ApplicationsPage = () => {
                             <th>Role ID</th>
                             <th>Date</th>
                             <th>Status</th>
-                            <th>Stage</th>
+                            {filterType !== 'archived' && <th>Stage</th>}
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -181,33 +182,35 @@ const ApplicationsPage = () => {
                                         <option value="Withdrawn">Withdrawn</option>
                                     </select>
                                 </td>
-                                <td>
-                                    {app.STATUS?.toLowerCase() !== 'applied' ? (
-                                        <select
-                                            className="status-select-table badge-pending"
-                                            style={{ margin: 0, width: '150px' }}
-                                            value={app.STAGE || ''}
-                                            onChange={(e) => updateApplication(app.id, app.STATUS, e.target.value)}
-                                        >
-                                            <option value="">- No Stage -</option>
-                                            <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
-                                            <option value="Introduction Interview">Introduction Interview</option>
-                                            <option value="Online Test">Online Test</option>
-                                            <option value="Home Assignment">Home Assignment</option>
-                                            <option value="Technical Interview">Technical Interview</option>
-                                            <option value="Coding Interview">Coding Interview</option>
-                                            <option value="System Design Interview">System Design Interview</option>
-                                            <option value="Behavioral / Culture Interview">Behavioral / Culture</option>
-                                            <option value="Hiring Manager Interview">Hiring Manager</option>
-                                            <option value="Final Interview / On-site">Final / On-site</option>
-                                            <option value="Team Matching">Team Matching</option>
-                                            <option value="Reference Check">Reference Check</option>
-                                            <option value="Background Check">Background Check</option>
-                                        </select>
-                                    ) : (
-                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>-</span>
-                                    )}
-                                </td>
+                                {filterType !== 'archived' && (
+                                    <td>
+                                        {app.STATUS?.toLowerCase() !== 'applied' ? (
+                                            <select
+                                                className="status-select-table badge-pending"
+                                                style={{ margin: 0, width: '150px' }}
+                                                value={app.STAGE || ''}
+                                                onChange={(e) => updateApplication(app.id, app.STATUS, e.target.value)}
+                                            >
+                                                <option value="">- No Stage -</option>
+                                                <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
+                                                <option value="Introduction Interview">Introduction Interview</option>
+                                                <option value="Online Test">Online Test</option>
+                                                <option value="Home Assignment">Home Assignment</option>
+                                                <option value="Technical Interview">Technical Interview</option>
+                                                <option value="Coding Interview">Coding Interview</option>
+                                                <option value="System Design Interview">System Design Interview</option>
+                                                <option value="Behavioral / Culture Interview">Behavioral / Culture</option>
+                                                <option value="Hiring Manager Interview">Hiring Manager</option>
+                                                <option value="Final Interview / On-site">Final / On-site</option>
+                                                <option value="Team Matching">Team Matching</option>
+                                                <option value="Reference Check">Reference Check</option>
+                                                <option value="Background Check">Background Check</option>
+                                            </select>
+                                        ) : (
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>-</span>
+                                        )}
+                                    </td>
+                                )}
                                 <td>
                                     <button className="btn-link" onClick={() => setViewingAppId(app.id)}>
                                         Details ↗
