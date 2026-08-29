@@ -49,11 +49,12 @@ export function useApplications() {
     });
 
     const updateApplicationMutation = useMutation({
-        mutationFn: async ({ id, newStatus, newStage, date }) => {
+        mutationFn: async ({ id, newStatus, newStage, date, eventDate }) => {
             const payload = {};
             if (newStatus !== undefined) payload.status = newStatus;
             if (newStage !== undefined) payload.stage = newStage;
             if (date) payload.date = date;
+            if (eventDate) payload.event_date = eventDate;
             await apiClient.put(`/api/applications/${id}`, payload);
         },
         onSuccess: () => {
@@ -81,18 +82,19 @@ export function useApplications() {
         }
     });
 
-    const updateApplication = async (id, newStatus, newStage) => {
+    const updateApplication = async (id, newStatus, newStage, customDate = null) => {
         const today = new Date().toISOString().split('T')[0];
+        const dateToUse = customDate || today;
         // Optimistic update
         queryClient.setQueryData(['applications'], (old) => 
             old.map(app => app.id === id ? { 
                 ...app, 
                 ...(newStatus !== undefined ? { STATUS: newStatus } : {}),
                 ...(newStage !== undefined ? { STAGE: newStage } : {}),
-                DATE: today 
+                DATE: dateToUse 
             } : app)
         );
-        updateApplicationMutation.mutate({ id, newStatus, newStage, date: today });
+        updateApplicationMutation.mutate({ id, newStatus, newStage, date: dateToUse, eventDate: dateToUse });
     };
 
     const addApplication = async (newApp) => {

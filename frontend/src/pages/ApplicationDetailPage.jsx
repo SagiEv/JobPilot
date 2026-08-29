@@ -152,18 +152,21 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     
     const [tempStatus, setTempStatus] = useState(app.STATUS);
     const [tempStage, setTempStage] = useState(app.STAGE);
+    const [tempDate, setTempDate] = useState(app.DATE || new Date().toISOString().split('T')[0]);
+    const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
     
     const [newNote, setNewNote] = useState('');
     const [withWho, setWithWho] = useState('');
 
     const handleConfirm = () => {
-        onUpdate(app.id, tempStatus, tempStage);
+        onUpdate(app.id, tempStatus, tempStage, tempDate);
         setIsEditing(false);
     };
     
     const handleCancel = () => {
         setTempStatus(app.STATUS);
         setTempStage(app.STAGE);
+        setTempDate(app.DATE || new Date().toISOString().split('T')[0]);
         setIsEditing(false);
     };
 
@@ -244,6 +247,13 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                         <option key={s} value={s}>{s}</option>
                                     ))}
                                 </select>
+                                <input
+                                    type="date"
+                                    className="field-input"
+                                    value={tempDate}
+                                    onChange={e => setTempDate(e.target.value)}
+                                    style={{ width: '130px', margin: 0 }}
+                                />
                             </div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-primary btn-sm" onClick={handleConfirm}>Confirm</button>
@@ -324,87 +334,98 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
 
                 {/* ── Activity Log ── */}
                 <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h2 className="section-title">Activity Log</h2>
-                    <div className="activity-timeline" style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
-                        {historyLoading ? (
-                            <p style={{ opacity: 0.5, fontSize: '13px' }}>Loading history...</p>
-                        ) : history.length === 0 ? (
-                            <p style={{ opacity: 0.5, fontSize: '13px' }}>No activity logged yet.</p>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {history.map((evt, idx) => {
-                                    const prevEvt = history[idx + 1];
-                                    const diffDays = prevEvt ? calculateDaysDifference(evt.event_date, prevEvt.event_date) : 0;
-                                    
-                                    return (
-                                        <div key={evt.id} style={{ display: 'flex', gap: '12px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent)', marginTop: '4px' }} />
-                                                {idx < history.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border-color)', margin: '4px 0' }} />}
-                                            </div>
-                                            <div style={{ flex: 1, paddingBottom: '16px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                    <div>
-                                                        <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-main)' }}>
-                                                            {evt.event_type}
-                                                        </div>
-                                                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                                            {evt.new_status && <span>Status: {evt.new_status} </span>}
-                                                            {evt.new_stage && <span>• Stage: {evt.new_stage}</span>}
-                                                        </div>
-                                                        {evt.notes && (
-                                                            <div style={{ fontSize: '13px', marginTop: '6px', padding: '8px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                                                                {evt.notes}
-                                                            </div>
-                                                        )}
-                                                        {evt.with_who && (
-                                                            <div style={{ fontSize: '12px', marginTop: '4px', color: 'var(--accent)' }}>
-                                                                👤 With: {evt.with_who}
-                                                            </div>
-                                                        )}
+                    <div 
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', paddingBottom: isActivityLogOpen ? '10px' : '0', borderBottom: isActivityLogOpen ? '1px solid var(--border-color)' : 'none' }}
+                        onClick={() => setIsActivityLogOpen(!isActivityLogOpen)}
+                    >
+                        <h2 className="section-title" style={{ margin: 0, fontSize: '14px' }}>Activity Log</h2>
+                        <span style={{ transform: isActivityLogOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--text-muted)' }}>▼</span>
+                    </div>
+
+                    {isActivityLogOpen && (
+                        <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                            <div className="activity-timeline" style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', maxHeight: '400px' }}>
+                                {historyLoading ? (
+                                    <p style={{ opacity: 0.5, fontSize: '12px' }}>Loading history...</p>
+                                ) : history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status'))).length === 0 ? (
+                                    <p style={{ opacity: 0.5, fontSize: '12px' }}>No activity logged yet.</p>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status'))).map((evt, idx, filteredHistory) => {
+                                            const prevEvt = filteredHistory[idx + 1];
+                                            const diffDays = prevEvt ? calculateDaysDifference(evt.event_date, prevEvt.event_date) : 0;
+                                            
+                                            return (
+                                                <div key={evt.id} style={{ display: 'flex', gap: '10px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '4px' }} />
+                                                        {idx < filteredHistory.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border-color)', margin: '4px 0' }} />}
                                                     </div>
-                                                    <div style={{ textAlign: 'right' }}>
-                                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                                            {formatDate(evt.event_date, settings?.timezone)}
-                                                        </div>
-                                                        {diffDays > 0 && (
-                                                            <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                                                                {diffDays} {diffDays === 1 ? 'day' : 'days'} later
+                                                    <div style={{ flex: 1, paddingBottom: '12px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                            <div>
+                                                                <div style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-main)' }}>
+                                                                    {evt.event_type}
+                                                                </div>
+                                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                                    {evt.new_status && <span>Status: {evt.new_status} </span>}
+                                                                    {evt.new_stage && <span>• Stage: {evt.new_stage}</span>}
+                                                                </div>
+                                                                {evt.notes && (
+                                                                    <div style={{ fontSize: '11px', marginTop: '4px', padding: '6px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                                                        {evt.notes}
+                                                                    </div>
+                                                                )}
+                                                                {evt.with_who && (
+                                                                    <div style={{ fontSize: '11px', marginTop: '4px', color: 'var(--accent)' }}>
+                                                                        👤 With: {evt.with_who}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                                    {formatDate(evt.event_date, settings?.timezone)}
+                                                                </div>
+                                                                {diffDays > 0 && (
+                                                                    <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
+                                                                        {diffDays} {diffDays === 1 ? 'day' : 'days'} later
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    <form onSubmit={handleAddNote} style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                            <input 
-                                type="text" 
-                                className="field-input" 
-                                placeholder="Add a note..." 
-                                value={newNote}
-                                onChange={e => setNewNote(e.target.value)}
-                                style={{ flex: 2, margin: 0 }}
-                                required
-                            />
-                            <input 
-                                type="text" 
-                                className="field-input" 
-                                placeholder="With who? (optional)" 
-                                value={withWho}
-                                onChange={e => setWithWho(e.target.value)}
-                                style={{ flex: 1, margin: 0 }}
-                            />
+                            <form onSubmit={handleAddNote} style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                    <input 
+                                        type="text" 
+                                        className="field-input" 
+                                        placeholder="Add a note..." 
+                                        value={newNote}
+                                        onChange={e => setNewNote(e.target.value)}
+                                        style={{ flex: 2, margin: 0, fontSize: '12px', padding: '6px' }}
+                                        required
+                                    />
+                                    <input 
+                                        type="text" 
+                                        className="field-input" 
+                                        placeholder="With who? (optional)" 
+                                        value={withWho}
+                                        onChange={e => setWithWho(e.target.value)}
+                                        style={{ flex: 1, margin: 0, fontSize: '12px', padding: '6px' }}
+                                    />
+                                </div>
+                                <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote}>
+                                    Add Note
+                                </button>
+                            </form>
                         </div>
-                        <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote}>
-                            Add Note
-                        </button>
-                    </form>
+                    )}
                 </div>
             </div>
 

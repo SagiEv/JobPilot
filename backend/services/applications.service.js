@@ -29,7 +29,13 @@ const updateApplication = async (userId, id, data) => {
     // Fetch existing application
     const { data: oldApp } = await applicationRepository.findById(userId, id);
     
-    const { data: updatedApp, error } = await applicationRepository.update(userId, id, data);
+    // Extract event_date so it's not saved in the applications table, 
+    // unless you want to update the application's main date too.
+    // Actually, in useApplications we send `date` and `eventDate`.
+    // So `data.date` is the app date, `data.event_date` is for history.
+    const { event_date, ...updateData } = data;
+    
+    const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData);
     if (error) throw new Error(error.message);
 
     // Log change if status or stage is updated
@@ -48,7 +54,11 @@ const updateApplication = async (userId, id, data) => {
                 oldApp.status,
                 updatedApp.status,
                 oldApp.stage,
-                updatedApp.stage
+                updatedApp.stage,
+                '', // notes
+                '', // with_who
+                null, // interviewId
+                event_date || null
             );
         }
     }

@@ -12,13 +12,13 @@ const addHistory = async (historyData) => {
     return data;
 };
 
-const logChange = async (applicationId, eventType, oldStatus, newStatus, oldStage, newStage, notes = '', withWho = '', interviewId = null) => {
+const logChange = async (applicationId, eventType, oldStatus, newStatus, oldStage, newStage, notes = '', withWho = '', interviewId = null, eventDate = null) => {
     // Only log if something changed or if it's a specific manual event
     if (oldStatus === newStatus && oldStage === newStage && eventType !== 'Note' && eventType !== 'Interview') {
         return null;
     }
 
-    return await addHistory({
+    const historyData = {
         application_id: applicationId,
         event_type: eventType,
         old_status: oldStatus,
@@ -28,7 +28,13 @@ const logChange = async (applicationId, eventType, oldStatus, newStatus, oldStag
         notes: notes,
         with_who: withWho,
         interview_id: interviewId
-    });
+    };
+    
+    if (eventDate) {
+        historyData.event_date = eventDate;
+    }
+
+    return await addHistory(historyData);
 };
 
 module.exports = {

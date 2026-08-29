@@ -182,27 +182,31 @@ const ApplicationsPage = () => {
                                     </select>
                                 </td>
                                 <td>
-                                    <select
-                                        className="field-input"
-                                        style={{ margin: 0, width: '150px', fontSize: '11px', padding: '4px' }}
-                                        value={app.STAGE || ''}
-                                        onChange={(e) => updateApplication(app.id, app.STATUS, e.target.value)}
-                                    >
-                                        <option value="">- No Stage -</option>
-                                        <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
-                                        <option value="Introduction Interview">Introduction Interview</option>
-                                        <option value="Online Test">Online Test</option>
-                                        <option value="Home Assignment">Home Assignment</option>
-                                        <option value="Technical Interview">Technical Interview</option>
-                                        <option value="Coding Interview">Coding Interview</option>
-                                        <option value="System Design Interview">System Design Interview</option>
-                                        <option value="Behavioral / Culture Interview">Behavioral / Culture</option>
-                                        <option value="Hiring Manager Interview">Hiring Manager</option>
-                                        <option value="Final Interview / On-site">Final / On-site</option>
-                                        <option value="Team Matching">Team Matching</option>
-                                        <option value="Reference Check">Reference Check</option>
-                                        <option value="Background Check">Background Check</option>
-                                    </select>
+                                    {app.STATUS?.toLowerCase() !== 'applied' ? (
+                                        <select
+                                            className="status-select-table badge-pending"
+                                            style={{ margin: 0, width: '150px' }}
+                                            value={app.STAGE || ''}
+                                            onChange={(e) => updateApplication(app.id, app.STATUS, e.target.value)}
+                                        >
+                                            <option value="">- No Stage -</option>
+                                            <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
+                                            <option value="Introduction Interview">Introduction Interview</option>
+                                            <option value="Online Test">Online Test</option>
+                                            <option value="Home Assignment">Home Assignment</option>
+                                            <option value="Technical Interview">Technical Interview</option>
+                                            <option value="Coding Interview">Coding Interview</option>
+                                            <option value="System Design Interview">System Design Interview</option>
+                                            <option value="Behavioral / Culture Interview">Behavioral / Culture</option>
+                                            <option value="Hiring Manager Interview">Hiring Manager</option>
+                                            <option value="Final Interview / On-site">Final / On-site</option>
+                                            <option value="Team Matching">Team Matching</option>
+                                            <option value="Reference Check">Reference Check</option>
+                                            <option value="Background Check">Background Check</option>
+                                        </select>
+                                    ) : (
+                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>-</span>
+                                    )}
                                 </td>
                                 <td>
                                     <button className="btn-link" onClick={() => setViewingAppId(app.id)}>
