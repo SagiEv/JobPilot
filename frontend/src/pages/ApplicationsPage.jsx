@@ -153,16 +153,20 @@ const ApplicationsPage = () => {
                             <th>Date</th>
                             <th>Status</th>
                             {filterType !== 'archived' && <th>Stage</th>}
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredApplications.map((app) => (
-                            <tr key={app.id}>
+                            <tr 
+                                key={app.id} 
+                                onClick={() => setViewingAppId(app.id)}
+                                style={{ cursor: 'pointer' }}
+                                className="clickable-row"
+                            >
                                 <td style={{ fontWeight: '600' }}>{app.COMPANY}</td>
                                 <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{app.ROLE_ID}</td>
                                 <td style={{ fontSize: '11px' }}>{formatDate(app.DATE, settings?.timezone) || '—'}</td>
-                                <td>
+                                <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <select
                                         className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
                                         value={
@@ -170,6 +174,7 @@ const ApplicationsPage = () => {
                                                 .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS || 'Applied'
                                         }
                                         onChange={(e) => updateApplication(app.id, e.target.value, app.STAGE)}
+                                        onClick={(e) => e.stopPropagation()}
                                         style={{ margin: 0, width: '130px' }}
                                     >
                                         <option value="Applied">Applied</option>
@@ -181,6 +186,32 @@ const ApplicationsPage = () => {
                                         <option value="Rejected">Rejected</option>
                                         <option value="Withdrawn">Withdrawn</option>
                                     </select>
+                                    {app.STATUS?.toLowerCase() !== 'rejected' && (
+                                        <button 
+                                            title="Quick Reject"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateApplication(app.id, 'Rejected', app.STAGE);
+                                            }}
+                                            style={{ 
+                                                background: 'var(--danger-c)', 
+                                                border: 'none', 
+                                                color: '#fff', 
+                                                cursor: 'pointer', 
+                                                fontSize: '12px', 
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                lineHeight: 1,
+                                                padding: 0
+                                            }}
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
                                 </td>
                                 {filterType !== 'archived' && (
                                     <td>
@@ -190,6 +221,7 @@ const ApplicationsPage = () => {
                                                 style={{ margin: 0, width: '150px' }}
                                                 value={app.STAGE || ''}
                                                 onChange={(e) => updateApplication(app.id, app.STATUS, e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
                                             >
                                                 <option value="">- No Stage -</option>
                                                 <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
@@ -211,26 +243,6 @@ const ApplicationsPage = () => {
                                         )}
                                     </td>
                                 )}
-                                <td style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-start' }}>
-                                    <button className="btn-link" onClick={() => setViewingAppId(app.id)}>
-                                        Details ↗
-                                    </button>
-                                    {app.STATUS?.toLowerCase() !== 'rejected' && (
-                                        <button 
-                                            title="Quick Reject"
-                                            onClick={() => updateApplication(app.id, 'Rejected', app.STAGE)}
-                                            style={{ 
-                                                background: 'none', border: 'none', color: 'var(--danger-c)', 
-                                                cursor: 'pointer', fontSize: '16px', padding: '4px', lineHeight: 1,
-                                                opacity: 0.7, transition: 'opacity 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.target.style.opacity = 1}
-                                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </td>
                             </tr>
                         ))}
                     </tbody>
