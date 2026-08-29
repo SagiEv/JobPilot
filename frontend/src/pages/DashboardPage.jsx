@@ -6,8 +6,11 @@ import { useRss } from '../hooks/useRss';
 import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
 import ProviderBadge from '../components/ProviderBadge';
+import { useSettings } from '../hooks/useSettings';
+import { formatDate } from '../utils/helpers';
 
 const DashboardPage = () => {
+    const { settings } = useSettings();
     const { applications, loading: appsLoading } = useApplications();
     const { events, loading: eventsLoading, addEvent } = useEvents();
     const { jobs: rssJobs, jobsLoading: rssLoading } = useRss();
@@ -37,7 +40,7 @@ const DashboardPage = () => {
     
     // Interview Form
     const [interviewForm, setInterviewForm] = useState({
-        title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: ''
+        title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '', application_search: ''
     });
 
     const [emailComposer, setEmailComposer] = useState({
@@ -95,12 +98,16 @@ const DashboardPage = () => {
     const handleEventSubmit = async (e) => {
         e.preventDefault();
         // Combine date + time into a single ISO string, or use date-only if all-day
-        let finalDate = eventForm.date;
+        let finalDate;
         if (!eventForm.allDay && eventForm.date && eventForm.time) {
             finalDate = new Date(`${eventForm.date}T${eventForm.time}`).toISOString();
         } else if (eventForm.allDay && eventForm.date) {
             finalDate = new Date(`${eventForm.date}T00:00:00`).toISOString();
+        } else if (eventForm.date) {
+            // Default to local midnight if time is omitted
+            finalDate = new Date(`${eventForm.date}T00:00:00`).toISOString();
         }
+
         await addEvent({ ...eventForm, date: finalDate, allDay: eventForm.allDay });
         setIsEventModalOpen(false);
         setEventForm({ title: '', date: '', time: '', allDay: false, type: 'generic', details: '' });
@@ -114,14 +121,20 @@ const DashboardPage = () => {
             .map(i => i.trim())
             .filter(i => i);
             
+        // Ensure date is sent as a UTC ISO string so timezone offset is preserved
+        const finalDate = interviewForm.date ? new Date(interviewForm.date).toISOString() : null;
+
+        const { application_search, ...payload } = interviewForm;
+
         await addEvent({
-            ...interviewForm,
+            ...payload,
+            date: finalDate,
             type: 'interview',
             interviewers: parsedInterviewers,
             application_id: interviewForm.application_id ? parseInt(interviewForm.application_id) : null
         });
         setIsInterviewModalOpen(false);
-        setInterviewForm({ title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '' });
+        setInterviewForm({ title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '', application_search: '' });
     };
 
     const handleFetchDescription = () => {
@@ -356,7 +369,7 @@ const DashboardPage = () => {
                                         <div style={{ fontSize: '0.9rem', color: '#666' }}>{interview.company} • {interview.type}</div>
                                     </div>
                                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                                        <div style={{ color: '#0f6e56', fontWeight: 500 }}>{new Date(interview.date).toLocaleDateString()}</div>
+                                        <div style={{ color: '#0f6e56', fontWeight: 500 }}>{formatDate(interview.date, settings?.timezone)}</div>
                                         <div style={{ fontSize: '0.85rem', color: '#888' }}>{new Date(interview.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                         <button className="btn btn-sm btn-primary" onClick={() => window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'interview' }))} style={{ marginTop: '4px', padding: '2px 8px', fontSize: '0.8rem' }}>Get Ready</button>
                                     </div>
@@ -635,12 +648,28 @@ const DashboardPage = () => {
                                 </div>
                                 <div className="modal-section">
                                     <label>Link to Application</label>
-                                    <select className="field-input" value={interviewForm.application_id} onChange={e => setInterviewForm({...interviewForm, application_id: e.target.value})}>
-                                        <option value="">None</option>
+                                    <input 
+                                        type="text" 
+                                        list="add-interview-app-list" 
+                                        placeholder="🔍 Search application..." 
+                                        className="field-input"
+                                        value={interviewForm.application_search || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const selected = applications.find(a => `${a.COMPANY} - ${a.ROLE_ID}` === val);
+                                            setInterviewForm({
+                                                ...interviewForm,
+                                                application_search: val,
+                                                application_id: selected ? selected.id : '',
+                                                company: selected ? selected.COMPANY : interviewForm.company
+                                            });
+                                        }}
+                                    />
+                                    <datalist id="add-interview-app-list">
                                         {applications.map(app => (
-                                            <option key={app.id} value={app.id}>{app.COMPANY} - {app.ROLE_ID}</option>
+                                            <option key={app.id} value={`${app.COMPANY} - ${app.ROLE_ID}`} />
                                         ))}
-                                    </select>
+                                    </datalist>
                                 </div>
                                 <div className="modal-section">
                                     <label>Details (Optional)</label>

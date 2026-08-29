@@ -62,10 +62,21 @@ const bulkCreate = async (req, res) => {
     }
 };
 
+const getAnalyticsMetrics = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const result = await applicationService.getAnalyticsMetrics(userId);
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAll,
     create,
     update,
     remove,
-    bulkCreate
+    bulkCreate,
+    getAnalyticsMetrics
 };
