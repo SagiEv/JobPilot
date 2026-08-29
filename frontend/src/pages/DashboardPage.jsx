@@ -37,7 +37,7 @@ const DashboardPage = () => {
     
     // Interview Form
     const [interviewForm, setInterviewForm] = useState({
-        title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: ''
+        title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '', application_search: ''
     });
 
     const [emailComposer, setEmailComposer] = useState({
@@ -129,7 +129,7 @@ const DashboardPage = () => {
             application_id: interviewForm.application_id ? parseInt(interviewForm.application_id) : null
         });
         setIsInterviewModalOpen(false);
-        setInterviewForm({ title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '' });
+        setInterviewForm({ title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '', application_search: '' });
     };
 
     const handleFetchDescription = () => {
@@ -643,12 +643,27 @@ const DashboardPage = () => {
                                 </div>
                                 <div className="modal-section">
                                     <label>Link to Application</label>
-                                    <select className="field-input" value={interviewForm.application_id} onChange={e => setInterviewForm({...interviewForm, application_id: e.target.value})}>
-                                        <option value="">None</option>
+                                    <input 
+                                        type="text" 
+                                        list="add-interview-app-list" 
+                                        placeholder="🔍 Search application..." 
+                                        className="field-input"
+                                        value={interviewForm.application_search || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const selected = applications.find(a => `${a.COMPANY} - ${a.ROLE_ID}` === val);
+                                            setInterviewForm({
+                                                ...interviewForm,
+                                                application_search: val,
+                                                application_id: selected ? selected.id : ''
+                                            });
+                                        }}
+                                    />
+                                    <datalist id="add-interview-app-list">
                                         {applications.map(app => (
-                                            <option key={app.id} value={app.id}>{app.COMPANY} - {app.ROLE_ID}</option>
+                                            <option key={app.id} value={`${app.COMPANY} - ${app.ROLE_ID}`} />
                                         ))}
-                                    </select>
+                                    </datalist>
                                 </div>
                                 <div className="modal-section">
                                     <label>Details (Optional)</label>

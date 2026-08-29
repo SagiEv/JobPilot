@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
 import { useApplicationHistory } from '../hooks/useApplicationHistory';
+import { useEvents } from '../hooks/useEvents';
 
 // ── Status pipeline order ─────────────────────────────────────────────────────
 const STATUS_PIPELINE = [
@@ -157,6 +158,11 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     
     const [newNote, setNewNote] = useState('');
     const [withWho, setWithWho] = useState('');
+    const [expandedEvents, setExpandedEvents] = useState({});
+
+    const toggleEvent = (id) => {
+        setExpandedEvents(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     const handleConfirm = () => {
         onUpdate(app.id, tempStatus, tempStage, tempDate);
@@ -302,7 +308,137 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+            <div style={{ marginTop: '20px' }}>
+                {/* ── Activity Log ── */}
+                <div className="card" style={{ display: 'flex', flexDirection: 'column', marginBottom: isActivityLogOpen ? '20px' : '0', transition: 'margin 0.2s' }}>
+                    <div 
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', paddingBottom: isActivityLogOpen ? '10px' : '0', borderBottom: isActivityLogOpen ? '1px solid var(--border-color)' : 'none' }}
+                        onClick={() => setIsActivityLogOpen(!isActivityLogOpen)}
+                    >
+                        <h2 className="section-title" style={{ margin: 0, fontSize: '14px' }}>Activity Log</h2>
+                        <span style={{ transform: isActivityLogOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--text-muted)' }}>▼</span>
+                    </div>
+
+                    {isActivityLogOpen && (
+                        <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                            <div className="activity-timeline" style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', maxHeight: '400px' }}>
+                                {historyLoading ? (
+                                    <p style={{ opacity: 0.5, fontSize: '12px' }}>Loading history...</p>
+                                ) : (() => {
+                                    const appEvents = (events || []).filter(e => e.application_id === app.id).map(e => ({
+                                        id: `event-${e.id}`,
+                                        event_type: e.type === 'interview' ? 'Interview Scheduled' : 'Event',
+                                        event_date: e.date,
+                                        notes: e.details,
+                                        with_who: Array.isArray(e.interviewers) ? e.interviewers.join(', ') : e.interviewers,
+                                        title: e.title,
+                                        isEvent: true,
+                                        type: e.type
+                                    }));
+                                    const rawHistoryList = history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status')));
+                                    const combinedHistory = [...rawHistoryList, ...appEvents].sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+                                    
+                                    if (combinedHistory.length === 0) {
+                                        return <p style={{ opacity: 0.5, fontSize: '12px' }}>No activity logged yet.</p>;
+                                    }
+
+                                    return (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {combinedHistory.map((evt, idx) => {
+                                                const prevEvt = combinedHistory[idx + 1];
+                                                const diffDays = prevEvt ? calculateDaysDifference(evt.event_date, prevEvt.event_date) : 0;
+                                                
+                                                // Handling interview details state
+                                                const isMostRecentInterview = evt.event_type === 'Interview Scheduled' && idx === combinedHistory.findIndex(e => e.event_type === 'Interview Scheduled');
+                                                const hasInterviewDetails = evt.isEvent || evt.interviews || (evt.interview_id && evt.notes) || evt.with_who;
+                                                const isExpanded = expandedEvents[evt.id] !== undefined ? expandedEvents[evt.id] : isMostRecentInterview;
+                                                
+                                                return (
+                                                    <div key={evt.id} style={{ display: 'flex', gap: '10px' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '4px' }} />
+                                                            {idx < combinedHistory.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border-color)', margin: '4px 0' }} />}
+                                                        </div>
+                                                        <div style={{ flex: 1, paddingBottom: '12px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div 
+                                                                        style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-main)', cursor: hasInterviewDetails ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                                        onClick={() => hasInterviewDetails && toggleEvent(evt.id)}
+                                                                    >
+                                                                        {evt.event_type} {evt.title ? `- ${evt.title}` : ''} {evt.interviews?.stage ? `- ${evt.interviews.stage}` : ''}
+                                                                        {hasInterviewDetails && (
+                                                                            <span style={{ fontSize: '9px', color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                                        {evt.new_status && <span>Status: {evt.new_status} </span>}
+                                                                        {evt.new_stage && <span>• Stage: {evt.new_stage}</span>}
+                                                                    </div>
+                                                                    {isExpanded && (
+                                                                        <div style={{ marginTop: '4px' }}>
+                                                                            {evt.notes && (
+                                                                                <div style={{ fontSize: '11px', padding: '6px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)', marginBottom: '4px' }}>
+                                                                                    {evt.notes}
+                                                                                </div>
+                                                                            )}
+                                                                            {evt.with_who && (
+                                                                                <div style={{ fontSize: '11px', color: 'var(--accent)' }}>
+                                                                                    👤 Interviewer(s): {evt.with_who}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ textAlign: 'right', minWidth: '100px' }}>
+                                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                                        {formatDate(evt.event_date, settings?.timezone)}
+                                                                    </div>
+                                                                    {diffDays > 0 && (
+                                                                        <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
+                                                                            {diffDays} {diffDays === 1 ? 'day' : 'days'} later
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                            <form onSubmit={handleAddNote} style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                                    <input 
+                                        type="text" 
+                                        className="field-input" 
+                                        placeholder="Add a note..." 
+                                        value={newNote}
+                                        onChange={e => setNewNote(e.target.value)}
+                                        style={{ flex: 2, margin: 0, fontSize: '12px', padding: '6px' }}
+                                        required
+                                    />
+                                    <input 
+                                        type="text" 
+                                        className="field-input" 
+                                        placeholder="With who? (optional)" 
+                                        value={withWho}
+                                        onChange={e => setWithWho(e.target.value)}
+                                        style={{ flex: 1, margin: 0, fontSize: '12px', padding: '6px' }}
+                                    />
+                                </div>
+                                <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote}>
+                                    Add Note
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginTop: '20px' }}>
                 {/* ── Notes card ── */}
                 <div className="adp-notes-card" style={{ margin: 0 }}>
                     <div className="adp-notes-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -332,101 +468,6 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                     </div>
                 </div>
 
-                {/* ── Activity Log ── */}
-                <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div 
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', paddingBottom: isActivityLogOpen ? '10px' : '0', borderBottom: isActivityLogOpen ? '1px solid var(--border-color)' : 'none' }}
-                        onClick={() => setIsActivityLogOpen(!isActivityLogOpen)}
-                    >
-                        <h2 className="section-title" style={{ margin: 0, fontSize: '14px' }}>Activity Log</h2>
-                        <span style={{ transform: isActivityLogOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--text-muted)' }}>▼</span>
-                    </div>
-
-                    {isActivityLogOpen && (
-                        <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                            <div className="activity-timeline" style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', maxHeight: '400px' }}>
-                                {historyLoading ? (
-                                    <p style={{ opacity: 0.5, fontSize: '12px' }}>Loading history...</p>
-                                ) : history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status'))).length === 0 ? (
-                                    <p style={{ opacity: 0.5, fontSize: '12px' }}>No activity logged yet.</p>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status'))).map((evt, idx, filteredHistory) => {
-                                            const prevEvt = filteredHistory[idx + 1];
-                                            const diffDays = prevEvt ? calculateDaysDifference(evt.event_date, prevEvt.event_date) : 0;
-                                            
-                                            return (
-                                                <div key={evt.id} style={{ display: 'flex', gap: '10px' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '4px' }} />
-                                                        {idx < filteredHistory.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border-color)', margin: '4px 0' }} />}
-                                                    </div>
-                                                    <div style={{ flex: 1, paddingBottom: '12px' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                            <div>
-                                                                <div style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-main)' }}>
-                                                                    {evt.event_type}
-                                                                </div>
-                                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                                                    {evt.new_status && <span>Status: {evt.new_status} </span>}
-                                                                    {evt.new_stage && <span>• Stage: {evt.new_stage}</span>}
-                                                                </div>
-                                                                {evt.notes && (
-                                                                    <div style={{ fontSize: '11px', marginTop: '4px', padding: '6px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                                                                        {evt.notes}
-                                                                    </div>
-                                                                )}
-                                                                {evt.with_who && (
-                                                                    <div style={{ fontSize: '11px', marginTop: '4px', color: 'var(--accent)' }}>
-                                                                        👤 With: {evt.with_who}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div style={{ textAlign: 'right' }}>
-                                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                                                    {formatDate(evt.event_date, settings?.timezone)}
-                                                                </div>
-                                                                {diffDays > 0 && (
-                                                                    <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
-                                                                        {diffDays} {diffDays === 1 ? 'day' : 'days'} later
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                            <form onSubmit={handleAddNote} style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                    <input 
-                                        type="text" 
-                                        className="field-input" 
-                                        placeholder="Add a note..." 
-                                        value={newNote}
-                                        onChange={e => setNewNote(e.target.value)}
-                                        style={{ flex: 2, margin: 0, fontSize: '12px', padding: '6px' }}
-                                        required
-                                    />
-                                    <input 
-                                        type="text" 
-                                        className="field-input" 
-                                        placeholder="With who? (optional)" 
-                                        value={withWho}
-                                        onChange={e => setWithWho(e.target.value)}
-                                        style={{ flex: 1, margin: 0, fontSize: '12px', padding: '6px' }}
-                                    />
-                                </div>
-                                <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote}>
-                                    Add Note
-                                </button>
-                            </form>
-                        </div>
-                    )}
-                </div>
             </div>
 
         </div>
