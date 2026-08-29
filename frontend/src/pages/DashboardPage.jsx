@@ -23,7 +23,7 @@ const DashboardPage = () => {
     };
 
     const [stats, setStats] = useState({ active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 });
-    const { notifications, isLoading: notifLoading, markAllRead, markRead } = useNotifications(10);
+    const { notifications, isLoading: notifLoading, markAllRead, markRead } = useNotifications();
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
     const [hoveredDay, setHoveredDay] = useState(null);
@@ -188,7 +188,7 @@ const DashboardPage = () => {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         Notifications & Updates
                     </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
                         {notifications.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888', fontSize: '0.9rem' }}>
                                 {notifLoading ? 'Loading…' : 'No notifications yet. Email sync updates will appear here.'}

@@ -2,13 +2,16 @@ const supabase = require('../supabaseClient');
 
 const TABLE = 'notifications';
 
-const findByUser = async (userId, limit = 20) => {
+const findByUser = async (userId) => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     return await supabase
         .from(TABLE)
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .or(`read.eq.false,and(read.eq.true,created_at.gte.${sevenDaysAgo.toISOString()})`)
+        .order('created_at', { ascending: false });
 };
 
 const countUnread = async (userId) => {
