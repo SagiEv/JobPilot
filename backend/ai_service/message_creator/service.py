@@ -2,6 +2,7 @@ from router.llm_router import LLMRouter
 from langchain_core.messages import HumanMessage, SystemMessage
 import logging
 from .models import MessageRequest
+from llm import extract_text
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,15 @@ async def generate_networking_message(payload: MessageRequest) -> str:
 
     recipient_info = f"Recipient Email: {payload.recipient_email}" if payload.recipient_email else ""
 
+    # Truncate inputs to avoid massive token limits (e.g. Groq 8k TPM limit)
+    skills_trunc = str(payload.skills_pool)[:1000]
+    projects_trunc = str(payload.projects_pool)[:2000]
+    exp_trunc = str(payload.experience_text)[:3000]
+    
     user_data_context = f"""
-    My Skills: {payload.skills_pool}
-    My Projects: {payload.projects_pool}
-    My Experience: {payload.experience_text}
+    My Skills: {skills_trunc}
+    My Projects: {projects_trunc}
+    My Experience: {exp_trunc}
     """
 
     if payload.purpose == "referral":
@@ -33,7 +39,7 @@ async def generate_networking_message(payload: MessageRequest) -> str:
         {recipient_info}
         I am asking for a referral for a job.
         Job Link: {payload.job_link}
-        Job Description: {payload.description}
+        Job Description: {payload.description[:2000] if payload.description else ''}
         My GitHub Portfolio: {payload.github_portfolio}
         My CV Summary: {payload.cv_text[:500] if payload.cv_text else ''}
         
@@ -48,7 +54,7 @@ async def generate_networking_message(payload: MessageRequest) -> str:
         {recipient_info}
         I am applying for a job.
         Job Link: {payload.job_link}
-        Job Description: {payload.description}
+        Job Description: {payload.description[:2000] if payload.description else ''}
         My GitHub Portfolio: {payload.github_portfolio}
         My CV Summary: {payload.cv_text[:500] if payload.cv_text else ''}
         
@@ -63,4 +69,4 @@ async def generate_networking_message(payload: MessageRequest) -> str:
     ]
     
     response = llm.invoke(messages)
-    return response.content
+    return extract_text(response).strip()

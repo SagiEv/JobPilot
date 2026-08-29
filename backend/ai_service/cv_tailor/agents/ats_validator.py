@@ -7,7 +7,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_fast_llm
+from llm import get_fast_llm, extract_text
 
 SYSTEM = """You are an ATS (Applicant Tracking System) compliance expert.
 Evaluate CVs strictly. Return ONLY valid JSON."""
@@ -81,13 +81,15 @@ def ats_validator_node(state: TailoringState, api_keys: dict, provider: str, mod
         cv_markdown=cv_md,
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
-        raw = response.content.strip()
+        raw = extract_text(response).strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)
         result = json.loads(raw)
-    except Exception as e:
+    except (json.JSONDecodeError, Exception) as e:
         result = {
             "ats_score": 7.0,
             "is_compliant": True,  # Don't block pipeline on validator failure

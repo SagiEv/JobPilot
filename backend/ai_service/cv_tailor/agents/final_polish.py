@@ -8,7 +8,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_power_llm
+from llm import get_power_llm, get_fast_llm, extract_text
 
 SYSTEM = """You are a senior CV editor doing a final quality pass.
 You will receive a CV draft and a rewritten summary. Your job:
@@ -54,9 +54,11 @@ def final_polish_node(state: TailoringState, api_keys: dict, provider: str, mode
         ats_issues=ats_issues,
     )
     messages = [SystemMessage(content=SYSTEM), HumanMessage(content=prompt)]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
-        final_cv = response.content.strip()
+        final_cv = extract_text(response).strip()
     except Exception as e:
         final_cv = cv_draft  # Fallback — still return something
 

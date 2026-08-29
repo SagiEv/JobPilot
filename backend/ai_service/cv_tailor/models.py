@@ -12,3 +12,4 @@ class TailorRequest(BaseModel):
     projects_pool: Optional[List[Dict[str, Any]]] = []
     experience_text: Optional[str] = ""
     mode: Optional[str] = "full"  # "quick" or "full"
+    pipeline_mode: Optional[str] = "standard" # "standard" or "fast"

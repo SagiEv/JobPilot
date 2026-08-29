@@ -7,7 +7,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from cv_tailor.state import TailoringState
-from llm import get_power_llm
+from llm import get_power_llm, extract_text
 
 SYSTEM = """You are a senior technical recruiter and job analyst.
 Your job is to parse a raw job description into clean, structured JSON.
@@ -42,9 +42,11 @@ def job_analyst_node(state: TailoringState, api_keys: dict, provider: str, model
         SystemMessage(content=SYSTEM),
         HumanMessage(content=prompt),
     ]
+    # Let network/API errors bubble up to the router
+    response = llm.invoke(messages)
+    
     try:
-        response = llm.invoke(messages)
-        raw = response.content.strip()
+        raw = extract_text(response).strip()
         # Strip markdown fences if model wraps output despite instructions
         raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```$", "", raw, flags=re.MULTILINE)

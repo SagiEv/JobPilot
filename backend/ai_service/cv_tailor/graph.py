@@ -2,6 +2,7 @@
 LangGraph pipeline definition — wires all 8 agents into a directed graph
 with a conditional ATS validation loop (max 2 retries).
 """
+import time
 from langgraph.graph import StateGraph, END
 from cv_tailor.state import TailoringState
 
@@ -16,33 +17,54 @@ from cv_tailor.agents.final_polish import final_polish_node
 
 MAX_ATS_RETRIES = 2
 
+# Delay between each LangGraph agent to avoid strict per-minute rate limits.
+# Defined in seconds.
+PROVIDER_DELAYS = {
+    "groq": 8,      # Spreads 8 agents across ~64s (bypasses 1-min TPM limit)
+    "gemini": 4,    # Spreads agents to stay within strict 15 RPM limits safely
+    "openai": 0,    # Typically no strict free-tier TPM issues that require pacing
+    "claude": 0
+}
+
+def _apply_delay(provider: str):
+    delay = PROVIDER_DELAYS.get(provider.lower(), 0)
+    if delay > 0:
+        time.sleep(delay)
 
 def build_graph(api_keys: dict, provider: str, model: str):
     """Build and compile the LangGraph pipeline for a given API key."""
 
     # ── Node wrappers (bind API key) ──────────────────────────────────
     def node_job_analyst(state):
+        _apply_delay(provider)
         return job_analyst_node(state, api_keys, provider, model)
 
     def node_cv_scorer(state):
+        _apply_delay(provider)
         return cv_scorer_node(state, api_keys, provider, model)
 
     def node_profile_selector(state):
+        _apply_delay(provider)
         return profile_selector_node(state, api_keys, provider, model)
 
     def node_keyword_injector(state):
+        _apply_delay(provider)
         return keyword_injector_node(state, api_keys, provider, model)
 
     def node_cv_restructurer(state):
+        _apply_delay(provider)
         return cv_restructurer_node(state, api_keys, provider, model)
 
     def node_ats_validator(state):
+        _apply_delay(provider)
         return ats_validator_node(state, api_keys, provider, model)
 
     def node_summary_rewriter(state):
+        _apply_delay(provider)
         return summary_rewriter_node(state, api_keys, provider, model)
 
     def node_final_polish(state):
+        _apply_delay(provider)
         return final_polish_node(state, api_keys, provider, model)
 
     # ── ATS loop conditional edge ────────────────────────────────────

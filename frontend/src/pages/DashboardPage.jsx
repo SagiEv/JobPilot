@@ -459,9 +459,32 @@ const DashboardPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input type="text" className="field-input" placeholder="Job Link" value={emailComposer.jobLink} onChange={e => setEmailComposer({...emailComposer, jobLink: e.target.value})} style={{ flex: 1 }} />
-                            <button className="btn" onClick={handleFetchDescription}>Fetch</button>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <input type="text" className="field-input" placeholder="Job Link" value={emailComposer.jobLink} onChange={e => setEmailComposer({...emailComposer, jobLink: e.target.value})} style={{ flex: 1, minWidth: '200px' }} />
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <input 
+                                    type="text" 
+                                    list="app-search-list" 
+                                    placeholder="🔍 Or select application..." 
+                                    className="field-input"
+                                    onChange={(e) => {
+                                        const selected = applications.find(a => `${a.COMPANY || 'Unknown'} - ${a.ROLE_ID || a.TITLE || 'Unknown'}` === e.target.value);
+                                        if (selected) {
+                                            setEmailComposer(prev => ({
+                                                ...prev,
+                                                jobLink: selected.LINK || prev.jobLink,
+                                                description: selected.INFO || selected.DESCRIPTION || prev.description,
+                                            }));
+                                            e.target.value = ''; 
+                                        }
+                                    }}
+                                />
+                                <datalist id="app-search-list">
+                                    {applications.map(a => (
+                                        <option key={a.id} value={`${a.COMPANY || 'Unknown'} - ${a.ROLE_ID || a.TITLE || 'Unknown'}`} />
+                                    ))}
+                                </datalist>
+                            </div>
                         </div>
 
                         <textarea className="textarea" placeholder="Job Description (Optional if fetched)" value={emailComposer.description} onChange={e => setEmailComposer({...emailComposer, description: e.target.value})} style={{ minHeight: '60px' }}></textarea>

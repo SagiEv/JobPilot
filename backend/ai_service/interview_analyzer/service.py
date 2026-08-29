@@ -39,7 +39,14 @@ Analyze it and return the JSON."""
     response = llm.invoke(messages)
     
     # Clean response content to parse JSON
-    content = response.content.strip()
+    raw_content = response.content
+    if isinstance(raw_content, list):
+        # Join text parts if it's a list of blocks
+        content_str = "".join([part.get("text", "") for part in raw_content if isinstance(part, dict) and "text" in part])
+    else:
+        content_str = str(raw_content)
+
+    content = content_str.strip()
     if content.startswith("```json"):
         content = content[7:]
     if content.endswith("```"):

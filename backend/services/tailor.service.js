@@ -8,7 +8,7 @@ const axios = require('axios');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
-const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null) => {
+const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null, pipeline_mode = 'standard') => {
 
     // 1. Get AI configs
     const aiConfigs = await settingsService.getAllAiConfigs(userId, token);
@@ -45,13 +45,59 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         throw new Error("No CV provided. Please use profile CV or upload a PDF.");
     }
 
-    const { data: skills } = await skillsRepository.findAll(userId);
-    const { data: projects } = await experienceRepository.findAllProjects(userId);
+    const { getEmbedding } = require('./embedding.service');
+    const supabase = require('../supabaseClient');
+
+    const cleanText = (txt) => txt ? txt.replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim() : "";
+    const safeJobDesc = cleanText(jobDescription).substring(0, 15000);
+    const safeBaseCv = cleanText(baseCvText).substring(0, 20000);
     const { data: experienceText } = await experienceRepository.findExperienceText(userId);
+    const safeExpText = cleanText(experienceText?.text).substring(0, 10000);
+
+    // ── Vector Search (RAG) ──
+    const jobEmbedding = await getEmbedding(safeJobDesc);
+    let projects = [];
+    let skills = [];
+
+    if (jobEmbedding) {
+        // Run vector search via Supabase RPC
+        const { data: matchedProjects } = await supabase.rpc('match_projects', {
+            query_embedding: jobEmbedding,
+            match_threshold: 0.1,
+            match_count: 5,
+            p_user_id: userId
+        });
+        const { data: matchedSkills } = await supabase.rpc('match_skills', {
+            query_embedding: jobEmbedding,
+            match_threshold: 0.1,
+            match_count: 20,
+            p_user_id: userId
+        });
+        projects = matchedProjects || [];
+        skills = matchedSkills || [];
+    } else {
+        // Fallback to all if embedding failed
+        const { data: allProjects } = await experienceRepository.findAllProjects(userId);
+        const { data: allSkills } = await skillsRepository.findAll(userId);
+        projects = allProjects || [];
+        skills = allSkills || [];
+    }
 
     // 3. Assemble payload
+    const cleanSkills = skills.map(s => ({
+        name: s.name,
+        level: s.level,
+        category: s.category
+    }));
+
+    const cleanProjects = projects.map(p => ({
+        title: p.title,
+        description: p.description,
+        tech_stack: p.tech_stack
+    }));
+
     const payload = {
-        job_description: jobDescription,
+        job_description: safeJobDesc,
         api_keys: {
             groq_token: aiConfigs.groq_token,
             openai_token: aiConfigs.openai_token,
@@ -59,12 +105,13 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
             gemini_token: aiConfigs.gemini_token
         },
         provider: routing.provider,
+        pipeline_mode: pipeline_mode,
         model: routing.model,
-        base_cv: baseCvText,
+        base_cv: safeBaseCv,
         cv_data: cvData,
-        skills_pool: skills || [],
-        projects_pool: projects || [],
-        experience_text: experienceText?.text || "",
+        skills_pool: cleanSkills,
+        projects_pool: cleanProjects,
+        experience_text: safeExpText,
         mode: mode
     };
 
@@ -72,13 +119,34 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     try {
         const response = await axios.post(`${AI_SERVICE_URL}/tailor`, payload, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 120000 // Pipeline might take up to 2 minutes
+            timeout: 300000 // Pipeline might take up to 5 minutes
         });
         return response.data;
     } catch (error) {
         console.error('AI Service Error:', error.response?.data || error.message);
-        throw new Error(error.response?.data?.detail || 'Failed to connect to AI tailoring service. Is it running?');
+        const errDetail = error.response?.data?.detail;
+        
+        if (errDetail && typeof errDetail === 'object') {
+            const err = new Error(errDetail.error || 'AI Service Error');
+            err.detail = errDetail; // Preserve the object!
+            throw err;
+        } else {
+            throw new Error(errDetail || 'Failed to connect to AI tailoring service. Is it running?');
+        }
     }
 };
 
-module.exports = { runTailoring };
+const jobService = require('./job.service');
+
+const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null, pipeline_mode = 'standard') => {
+    try {
+        const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token, pipeline_mode);
+        await jobService.completeJob(jobId, result);
+    } catch (error) {
+        // Pass the detail object directly if it exists, otherwise pass the string message
+        const errorData = error.detail || error.message;
+        await jobService.failJob(jobId, errorData);
+    }
+};
+
+module.exports = { runTailoring, runTailoringAsync };

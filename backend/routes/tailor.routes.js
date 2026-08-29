@@ -7,5 +7,6 @@ const { authenticate } = require('../middleware/auth');
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/', authenticate, upload.single('cv_file'), tailorController.tailorCv);
+router.get('/jobs/:id', authenticate, tailorController.getJobStatus);
 
 module.exports = router;
