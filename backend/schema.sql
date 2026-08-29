@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS applications (
   role_id TEXT,
   date DATE,
   status TEXT,
+  stage TEXT,
   location TEXT,
   info TEXT,
   referal TEXT,
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS experience_text (
 -- Interviews table
 CREATE TABLE IF NOT EXISTS interviews (
   id SERIAL PRIMARY KEY,
+  application_id INTEGER REFERENCES applications(id) ON DELETE CASCADE,
   company TEXT,
   role TEXT,
   stage TEXT,
@@ -61,6 +63,21 @@ CREATE TABLE IF NOT EXISTS interviews (
   keep JSONB,
   improve JSONB,
   feedback TEXT
+);
+
+-- Application History table
+CREATE TABLE IF NOT EXISTS application_history (
+  id SERIAL PRIMARY KEY,
+  application_id INTEGER REFERENCES applications(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  old_status TEXT,
+  new_status TEXT,
+  old_stage TEXT,
+  new_stage TEXT,
+  event_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  notes TEXT,
+  with_who TEXT,
+  interview_id INTEGER REFERENCES interviews(id) ON DELETE SET NULL
 );
 
 -- Search Settings table

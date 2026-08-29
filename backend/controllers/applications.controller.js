@@ -62,10 +62,21 @@ const bulkCreate = async (req, res) => {
     }
 };
 
+const getTimeToReject = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const result = await applicationService.calculateTimeToReject(userId);
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAll,
     create,
     update,
     remove,
-    bulkCreate
+    bulkCreate,
+    getTimeToReject
 };

@@ -14,7 +14,7 @@ const ApplicationsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
+    const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
 
     // Sorting State
     const [sortBy, setSortBy] = useState('date');
@@ -150,7 +150,8 @@ const ApplicationsPage = () => {
                             <th>Company</th>
                             <th>Role ID</th>
                             <th>Date</th>
-                            <th>Update Status</th>
+                            <th>Status</th>
+                            <th>Stage</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -161,49 +162,47 @@ const ApplicationsPage = () => {
                                 <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{app.ROLE_ID}</td>
                                 <td style={{ fontSize: '11px' }}>{formatDate(app.DATE, settings?.timezone) || '—'}</td>
                                 <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <select
-                                            className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
-                                            value={
-                                                ['Applied', 'Phone Interview', 'Technical Interview', 'Offer', 'Rejected']
-                                                    .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS
-                                            }
-                                            onChange={(e) => updateApplication(app.id, e.target.value)}
-                                            style={{ margin: 0 }}
-                                        >
-                                            <option value="Applied">Applied</option>
-                                            <option value="Phone Interview">Phone Interview</option>
-                                            <option value="Technical Interview">Technical Interview</option>
-                                            <option value="Offer">Offer</option>
-                                            {app.STATUS?.toLowerCase() === 'rejected' && (
-                                                <option value="Rejected">Rejected</option>
-                                            )}
-                                        </select>
-                                        {app.STATUS?.toLowerCase() !== 'rejected' && (
-                                            <button
-                                                onClick={() => updateApplication(app.id, 'Rejected')}
-                                                style={{
-                                                    background: 'var(--danger-c, #ef4444)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '4px',
-                                                    width: '24px',
-                                                    height: '24px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    cursor: 'pointer',
-                                                    fontSize: '14px',
-                                                    fontWeight: 'bold',
-                                                    padding: 0,
-                                                    flexShrink: 0
-                                                }}
-                                                title="Fast Reject"
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
-                                    </div>
+                                    <select
+                                        className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
+                                        value={
+                                            ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn']
+                                                .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS || 'Applied'
+                                        }
+                                        onChange={(e) => updateApplication(app.id, e.target.value, app.STAGE)}
+                                        style={{ margin: 0, width: '130px' }}
+                                    >
+                                        <option value="Applied">Applied</option>
+                                        <option value="Screening">Screening</option>
+                                        <option value="Assessment">Assessment</option>
+                                        <option value="Interviewing">Interviewing</option>
+                                        <option value="Offer">Offer</option>
+                                        <option value="Hired">Hired</option>
+                                        <option value="Rejected">Rejected</option>
+                                        <option value="Withdrawn">Withdrawn</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select
+                                        className="field-input"
+                                        style={{ margin: 0, width: '150px', fontSize: '11px', padding: '4px' }}
+                                        value={app.STAGE || ''}
+                                        onChange={(e) => updateApplication(app.id, app.STATUS, e.target.value)}
+                                    >
+                                        <option value="">- No Stage -</option>
+                                        <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
+                                        <option value="Introduction Interview">Introduction Interview</option>
+                                        <option value="Online Test">Online Test</option>
+                                        <option value="Home Assignment">Home Assignment</option>
+                                        <option value="Technical Interview">Technical Interview</option>
+                                        <option value="Coding Interview">Coding Interview</option>
+                                        <option value="System Design Interview">System Design Interview</option>
+                                        <option value="Behavioral / Culture Interview">Behavioral / Culture</option>
+                                        <option value="Hiring Manager Interview">Hiring Manager</option>
+                                        <option value="Final Interview / On-site">Final / On-site</option>
+                                        <option value="Team Matching">Team Matching</option>
+                                        <option value="Reference Check">Reference Check</option>
+                                        <option value="Background Check">Background Check</option>
+                                    </select>
                                 </td>
                                 <td>
                                     <button className="btn-link" onClick={() => setViewingAppId(app.id)}>
@@ -275,10 +274,36 @@ const ApplicationsPage = () => {
                                         onChange={e => setNewAppForm({...newAppForm, STATUS: e.target.value})}
                                     >
                                         <option value="Applied">Applied</option>
-                                        <option value="Phone Interview">Phone Interview</option>
-                                        <option value="Technical Interview">Technical Interview</option>
+                                        <option value="Screening">Screening</option>
+                                        <option value="Assessment">Assessment</option>
+                                        <option value="Interviewing">Interviewing</option>
                                         <option value="Offer">Offer</option>
+                                        <option value="Hired">Hired</option>
                                         <option value="Rejected">Rejected</option>
+                                        <option value="Withdrawn">Withdrawn</option>
+                                    </select>
+                                </div>
+                                <div className="modal-section">
+                                    <label>Stage <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+                                    <select
+                                        className="field-input"
+                                        value={newAppForm.STAGE}
+                                        onChange={e => setNewAppForm({...newAppForm, STAGE: e.target.value})}
+                                    >
+                                        <option value="">- No Stage -</option>
+                                        <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
+                                        <option value="Introduction Interview">Introduction Interview</option>
+                                        <option value="Online Test">Online Test</option>
+                                        <option value="Home Assignment">Home Assignment</option>
+                                        <option value="Technical Interview">Technical Interview</option>
+                                        <option value="Coding Interview">Coding Interview</option>
+                                        <option value="System Design Interview">System Design Interview</option>
+                                        <option value="Behavioral / Culture Interview">Behavioral / Culture Interview</option>
+                                        <option value="Hiring Manager Interview">Hiring Manager Interview</option>
+                                        <option value="Final Interview / On-site">Final Interview / On-site</option>
+                                        <option value="Team Matching">Team Matching</option>
+                                        <option value="Reference Check">Reference Check</option>
+                                        <option value="Background Check">Background Check</option>
                                     </select>
                                 </div>
                                 <div className="modal-section">

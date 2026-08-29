@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../services/apiClient';
 import { useApplications } from '../hooks/useApplications';
 import PageLoader from '../components/PageLoader';
 
@@ -43,7 +45,17 @@ const IconTrend   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="
 const IconStar    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
 
 const AnalyticsPage = () => {
-    const { applications, loading } = useApplications();
+    const { applications, loading: appLoading } = useApplications();
+    
+    const { data: rejectStats, isLoading: rejectLoading } = useQuery({
+        queryKey: ['analytics', 'timeToReject'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/api/applications/analytics/time-to-reject');
+            return data;
+        }
+    });
+
+    const loading = appLoading || rejectLoading;
 
     const an = useMemo(() => {
         const now = new Date();
@@ -65,7 +77,8 @@ const AnalyticsPage = () => {
         const total = applications.length;
         const safeTotal = total || 1;
         const statusCounts = applications.reduce((acc, a) => {
-            const s = a.STATUS || 'Applied';
+            let s = a.STATUS || 'Applied';
+            s = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
             acc[s] = (acc[s] || 0) + 1;
             return acc;
         }, {});
@@ -148,6 +161,16 @@ const AnalyticsPage = () => {
                     value={an.counts.interviews}
                     sub={`${an.rates.interview}% rate`}
                     accent="#d97706"
+                />
+            </div>
+            
+            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <KpiCard
+                    icon={<span style={{ fontSize: '18px' }}>⏱️</span>}
+                    label="Avg. Time to Reject"
+                    value={rejectStats?.count > 0 ? `${rejectStats.averageDays} days` : 'N/A'}
+                    sub={`Based on ${rejectStats?.count || 0} rejections`}
+                    accent="#64748b"
                 />
             </div>
 

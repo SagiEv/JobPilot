@@ -1,4 +1,5 @@
 const interviewRepository = require('../repositories/interviews.repository');
+const applicationHistoryService = require('./applicationHistory.service');
 
 const getAllInterviews = async (userId) => {
     const { data, error } = await interviewRepository.findAll(userId);
@@ -9,6 +10,22 @@ const getAllInterviews = async (userId) => {
 const createInterview = async (userId, data) => {
     const { data: newInterview, error } = await interviewRepository.create(userId, data);
     if (error) throw new Error(error.message);
+
+    // If linked to an application, log the interview in application history
+    if (newInterview.application_id) {
+        await applicationHistoryService.logChange(
+            newInterview.application_id,
+            'Interview',
+            null,
+            null,
+            null,
+            null,
+            `Scheduled interview: ${newInterview.stage}`,
+            newInterview.company,
+            newInterview.id
+        );
+    }
+
     return newInterview;
 };
 

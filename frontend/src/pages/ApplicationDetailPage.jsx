@@ -1,14 +1,38 @@
 import React, { useState } from 'react';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
+import { useApplicationHistory } from '../hooks/useApplicationHistory';
 
 // ── Status pipeline order ─────────────────────────────────────────────────────
 const STATUS_PIPELINE = [
     { label: 'Applied', icon: '📋' },
-    { label: 'Phone Interview', icon: '📞' },
-    { label: 'Technical Interview', icon: '💻' },
+    { label: 'Screening', icon: '📞' },
+    { label: 'Assessment', icon: '📝' },
+    { label: 'Interviewing', icon: '💻' },
     { label: 'Offer', icon: '🎉' },
+    { label: 'Hired', icon: '🏆' },
+];
+
+const ALL_STATUSES = [
+    ...STATUS_PIPELINE,
     { label: 'Rejected', icon: '✕' },
+    { label: 'Withdrawn', icon: '↩️' }
+];
+
+const STAGES = [
+    "Recruiter / HR Screen",
+    "Introduction Interview",
+    "Online Test",
+    "Home Assignment",
+    "Technical Interview",
+    "Coding Interview",
+    "System Design Interview",
+    "Behavioral / Culture Interview",
+    "Hiring Manager Interview",
+    "Final Interview / On-site",
+    "Team Matching",
+    "Reference Check",
+    "Background Check"
 ];
 
 // ── Tiny icon helpers ─────────────────────────────────────────────────────────
@@ -41,6 +65,11 @@ const IconLink = () => (
         <path d="M11 5h4v4M15 5l-6 6M9 6H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-4"/>
     </svg>
 );
+const IconStage = () => (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" width="15" height="15">
+        <path d="M3 6l4 4-4 4M10 14h7" />
+    </svg>
+);
 
 // ── Company initial avatar ────────────────────────────────────────────────────
 function CompanyAvatar({ name }) {
@@ -59,25 +88,27 @@ function CompanyAvatar({ name }) {
 // ── Status stepper ────────────────────────────────────────────────────────────
 function StatusStepper({ current }) {
     const isRejected = current?.toLowerCase() === 'rejected';
+    const isWithdrawn = current?.toLowerCase() === 'withdrawn';
     const currentIdx = STATUS_PIPELINE.findIndex(
         s => s.label.toLowerCase() === current?.toLowerCase()
     );
 
-    if (isRejected) {
+    if (isRejected || isWithdrawn) {
         return (
             <div className="adp-stepper">
-                {STATUS_PIPELINE.filter(s => s.label !== 'Rejected').map((s, i) => (
+                {STATUS_PIPELINE.map((s, i) => (
                     <React.Fragment key={s.label}>
                         <div className="adp-step adp-step--skipped">
                             <div className="adp-step-dot">✕</div>
                             <span>{s.label}</span>
                         </div>
-                        {i < 3 && <div className="adp-step-line adp-step-line--skipped" />}
+                        {i < STATUS_PIPELINE.length - 1 && <div className="adp-step-line adp-step-line--skipped" />}
                     </React.Fragment>
                 ))}
+                <div className="adp-step-line adp-step-line--skipped" />
                 <div className="adp-step adp-step--rejected">
-                    <div className="adp-step-dot">✕</div>
-                    <span>Rejected</span>
+                    <div className="adp-step-dot">{isRejected ? '✕' : '↩️'}</div>
+                    <span>{isRejected ? 'Rejected' : 'Withdrawn'}</span>
                 </div>
             </div>
         );
@@ -85,7 +116,7 @@ function StatusStepper({ current }) {
 
     return (
         <div className="adp-stepper">
-            {STATUS_PIPELINE.filter(s => s.label !== 'Rejected').map((s, i) => {
+            {STATUS_PIPELINE.map((s, i) => {
                 const done    = i < currentIdx;
                 const active  = i === currentIdx;
                 const future  = i > currentIdx;
@@ -97,7 +128,7 @@ function StatusStepper({ current }) {
                             </div>
                             <span>{s.label}</span>
                         </div>
-                        {i < 3 && (
+                        {i < STATUS_PIPELINE.length - 1 && (
                             <div className={`adp-step-line ${done ? 'adp-step-line--done' : ''}`} />
                         )}
                     </React.Fragment>
@@ -107,19 +138,41 @@ function StatusStepper({ current }) {
     );
 }
 
+function calculateDaysDifference(date1, date2) {
+    const diffTime = Math.abs(new Date(date1) - new Date(date2));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     const { settings } = useSettings();
+    const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
     const [isEditing, setIsEditing] = useState(false);
+    
     const [tempStatus, setTempStatus] = useState(app.STATUS);
+    const [tempStage, setTempStage] = useState(app.STAGE);
+    
+    const [newNote, setNewNote] = useState('');
+    const [withWho, setWithWho] = useState('');
 
     const handleConfirm = () => {
-        onUpdate(app.id, tempStatus);
+        onUpdate(app.id, tempStatus, tempStage);
         setIsEditing(false);
     };
+    
     const handleCancel = () => {
         setTempStatus(app.STATUS);
+        setTempStage(app.STAGE);
         setIsEditing(false);
+    };
+
+    const handleAddNote = async (e) => {
+        e.preventDefault();
+        if (!newNote) return;
+        await addNote(newNote, withWho);
+        setNewNote('');
+        setWithWho('');
     };
 
     const jobLink = app.LINK
@@ -128,7 +181,6 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
 
     return (
         <div className="adp-root section">
-
             {/* ── Top navigation ── */}
             <div className="adp-nav">
                 <button className="adp-btn-back" onClick={onBack}>
@@ -155,30 +207,48 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                 </div>
                 <div className="adp-hero-status">
                     {!isEditing ? (
-                        <div className="adp-status-display">
-                            <span className={`badge ${statusBadgeClass(app.STATUS)} adp-badge-lg`}>
-                                {app.STATUS || 'No Status'}
-                            </span>
+                        <div className="adp-status-display" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <span className={`badge ${statusBadgeClass(app.STATUS)} adp-badge-lg`}>
+                                    {app.STATUS || 'Applied'}
+                                </span>
+                                {app.STAGE && (
+                                    <span className="badge adp-badge-lg" style={{ background: 'var(--bg-card-alt)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
+                                        {app.STAGE}
+                                    </span>
+                                )}
+                            </div>
                             <button className="adp-btn-edit" onClick={() => setIsEditing(true)}>
-                                ✏ Update Status
+                                ✏ Update
                             </button>
                         </div>
                     ) : (
-                        <div className="adp-status-edit">
-                            <select
-                                className="adp-select"
-                                value={
-                                    STATUS_PIPELINE.map(s => s.label)
-                                        .find(opt => opt.toLowerCase() === tempStatus?.toLowerCase()) || tempStatus
-                                }
-                                onChange={e => setTempStatus(e.target.value)}
-                            >
-                                {STATUS_PIPELINE.map(s => (
-                                    <option key={s.label} value={s.label}>{s.label}</option>
-                                ))}
-                            </select>
-                            <button className="adp-btn-confirm" onClick={handleConfirm}>Confirm</button>
-                            <button className="adp-btn-cancel" onClick={handleCancel}>Cancel</button>
+                        <div className="adp-status-edit" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select
+                                    className="adp-select"
+                                    value={ALL_STATUSES.find(opt => opt.label.toLowerCase() === tempStatus?.toLowerCase())?.label || tempStatus || 'Applied'}
+                                    onChange={e => setTempStatus(e.target.value)}
+                                >
+                                    {ALL_STATUSES.map(s => (
+                                        <option key={s.label} value={s.label}>{s.label}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    className="adp-select"
+                                    value={tempStage || ''}
+                                    onChange={e => setTempStage(e.target.value)}
+                                >
+                                    <option value="">- No Stage -</option>
+                                    {STAGES.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button className="btn btn-primary btn-sm" onClick={handleConfirm}>Confirm</button>
+                                <button className="btn btn-sm" onClick={handleCancel}>Cancel</button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -187,7 +257,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
             {/* ── Progress stepper ── */}
             <div className="adp-stepper-card">
                 <p className="adp-stepper-label">Application Progress</p>
-                <StatusStepper current={tempStatus || app.STATUS} />
+                <StatusStepper current={tempStatus || app.STATUS || 'Applied'} />
             </div>
 
             {/* ── Stat chips row ── */}
@@ -222,32 +292,119 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                 </div>
             </div>
 
-            {/* ── Notes card ── */}
-            <div className="adp-notes-card">
-                <div className="adp-notes-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="adp-notes-icon">📝</span>
-                        <h2 className="adp-notes-title">Notes & Details</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+                {/* ── Notes card ── */}
+                <div className="adp-notes-card" style={{ margin: 0 }}>
+                    <div className="adp-notes-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="adp-notes-icon">📝</span>
+                            <h2 className="adp-notes-title">Description</h2>
+                        </div>
+                        {app.INFO && (
+                            <button 
+                                className="btn btn-sm"
+                                style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                onClick={() => {
+                                    navigator.clipboard.writeText(app.INFO);
+                                    alert("Description copied to clipboard!");
+                                }}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy
+                            </button>
+                        )}
                     </div>
-                    {app.INFO && (
-                        <button 
-                            className="btn btn-sm"
-                            style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => {
-                                navigator.clipboard.writeText(app.INFO);
-                                alert("Description copied to clipboard!");
-                            }}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            Copy
-                        </button>
-                    )}
+                    <div className="adp-notes-body">
+                        {app.INFO
+                            ? <p className="adp-notes-text">{app.INFO}</p>
+                            : <p className="adp-notes-empty">No description provided for this job.</p>
+                        }
+                    </div>
                 </div>
-                <div className="adp-notes-body">
-                    {app.INFO
-                        ? <p className="adp-notes-text">{app.INFO}</p>
-                        : <p className="adp-notes-empty">No notes have been added yet for this application.</p>
-                    }
+
+                {/* ── Activity Log ── */}
+                <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <h2 className="section-title">Activity Log</h2>
+                    <div className="activity-timeline" style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
+                        {historyLoading ? (
+                            <p style={{ opacity: 0.5, fontSize: '13px' }}>Loading history...</p>
+                        ) : history.length === 0 ? (
+                            <p style={{ opacity: 0.5, fontSize: '13px' }}>No activity logged yet.</p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {history.map((evt, idx) => {
+                                    const prevEvt = history[idx + 1];
+                                    const diffDays = prevEvt ? calculateDaysDifference(evt.event_date, prevEvt.event_date) : 0;
+                                    
+                                    return (
+                                        <div key={evt.id} style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent)', marginTop: '4px' }} />
+                                                {idx < history.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border-color)', margin: '4px 0' }} />}
+                                            </div>
+                                            <div style={{ flex: 1, paddingBottom: '16px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <div>
+                                                        <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-main)' }}>
+                                                            {evt.event_type}
+                                                        </div>
+                                                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                            {evt.new_status && <span>Status: {evt.new_status} </span>}
+                                                            {evt.new_stage && <span>• Stage: {evt.new_stage}</span>}
+                                                        </div>
+                                                        {evt.notes && (
+                                                            <div style={{ fontSize: '13px', marginTop: '6px', padding: '8px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                                                {evt.notes}
+                                                            </div>
+                                                        )}
+                                                        {evt.with_who && (
+                                                            <div style={{ fontSize: '12px', marginTop: '4px', color: 'var(--accent)' }}>
+                                                                👤 With: {evt.with_who}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                            {formatDate(evt.event_date, settings?.timezone)}
+                                                        </div>
+                                                        {diffDays > 0 && (
+                                                            <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                                                                {diffDays} {diffDays === 1 ? 'day' : 'days'} later
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    <form onSubmit={handleAddNote} style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                            <input 
+                                type="text" 
+                                className="field-input" 
+                                placeholder="Add a note..." 
+                                value={newNote}
+                                onChange={e => setNewNote(e.target.value)}
+                                style={{ flex: 2, margin: 0 }}
+                                required
+                            />
+                            <input 
+                                type="text" 
+                                className="field-input" 
+                                placeholder="With who? (optional)" 
+                                value={withWho}
+                                onChange={e => setWithWho(e.target.value)}
+                                style={{ flex: 1, margin: 0 }}
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote}>
+                            Add Note
+                        </button>
+                    </form>
                 </div>
             </div>
 

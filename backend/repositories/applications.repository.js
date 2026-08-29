@@ -4,7 +4,16 @@ const findAll = async (userId) => {
     return await supabase
         .from('applications')
         .select('*')
-        .eq('user_id', userId); // Assuming 'user_id' is the foreign key
+        .eq('user_id', userId);
+};
+
+const findById = async (userId, id) => {
+    return await supabase
+        .from('applications')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
 };
 
 const create = async (userId, applicationData) => {
@@ -42,6 +51,7 @@ const bulkInsert = async (userId, applications) => {
 
 module.exports = {
     findAll,
+    findById,
     create,
     update,
     remove,

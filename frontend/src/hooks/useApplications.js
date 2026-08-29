@@ -10,6 +10,7 @@ const fromDb = (row) => ({
     ROLE_ID: row.role_id || '',
     DATE: row.date || '',
     STATUS: row.status || '',
+    STAGE: row.stage || '',
     LOCATION: row.location || '',
     INFO: row.info || '',
     REFERAL: row.referal || '',
@@ -23,6 +24,7 @@ const toDb = (app) => {
         role_id: app.ROLE_ID || '',
         date: app.DATE || null,
         status: app.STATUS || '',
+        stage: app.STAGE || '',
         location: app.LOCATION || '',
         info: app.INFO || '',
         referal: app.REFERAL || '',
@@ -47,8 +49,10 @@ export function useApplications() {
     });
 
     const updateApplicationMutation = useMutation({
-        mutationFn: async ({ id, newStatus, date }) => {
-            const payload = { status: newStatus };
+        mutationFn: async ({ id, newStatus, newStage, date }) => {
+            const payload = {};
+            if (newStatus !== undefined) payload.status = newStatus;
+            if (newStage !== undefined) payload.stage = newStage;
             if (date) payload.date = date;
             await apiClient.put(`/api/applications/${id}`, payload);
         },
@@ -77,13 +81,18 @@ export function useApplications() {
         }
     });
 
-    const updateApplication = async (id, newStatus) => {
+    const updateApplication = async (id, newStatus, newStage) => {
         const today = new Date().toISOString().split('T')[0];
         // Optimistic update
         queryClient.setQueryData(['applications'], (old) => 
-            old.map(app => app.id === id ? { ...app, STATUS: newStatus, DATE: today } : app)
+            old.map(app => app.id === id ? { 
+                ...app, 
+                ...(newStatus !== undefined ? { STATUS: newStatus } : {}),
+                ...(newStage !== undefined ? { STAGE: newStage } : {}),
+                DATE: today 
+            } : app)
         );
-        updateApplicationMutation.mutate({ id, newStatus, date: today });
+        updateApplicationMutation.mutate({ id, newStatus, newStage, date: today });
     };
 
     const addApplication = async (newApp) => {

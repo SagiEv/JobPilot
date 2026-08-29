@@ -95,12 +95,16 @@ const DashboardPage = () => {
     const handleEventSubmit = async (e) => {
         e.preventDefault();
         // Combine date + time into a single ISO string, or use date-only if all-day
-        let finalDate = eventForm.date;
+        let finalDate;
         if (!eventForm.allDay && eventForm.date && eventForm.time) {
             finalDate = new Date(`${eventForm.date}T${eventForm.time}`).toISOString();
         } else if (eventForm.allDay && eventForm.date) {
             finalDate = new Date(`${eventForm.date}T00:00:00`).toISOString();
+        } else if (eventForm.date) {
+            // Default to local midnight if time is omitted
+            finalDate = new Date(`${eventForm.date}T00:00:00`).toISOString();
         }
+
         await addEvent({ ...eventForm, date: finalDate, allDay: eventForm.allDay });
         setIsEventModalOpen(false);
         setEventForm({ title: '', date: '', time: '', allDay: false, type: 'generic', details: '' });
@@ -114,8 +118,12 @@ const DashboardPage = () => {
             .map(i => i.trim())
             .filter(i => i);
             
+        // Ensure date is sent as a UTC ISO string so timezone offset is preserved
+        const finalDate = interviewForm.date ? new Date(interviewForm.date).toISOString() : null;
+
         await addEvent({
             ...interviewForm,
+            date: finalDate,
             type: 'interview',
             interviewers: parsedInterviewers,
             application_id: interviewForm.application_id ? parseInt(interviewForm.application_id) : null
