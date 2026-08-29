@@ -47,15 +47,15 @@ const IconStar    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="
 const AnalyticsPage = () => {
     const { applications, loading: appLoading } = useApplications();
     
-    const { data: rejectStats, isLoading: rejectLoading } = useQuery({
-        queryKey: ['analytics', 'timeToReject'],
+    const { data: metrics, isLoading: metricsLoading } = useQuery({
+        queryKey: ['analytics', 'metrics'],
         queryFn: async () => {
-            const { data } = await apiClient.get('/api/applications/analytics/time-to-reject');
+            const { data } = await apiClient.get('/api/applications/analytics/metrics');
             return data;
         }
     });
 
-    const loading = appLoading || rejectLoading;
+    const loading = appLoading || metricsLoading;
 
     const an = useMemo(() => {
         const now = new Date();
@@ -167,9 +167,30 @@ const AnalyticsPage = () => {
             <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                 <KpiCard
                     icon={<span style={{ fontSize: '18px' }}>⏱️</span>}
+                    label="Avg. Time to Interview"
+                    value={metrics?.timeToInterview?.count > 0 ? `${metrics.timeToInterview.averageDays} days` : 'N/A'}
+                    sub={`Based on ${metrics?.timeToInterview?.count || 0} interviews`}
+                    accent="#d97706"
+                />
+                <KpiCard
+                    icon={<span style={{ fontSize: '18px' }}>🚀</span>}
+                    label="HR to Technical"
+                    value={metrics?.hrToTechnical?.count > 0 ? `${metrics.hrToTechnical.averageDays} days` : 'N/A'}
+                    sub={`Based on ${metrics?.hrToTechnical?.count || 0} transitions`}
+                    accent="#8b5cf6"
+                />
+                <KpiCard
+                    icon={<span style={{ fontSize: '18px' }}>🏆</span>}
+                    label="Technical to Final"
+                    value={metrics?.technicalToFinal?.count > 0 ? `${metrics.technicalToFinal.averageDays} days` : 'N/A'}
+                    sub={`Based on ${metrics?.technicalToFinal?.count || 0} transitions`}
+                    accent="#10b981"
+                />
+                <KpiCard
+                    icon={<span style={{ fontSize: '18px' }}>📉</span>}
                     label="Avg. Time to Reject"
-                    value={rejectStats?.count > 0 ? `${rejectStats.averageDays} days` : 'N/A'}
-                    sub={`Based on ${rejectStats?.count || 0} rejections`}
+                    value={metrics?.timeToReject?.count > 0 ? `${metrics.timeToReject.averageDays} days` : 'N/A'}
+                    sub={`Based on ${metrics?.timeToReject?.count || 0} rejections`}
                     accent="#64748b"
                 />
             </div>

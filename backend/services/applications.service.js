@@ -81,45 +81,94 @@ const bulkCreateApplications = async (userId, applications) => {
     }
     return { success: true, count: data ? data.length : 0 };
 };
-const calculateTimeToReject = async (userId) => {
+const getAnalyticsMetrics = async (userId) => {
     const { data: apps, error: appError } = await applicationRepository.findAll(userId);
     if (appError) throw new Error(appError.message);
 
-    const rejectedAppIds = apps.filter(a => a.status?.toLowerCase() === 'rejected').map(a => a.id);
-    if (rejectedAppIds.length === 0) return { averageDays: 0, count: 0 };
+    if (!apps || apps.length === 0) {
+        return {
+            timeToReject: { averageDays: 0, count: 0 },
+            timeToInterview: { averageDays: 0, count: 0 },
+            timeToOffer: { averageDays: 0, count: 0 },
+            hrToTechnical: { averageDays: 0, count: 0 },
+            technicalToFinal: { averageDays: 0, count: 0 }
+        };
+    }
 
-    // Fetch history for these apps using supabase directly to save time creating a new repo function
+    const appIds = apps.map(a => a.id);
+
+    // Fetch all history for user's applications
     const supabase = require('../supabaseClient');
     const { data: history, error: histError } = await supabase
         .from('application_history')
         .select('*')
-        .in('application_id', rejectedAppIds)
+        .in('application_id', appIds)
         .order('event_date', { ascending: true });
 
     if (histError) throw new Error(histError.message);
 
-    let totalDays = 0;
-    let count = 0;
+    // Helper to calculate days diff
+    const calcDays = (start, end) => Math.ceil(Math.abs(new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
 
-    for (const appId of rejectedAppIds) {
+    const metrics = {
+        timeToReject: { totalDays: 0, count: 0 },
+        timeToInterview: { totalDays: 0, count: 0 },
+        timeToOffer: { totalDays: 0, count: 0 },
+        hrToTechnical: { totalDays: 0, count: 0 },
+        technicalToFinal: { totalDays: 0, count: 0 }
+    };
+
+    for (const appId of appIds) {
         const appHistory = history.filter(h => h.application_id === appId);
-        if (appHistory.length >= 2) {
-            // first event is usually applied, last is rejected
-            const firstDate = new Date(appHistory[0].event_date);
-            const rejectEvent = appHistory.find(h => h.new_status?.toLowerCase() === 'rejected');
-            if (rejectEvent) {
-                const rejectDate = new Date(rejectEvent.event_date);
-                const diffTime = Math.abs(rejectDate - firstDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                totalDays += diffDays;
-                count++;
-            }
+        if (appHistory.length < 2) continue;
+
+        const firstDate = appHistory[0].event_date;
+        
+        // Find specific transition events
+        const firstReject = appHistory.find(h => h.new_status?.toLowerCase() === 'rejected');
+        const firstInterview = appHistory.find(h => h.new_status?.toLowerCase() === 'interviewing');
+        const firstOffer = appHistory.find(h => h.new_status?.toLowerCase() === 'offer');
+
+        const hrScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('hr') || h.new_stage?.toLowerCase().includes('recruiter'));
+        const techScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('technical'));
+        const finalScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('final'));
+
+        if (firstReject) {
+            metrics.timeToReject.totalDays += calcDays(firstDate, firstReject.event_date);
+            metrics.timeToReject.count++;
+        }
+        if (firstInterview) {
+            metrics.timeToInterview.totalDays += calcDays(firstDate, firstInterview.event_date);
+            metrics.timeToInterview.count++;
+        }
+        if (firstOffer) {
+            metrics.timeToOffer.totalDays += calcDays(firstDate, firstOffer.event_date);
+            metrics.timeToOffer.count++;
+        }
+
+        // Transitions within stages
+        if (hrScreen && techScreen && new Date(techScreen.event_date) >= new Date(hrScreen.event_date)) {
+            metrics.hrToTechnical.totalDays += calcDays(hrScreen.event_date, techScreen.event_date);
+            metrics.hrToTechnical.count++;
+        }
+        
+        if (techScreen && finalScreen && new Date(finalScreen.event_date) >= new Date(techScreen.event_date)) {
+            metrics.technicalToFinal.totalDays += calcDays(techScreen.event_date, finalScreen.event_date);
+            metrics.technicalToFinal.count++;
         }
     }
 
-    return { 
-        averageDays: count > 0 ? Math.round(totalDays / count) : 0, 
-        count 
+    const formatMetric = (metric) => ({
+        averageDays: metric.count > 0 ? Math.round(metric.totalDays / metric.count) : 0,
+        count: metric.count
+    });
+
+    return {
+        timeToReject: formatMetric(metrics.timeToReject),
+        timeToInterview: formatMetric(metrics.timeToInterview),
+        timeToOffer: formatMetric(metrics.timeToOffer),
+        hrToTechnical: formatMetric(metrics.hrToTechnical),
+        technicalToFinal: formatMetric(metrics.technicalToFinal)
     };
 };
 
@@ -129,5 +178,5 @@ module.exports = {
     updateApplication,
     deleteApplication,
     bulkCreateApplications,
-    calculateTimeToReject
+    getAnalyticsMetrics
 };
