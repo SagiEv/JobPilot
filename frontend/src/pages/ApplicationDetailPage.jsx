@@ -149,6 +149,7 @@ function calculateDaysDifference(date1, date2) {
 const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     const { settings } = useSettings();
     const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
+    const { events } = useEvents();
     const [isEditing, setIsEditing] = useState(false);
     
     const [tempStatus, setTempStatus] = useState(app.STATUS);

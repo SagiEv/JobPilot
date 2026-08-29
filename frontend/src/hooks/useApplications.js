@@ -84,17 +84,16 @@ export function useApplications() {
 
     const updateApplication = async (id, newStatus, newStage, customDate = null) => {
         const today = new Date().toISOString().split('T')[0];
-        const dateToUse = customDate || today;
+        const eventDateToUse = customDate || today;
         // Optimistic update
         queryClient.setQueryData(['applications'], (old) => 
             old.map(app => app.id === id ? { 
                 ...app, 
                 ...(newStatus !== undefined ? { STATUS: newStatus } : {}),
-                ...(newStage !== undefined ? { STAGE: newStage } : {}),
-                DATE: dateToUse 
+                ...(newStage !== undefined ? { STAGE: newStage } : {})
             } : app)
         );
-        updateApplicationMutation.mutate({ id, newStatus, newStage, date: dateToUse, eventDate: dateToUse });
+        updateApplicationMutation.mutate({ id, newStatus, newStage, eventDate: eventDateToUse });
     };
 
     const addApplication = async (newApp) => {
