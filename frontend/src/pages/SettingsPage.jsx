@@ -329,13 +329,6 @@ const SettingsPage = () => {
                     <button className={`settings-tab ${activeMainTab === 'mail' ? 'active' : ''}`} onClick={() => setActiveMainTab('mail')}>Mail SMTP Integration</button>
                 </div>
 
-                {/* Feedback toast */}
-                {feedback && (
-                    <div className={`settings-toast ${feedback.type === 'success' ? 'toast-success' : 'toast-error'}`} role="alert">
-                        {feedback.type === 'success' ? <CheckIcon /> : '⚠'} {feedback.msg}
-                    </div>
-                )}
-
                 {/* =========================================================================
                     TAB: GENERAL
                    ========================================================================= */}
