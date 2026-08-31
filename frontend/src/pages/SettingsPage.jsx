@@ -59,8 +59,6 @@ const PROVIDER_CONFIGS = {
 };
 
 const ProviderIcon = ({ provider }) => {
-    const { addToast } = useToast();
-    const confirm = useConfirm();
     return PROVIDER_CONFIGS[provider]?.icon || null;
 };
 
@@ -159,6 +157,8 @@ const STATUS_COLORS = {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const SettingsPage = () => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const {
         settings, loading, saving,
         saveAiToken, saveAiRouting, saveTimezone,
