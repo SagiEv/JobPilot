@@ -4,6 +4,33 @@ const applicationHistoryService = require('./applicationHistory.service');
 const getAllApplications = async (userId) => {
     const { data, error } = await applicationRepository.findAll(userId);
     if (error) throw new Error(error.message);
+
+    const appIds = data.map(a => a.id);
+    if (appIds.length > 0) {
+        const supabase = require('../supabaseClient');
+        const { data: history, error: histError } = await supabase
+            .from('application_history')
+            .select('application_id, event_date, created_at, event_type')
+            .in('application_id', appIds);
+            
+        if (!histError && history) {
+            const latestDates = {};
+            history.forEach(h => {
+                const dateToUse = h.event_date || h.created_at;
+                if (!latestDates[h.application_id] || new Date(dateToUse) > new Date(latestDates[h.application_id])) {
+                    latestDates[h.application_id] = dateToUse;
+                }
+            });
+            data.forEach(app => {
+                app.last_activity_date = latestDates[app.id] || app.date || app.created_at;
+            });
+        } else {
+            data.forEach(app => {
+                app.last_activity_date = app.date || app.created_at;
+            });
+        }
+    }
+
     return data;
 };
 
@@ -14,7 +41,7 @@ const createApplication = async (userId, data) => {
     // Log creation
     await applicationHistoryService.logChange(
         newApp.id,
-        'Initial Import',
+        'Application Added',
         null,
         newApp.status,
         null,
@@ -30,8 +57,8 @@ const updateApplication = async (userId, id, data) => {
     const { data: oldApp } = await applicationRepository.findById(userId, id);
     if (!oldApp) throw new Error("Application not found");
     
-    // Extract event_date so it's not saved directly in applications table
-    const { event_date, ...updateData } = data;
+    // Extract event_date and conflict_resolution so they're not saved directly in applications table
+    const { event_date, conflict_resolution, notes, with_who, ...updateData } = data;
 
     // We check if the update intends to change the status or stage
     const inputStatus = updateData.status !== undefined ? updateData.status : oldApp.status;
@@ -40,34 +67,74 @@ const updateApplication = async (userId, id, data) => {
     const isStatusChange = oldApp.status !== inputStatus;
     const isStageChange = oldApp.stage !== inputStage;
 
-    // 1. Log the change FIRST if status or stage changed
+    // 1. Fetch history to detect conflicts
+    const history = await applicationHistoryService.getHistoryByApplicationId(id);
+
+    // 2. Log the change FIRST if status or stage changed
     if (isStatusChange || isStageChange) {
         let eventType = 'Status Change';
         if (isStatusChange && isStageChange) eventType = 'Status & Stage Change';
         else if (isStageChange) eventType = 'Stage Change';
 
-        await applicationHistoryService.logChange(
-            id,
-            eventType,
-            oldApp.status,
-            inputStatus,
-            oldApp.stage,
-            inputStage,
-            '', // notes
-            '', // with_who
-            null, // interviewId
-            event_date || null
-        );
+        const targetDate = event_date ? new Date(event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        const existingEvent = history.find(h => {
+            if (!h.event_date) return false;
+            const hDate = new Date(h.event_date).toISOString().split('T')[0];
+            return hDate === targetDate && (h.event_type === 'Status Change' || h.event_type === 'Stage Change' || h.event_type === 'Status & Stage Change');
+        });
+
+        if (existingEvent) {
+            if (existingEvent.new_status === inputStatus && existingEvent.new_stage === inputStage) {
+                // Exact duplicate: ignore new event
+            } else {
+                if (conflict_resolution === 'keep_both') {
+                    await applicationHistoryService.logChange(
+                        id,
+                        eventType,
+                        oldApp.status,
+                        inputStatus,
+                        oldApp.stage,
+                        inputStage,
+                        notes || '', with_who || '', null, event_date || null
+                    );
+                } else if (conflict_resolution === 'overwrite') {
+                    await applicationHistoryService.updateHistory(existingEvent.id, {
+                        event_type: eventType,
+                        new_status: inputStatus,
+                        new_stage: inputStage,
+                        notes: notes !== undefined ? notes : existingEvent.notes,
+                        with_who: with_who !== undefined ? with_who : existingEvent.with_who
+                    });
+                } else {
+                    const error = new Error('Conflicting event on this date');
+                    error.code = 'CONFLICTING_EVENT';
+                    error.conflictData = { existingEvent, inputStatus, inputStage, targetDate };
+                    throw error;
+                }
+            }
+        } else {
+            await applicationHistoryService.logChange(
+                id,
+                eventType,
+                oldApp.status,
+                inputStatus,
+                oldApp.stage,
+                inputStage,
+                notes || '', with_who || '', null, event_date || null
+            );
+        }
     }
     
-    // 2. Recalculate latest status and stage from history
-    const history = await applicationHistoryService.getHistoryByApplicationId(id);
-    const statusEvents = history
+    // 3. Recalculate latest status and stage from history
+    const updatedHistory = await applicationHistoryService.getHistoryByApplicationId(id);
+    const statusEvents = updatedHistory
         .filter(h => h.new_status != null)
         .sort((a, b) => {
-            const timeA = new Date(a.event_date || a.created_at || 0).getTime();
-            const timeB = new Date(b.event_date || b.created_at || 0).getTime();
-            if (timeB !== timeA) return timeB - timeA;
+            const dateA = new Date(a.event_date || a.created_at || 0).toISOString().split('T')[0];
+            const dateB = new Date(b.event_date || b.created_at || 0).toISOString().split('T')[0];
+            if (dateB !== dateA) {
+                return dateB.localeCompare(dateA);
+            }
             return b.id - a.id;
         });
         
@@ -84,6 +151,11 @@ const updateApplication = async (userId, id, data) => {
     }
 
     // 3. Update the applications table with the true latest state
+    if (updateData.status && updateData.status.toLowerCase() !== 'rejected') {
+        updateData.rejection_reason = null;
+        updateData.automatic_rejection = false;
+    }
+
     const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData);
     if (error) throw new Error(error.message);
 

@@ -3,6 +3,7 @@ import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
 import { useApplicationHistory } from '../hooks/useApplicationHistory';
 import { useEvents } from '../hooks/useEvents';
+import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
 
 // ── Status pipeline order ─────────────────────────────────────────────────────
 const STATUS_PIPELINE = [
@@ -17,7 +18,8 @@ const STATUS_PIPELINE = [
 const ALL_STATUSES = [
     ...STATUS_PIPELINE,
     { label: 'Rejected', icon: '✕' },
-    { label: 'Withdrawn', icon: '↩️' }
+    { label: 'Withdrawn', icon: '↩️' },
+    { label: 'Ignored', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg> }
 ];
 
 const STAGES = [
@@ -90,11 +92,22 @@ function CompanyAvatar({ name }) {
 function StatusStepper({ current }) {
     const isRejected = current?.toLowerCase() === 'rejected';
     const isWithdrawn = current?.toLowerCase() === 'withdrawn';
+    const isIgnored = current?.toLowerCase() === 'ignored';
     const currentIdx = STATUS_PIPELINE.findIndex(
         s => s.label.toLowerCase() === current?.toLowerCase()
     );
 
-    if (isRejected || isWithdrawn) {
+    if (isRejected || isWithdrawn || isIgnored) {
+        let label = 'Rejected';
+        let icon = '✕';
+        if (isWithdrawn) {
+            label = 'Withdrawn';
+            icon = '↩️';
+        } else if (isIgnored) {
+            label = 'Ignored';
+            icon = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>;
+        }
+
         return (
             <div className="adp-stepper">
                 {STATUS_PIPELINE.map((s, i) => (
@@ -108,8 +121,8 @@ function StatusStepper({ current }) {
                 ))}
                 <div className="adp-step-line adp-step-line--skipped" />
                 <div className="adp-step adp-step--rejected">
-                    <div className="adp-step-dot">{isRejected ? '✕' : '↩️'}</div>
-                    <span>{isRejected ? 'Rejected' : 'Withdrawn'}</span>
+                    <div className="adp-step-dot">{icon}</div>
+                    <span>{label}</span>
                 </div>
             </div>
         );
@@ -146,7 +159,7 @@ function calculateDaysDifference(date1, date2) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
+const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {}, dismissGhosting = () => {} }) => {
     const { settings } = useSettings();
     const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
     const { events } = useEvents();
@@ -154,7 +167,9 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     
     const [tempStatus, setTempStatus] = useState(app.STATUS);
     const [tempStage, setTempStage] = useState(app.STAGE);
-    const [tempDate, setTempDate] = useState(app.DATE || new Date().toISOString().split('T')[0]);
+    const [tempDate, setTempDate] = useState(new Date().toISOString().split('T')[0]);
+    const [tempNotes, setTempNotes] = useState('');
+    const [tempWithWho, setTempWithWho] = useState('');
     const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
     
     const [newNote, setNewNote] = useState('');
@@ -166,14 +181,19 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     };
 
     const handleConfirm = () => {
-        onUpdate(app.id, tempStatus, tempStage, tempDate);
+        const finalStage = tempStatus?.toLowerCase() === 'interviewing' ? tempStage : '';
+        onUpdate(app.id, tempStatus, finalStage, tempDate, undefined, undefined, tempNotes, tempWithWho);
         setIsEditing(false);
+        setTempNotes('');
+        setTempWithWho('');
     };
     
     const handleCancel = () => {
         setTempStatus(app.STATUS);
         setTempStage(app.STAGE);
-        setTempDate(app.DATE || new Date().toISOString().split('T')[0]);
+        setTempDate(new Date().toISOString().split('T')[0]);
+        setTempNotes('');
+        setTempWithWho('');
         setIsEditing(false);
     };
 
@@ -188,6 +208,10 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     const jobLink = app.LINK
         ? (app.LINK.startsWith('http') ? app.LINK : `https://${app.LINK}`)
         : null;
+
+    const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
+    const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
+    const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
 
     return (
         <div className="adp-root section">
@@ -244,16 +268,18 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                         <option key={s.label} value={s.label}>{s.label}</option>
                                     ))}
                                 </select>
-                                <select
-                                    className="adp-select"
-                                    value={tempStage || ''}
-                                    onChange={e => setTempStage(e.target.value)}
-                                >
-                                    <option value="">- No Stage -</option>
-                                    {STAGES.map(s => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
+                                {tempStatus?.toLowerCase() === 'interviewing' && (
+                                    <select
+                                        className="adp-select"
+                                        value={tempStage || ''}
+                                        onChange={e => setTempStage(e.target.value)}
+                                    >
+                                        <option value="">- No Stage -</option>
+                                        {STAGES.map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                )}
                                 <input
                                     type="date"
                                     className="field-input"
@@ -261,7 +287,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                     onChange={e => setTempDate(e.target.value)}
                                     style={{ width: '130px', margin: 0 }}
                                 />
-                            </div>
+                                </div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-primary btn-sm" onClick={handleConfirm}>Confirm</button>
                                 <button className="btn btn-sm" onClick={handleCancel}>Cancel</button>
@@ -270,6 +296,48 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                     )}
                 </div>
             </div>
+
+            {/* ── HR Screen Notes (outside hero for stable layout) ── */}
+            {isEditing && tempStage === 'Recruiter / HR Screen' && (
+                <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', marginBottom: '14px', boxShadow: '0 1px 6px rgba(0,0,0,.05)' }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--text-main)' }}>HR Screen Notes (Optional)</h4>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                            type="text" 
+                            className="field-input" 
+                            placeholder="Recruiter Name" 
+                            value={tempWithWho}
+                            onChange={e => setTempWithWho(e.target.value)}
+                            style={{ margin: 0, fontSize: '12px', padding: '8px', flex: '0 0 200px' }}
+                        />
+                        <textarea 
+                            className="textarea" 
+                            placeholder="Topics discussed, salary expectations, next steps..." 
+                            value={tempNotes}
+                            onChange={e => setTempNotes(e.target.value)}
+                            style={{ minHeight: '44px', margin: 0, fontSize: '12px', padding: '8px', flex: 1 }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* ── Ghosting Suggestion Banner ── */}
+            {isGhosting && (
+                <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-card-alt)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ display: 'flex' }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg></span> No updates in a while
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                            It's been {daysSinceActivity} days since the last activity on this application. Would you like to mark it as Ignored/Ghosting to keep your active list clean?
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '20px' }}>
+                        <button className="btn btn-sm" style={{ border: '1px solid var(--border-color)', background: 'transparent' }} onClick={() => dismissGhosting(app.id)}>Dismiss</button>
+                        <button className="btn btn-sm btn-primary" onClick={() => onUpdate(app.id, 'Ignored', app.STAGE)}>Mark as Ignored</button>
+                    </div>
+                </div>
+            )}
 
             {/* ── Progress stepper ── */}
             <div className="adp-stepper-card">
@@ -309,6 +377,15 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                 </div>
             </div>
 
+            {/* ── Rejection Details ── */}
+            {app.STATUS?.toLowerCase() === 'rejected' && (app.REJECTION_REASON || app.AUTOMATIC_REJECTION) && (
+                <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px' }}>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: 'var(--danger-c)' }}>Rejection Details</h3>
+                    {app.REJECTION_REASON && <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--text-main)' }}><strong>Reason:</strong> {app.REJECTION_REASON}</p>}
+                    {app.AUTOMATIC_REJECTION && <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}><em>Automatically Rejected</em></p>}
+                </div>
+            )}
+
             <div style={{ marginTop: '20px' }}>
                 {/* ── Activity Log ── */}
                 <div className="card" style={{ display: 'flex', flexDirection: 'column', marginBottom: isActivityLogOpen ? '20px' : '0', transition: 'margin 0.2s' }}>
@@ -336,7 +413,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                         isEvent: true,
                                         type: e.type
                                     }));
-                                    const rawHistoryList = history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status')));
+                                    const rawHistoryList = history.filter(evt => evt.event_type !== 'Application Added' && evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status')));
                                     const combinedHistory = [...rawHistoryList, ...appEvents].sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
                                     
                                     if (combinedHistory.length === 0) {

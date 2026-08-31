@@ -32,8 +32,19 @@ const remove = async (id) => {
         .eq('id', id);
 };
 
+const update = async (id, historyData) => {
+    return await supabase
+        .from('application_history')
+        .update(historyData)
+        .eq('id', id)
+        .select()
+        .single();
+};
+
+
 module.exports = {
     findAllByApplicationId,
     create,
+    update,
     remove
 };

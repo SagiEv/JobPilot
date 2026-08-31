@@ -112,4 +112,83 @@ describe('applications.service - updateApplication', () => {
 
         expect(result.status).toBe('Interviewing');
     });
+
+    it('should pass rejection fields when status is rejected', async () => {
+        applicationRepository.findById.mockResolvedValue({
+            data: { id: 1, status: 'Applied', stage: null }
+        });
+        applicationRepository.update.mockImplementation((userId, id, data) => Promise.resolve({ data: { ...data, id } }));
+        applicationHistoryService.logChange.mockResolvedValue({});
+        
+        applicationHistoryService.getHistoryByApplicationId.mockResolvedValue([
+            { id: 2, event_date: new Date().toISOString(), new_status: 'Rejected', new_stage: null }
+        ]);
+
+        const result = await applicationService.updateApplication('user123', 1, {
+            status: 'Rejected',
+            rejection_reason: 'Not a fit',
+            automatic_rejection: true
+        });
+
+        expect(applicationRepository.update).toHaveBeenCalledWith('user123', 1, expect.objectContaining({
+            status: 'Rejected',
+            rejection_reason: 'Not a fit',
+            automatic_rejection: true
+        }));
+    });
+
+    it('should clear rejection fields when status moves away from rejected', async () => {
+        applicationRepository.findById.mockResolvedValue({
+            data: { id: 1, status: 'Rejected', stage: null, rejection_reason: 'Not a fit', automatic_rejection: true }
+        });
+        applicationRepository.update.mockImplementation((userId, id, data) => Promise.resolve({ data: { ...data, id } }));
+        applicationHistoryService.logChange.mockResolvedValue({});
+        
+        applicationHistoryService.getHistoryByApplicationId.mockResolvedValue([
+            { id: 3, event_date: new Date().toISOString(), new_status: 'Offer', new_stage: null },
+            { id: 2, event_date: new Date(Date.now() - 1000).toISOString(), new_status: 'Rejected', new_stage: null }
+        ]);
+
+        const result = await applicationService.updateApplication('user123', 1, {
+            status: 'Offer'
+        });
+
+        expect(applicationRepository.update).toHaveBeenCalledWith('user123', 1, expect.objectContaining({
+            status: 'Offer',
+            rejection_reason: null,
+            automatic_rejection: false
+        }));
+    });
+
+    it('should pass notes and with_who to logChange', async () => {
+        applicationRepository.findById.mockResolvedValue({
+            data: { id: 1, status: 'Applied', stage: null }
+        });
+        applicationRepository.update.mockImplementation((userId, id, data) => Promise.resolve({ data: { ...data, id } }));
+        applicationHistoryService.logChange.mockResolvedValue({});
+        
+        applicationHistoryService.getHistoryByApplicationId.mockResolvedValue([
+            { id: 2, event_date: new Date().toISOString(), new_status: 'Interviewing', new_stage: 'Recruiter / HR Screen' }
+        ]);
+
+        const result = await applicationService.updateApplication('user123', 1, {
+            status: 'Interviewing',
+            stage: 'Recruiter / HR Screen',
+            notes: 'Discussed salary and next steps',
+            with_who: 'John HR'
+        });
+
+        expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
+            1, // applicationId
+            'Status & Stage Change', // eventType
+            'Applied', // oldStatus
+            'Interviewing', // inputStatus
+            null, // oldStage
+            'Recruiter / HR Screen', // inputStage
+            'Discussed salary and next steps', // notes
+            'John HR', // with_who
+            null, // interviewId
+            null // event_date
+        );
+    });
 });

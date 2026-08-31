@@ -4,9 +4,41 @@ import { useSettings } from '../hooks/useSettings';
 import ApplicationDetailPage from './ApplicationDetailPage';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
+import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
+
+const ConflictModal = ({ conflict, onResolve }) => (
+    <div className="modal-overlay" onClick={() => onResolve('abort')}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+                <h2>Event Conflict Detected</h2>
+                <button className="modal-close" onClick={() => onResolve('abort')}>✕</button>
+            </div>
+            <div className="modal-body">
+                <p>An event already exists on <strong>{conflict.conflictData.targetDate}</strong>:</p>
+                <div style={{ padding: '10px', background: 'var(--bg-card-alt)', borderRadius: '6px', margin: '10px 0' }}>
+                    <strong>Existing Event:</strong> {conflict.conflictData.existingEvent.event_type}
+                    <br />
+                    Status: {conflict.conflictData.existingEvent.new_status}
+                    {conflict.conflictData.existingEvent.new_stage && ` (${conflict.conflictData.existingEvent.new_stage})`}
+                </div>
+                <p>You are trying to set:</p>
+                <div style={{ padding: '10px', background: 'var(--bg-card-alt)', borderRadius: '6px', margin: '10px 0' }}>
+                    Status: {conflict.newStatus}
+                    {conflict.newStage && ` (${conflict.newStage})`}
+                </div>
+                <p>How would you like to handle this conflict?</p>
+            </div>
+            <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '10px' }}>
+                <button className="btn btn-primary" onClick={() => onResolve('overwrite')}>Overwrite</button>
+                <button className="btn" style={{ background: 'var(--bg-card-alt)', border: '1px solid var(--border-color)', color: 'var(--text-main)' }} onClick={() => onResolve('keep_both')}>Keep Both</button>
+                <button className="btn" onClick={() => onResolve('abort')}>Abort</button>
+            </div>
+        </div>
+    </div>
+);
 
 const ApplicationsPage = () => {
-    const { applications, stats, status, handleUpload, updateApplication, addApplication, loading } = useApplications();
+    const { applications, stats, status, handleUpload, updateApplication, addApplication, loading, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting } = useApplications();
     const { settings } = useSettings();
 
     // UI State
@@ -14,6 +46,9 @@ const ApplicationsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('active'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [rejectModalApp, setRejectModalApp] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [autoReject, setAutoReject] = useState(false);
     const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
 
     // Sorting State
@@ -34,11 +69,11 @@ const ApplicationsPage = () => {
 
                 switch (filterType) {
                     case 'active':
-                        return !status.includes('reject') && !status.includes('offer');
+                        return !status.includes('reject') && !status.includes('offer') && !status.includes('ignored');
                     case 'interview':
                         return status.includes('interview') || status.includes('phone') || status.includes('tech');
                     case 'archived':
-                        return status === 'rejected';
+                        return status === 'rejected' || status === 'ignored';
                     case 'all':
                     default:
                         // 'all' view shows everything including rejected
@@ -60,11 +95,16 @@ const ApplicationsPage = () => {
 
     if (viewingAppId && currentApp) {
         return (
-            <ApplicationDetailPage
-                app={currentApp}
-                onBack={() => setViewingAppId(null)}
-                onUpdate={updateApplication}
-            />
+            <>
+                <ApplicationDetailPage
+                    app={currentApp}
+                    onBack={() => setViewingAppId(null)}
+                    onUpdate={updateApplication}
+                    dismissedGhostings={dismissedGhostings}
+                    dismissGhosting={dismissGhosting}
+                />
+                {conflict && <ConflictModal conflict={conflict} onResolve={handleConflictResolution} />}
+            </>
         );
     }
 
@@ -93,7 +133,7 @@ const ApplicationsPage = () => {
                     onClick={() => setFilterType('archived')}
                 >
                     <div className="stat-num" style={{ color: 'var(--danger-c)' }}>
-                        {applications.filter(a => a.STATUS?.toLowerCase() === 'rejected').length}
+                        {applications.filter(a => a.STATUS?.toLowerCase() === 'rejected' || a.STATUS?.toLowerCase() === 'ignored').length}
                     </div>
                     <div className="stat-lbl">Archived</div>
                 </div>
@@ -156,7 +196,12 @@ const ApplicationsPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredApplications.map((app) => (
+                        {filteredApplications.map((app) => {
+                            const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
+                            const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
+                            const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
+
+                            return (
                             <tr 
                                 key={app.id} 
                                 onClick={() => setViewingAppId(app.id)}
@@ -170,10 +215,19 @@ const ApplicationsPage = () => {
                                     <select
                                         className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
                                         value={
-                                            ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn']
+                                            ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Ignored']
                                                 .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS || 'Applied'
                                         }
-                                        onChange={(e) => updateApplication(app.id, e.target.value, app.STAGE)}
+                                        onChange={(e) => {
+                                            const newStatus = e.target.value;
+                                            if (newStatus === 'Rejected') {
+                                                setRejectModalApp(app);
+                                                setRejectReason('');
+                                                setAutoReject(false);
+                                            } else {
+                                                updateApplication(app.id, newStatus, app.STAGE);
+                                            }
+                                        }}
                                         onClick={(e) => e.stopPropagation()}
                                         style={{ margin: 0, width: '130px' }}
                                     >
@@ -185,13 +239,42 @@ const ApplicationsPage = () => {
                                         <option value="Hired">Hired</option>
                                         <option value="Rejected">Rejected</option>
                                         <option value="Withdrawn">Withdrawn</option>
+                                        <option value="Ignored">Ignored</option>
                                     </select>
-                                    {app.STATUS?.toLowerCase() !== 'rejected' && (
+                                    {isGhosting && (
+                                        <button 
+                                            title={`No updates in ${daysSinceActivity} days. Consider marking as Ignored.`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateApplication(app.id, 'Ignored', app.STAGE);
+                                            }}
+                                            style={{ 
+                                                background: 'var(--neutral-c)', 
+                                                border: 'none', 
+                                                color: '#fff', 
+                                                cursor: 'pointer', 
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                                                <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+                                            </svg>
+                                        </button>
+                                    )}
+                                    {app.STATUS?.toLowerCase() !== 'rejected' && app.STATUS?.toLowerCase() !== 'ignored' && (
                                         <button 
                                             title="Quick Reject"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                updateApplication(app.id, 'Rejected', app.STAGE);
+                                                setRejectModalApp(app);
+                                                setRejectReason('');
+                                                setAutoReject(false);
                                             }}
                                             style={{ 
                                                 background: 'var(--danger-c)', 
@@ -215,7 +298,7 @@ const ApplicationsPage = () => {
                                 </td>
                                 {filterType !== 'archived' && (
                                     <td>
-                                        {app.STATUS?.toLowerCase() !== 'applied' ? (
+                                        {app.STATUS?.toLowerCase() === 'interviewing' ? (
                                             <select
                                                 className="status-select-table badge-pending"
                                                 style={{ margin: 0, width: '150px' }}
@@ -244,7 +327,8 @@ const ApplicationsPage = () => {
                                     </td>
                                 )}
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -315,6 +399,7 @@ const ApplicationsPage = () => {
                                         <option value="Hired">Hired</option>
                                         <option value="Rejected">Rejected</option>
                                         <option value="Withdrawn">Withdrawn</option>
+                                        <option value="Ignored">Ignored</option>
                                     </select>
                                 </div>
                                 <div className="modal-section">
@@ -402,6 +487,61 @@ const ApplicationsPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Reject Application Modal */}
+            {rejectModalApp && (
+                <div className="modal-overlay" onClick={() => setRejectModalApp(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Reject Application: {rejectModalApp.COMPANY}</h2>
+                            <button className="modal-close" onClick={() => setRejectModalApp(null)}>✕</button>
+                        </div>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            updateApplication(
+                                rejectModalApp.id, 
+                                'Rejected', 
+                                rejectModalApp.STAGE, 
+                                null, 
+                                rejectReason, 
+                                autoReject
+                            );
+                            setRejectModalApp(null);
+                        }}>
+                            <div className="modal-body">
+                                <div className="modal-section">
+                                    <label>Rejection Reason / Comments <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+                                    <textarea
+                                        className="textarea"
+                                        style={{ minHeight: '80px' }}
+                                        value={rejectReason}
+                                        onChange={e => setRejectReason(e.target.value)}
+                                        placeholder="e.g. They went with an internal candidate"
+                                        dir="auto"
+                                    />
+                                </div>
+                                <div className="modal-section" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="autoRejectCheck"
+                                        checked={autoReject} 
+                                        onChange={e => setAutoReject(e.target.checked)} 
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="autoRejectCheck" style={{ margin: 0, cursor: 'pointer' }}>Automatically rejected (e.g. CV screening failed without call)</label>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn" onClick={() => setRejectModalApp(null)}>Cancel</button>
+                                <button type="submit" className="btn" style={{ background: 'var(--danger-c)', color: 'white', border: 'none' }}>
+                                    Confirm Rejection
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {conflict && <ConflictModal conflict={conflict} onResolve={handleConflictResolution} />}
         </div>
     );
 };

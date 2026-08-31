@@ -15,7 +15,10 @@ const fromDb = (row) => ({
     INFO: row.info || '',
     REFERAL: row.referal || '',
     LINK: row.link || '',
-    CV_FILE: row.cv_file || ''
+    CV_FILE: row.cv_file || '',
+    LAST_ACTIVITY_DATE: row.last_activity_date || row.date || '',
+    REJECTION_REASON: row.rejection_reason || '',
+    AUTOMATIC_REJECTION: row.automatic_rejection || false
 });
 
 const toDb = (app) => {
@@ -29,7 +32,9 @@ const toDb = (app) => {
         info: app.INFO || '',
         referal: app.REFERAL || '',
         link: app.LINK || '',
-        cv_file: app.CV_FILE || ''
+        cv_file: app.CV_FILE || '',
+        rejection_reason: app.REJECTION_REASON || '',
+        automatic_rejection: app.AUTOMATIC_REJECTION || false
     };
     if (typeof app.id === 'number') data.id = app.id;
     return data;
@@ -38,6 +43,22 @@ const toDb = (app) => {
 export function useApplications() {
     const queryClient = useQueryClient();
     const [status, setStatus] = useState('');
+    const [conflict, setConflict] = useState(null);
+    const [dismissedGhostings, setDismissedGhostings] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('dismissedGhostings') || '{}');
+        } catch {
+            return {};
+        }
+    });
+
+    const dismissGhosting = (appId) => {
+        setDismissedGhostings(prev => {
+            const next = { ...prev, [appId]: true };
+            localStorage.setItem('dismissedGhostings', JSON.stringify(next));
+            return next;
+        });
+    };
 
     const { data: applications = [], isLoading: loading } = useQuery({
         enabled: !!getAccessToken(),
@@ -49,13 +70,19 @@ export function useApplications() {
     });
 
     const updateApplicationMutation = useMutation({
-        mutationFn: async ({ id, newStatus, newStage, date, eventDate }) => {
+        mutationFn: async ({ id, newStatus, newStage, date, eventDate, rejectionReason, automaticRejection, conflictResolution, notes, withWho }) => {
             const payload = {};
             if (newStatus !== undefined) payload.status = newStatus;
             if (newStage !== undefined) payload.stage = newStage;
             if (date) payload.date = date;
             if (eventDate) payload.event_date = eventDate;
-            await apiClient.put(`/api/applications/${id}`, payload);
+            if (rejectionReason !== undefined) payload.rejection_reason = rejectionReason;
+            if (automaticRejection !== undefined) payload.automatic_rejection = automaticRejection;
+            if (conflictResolution !== undefined) payload.conflict_resolution = conflictResolution;
+            if (notes !== undefined) payload.notes = notes;
+            if (withWho !== undefined) payload.with_who = withWho;
+            const { data } = await apiClient.put(`/api/applications/${id}`, payload);
+            return data;
         },
         onMutate: async (newApp) => {
             await queryClient.cancelQueries({ queryKey: ['applications'] });
@@ -63,17 +90,42 @@ export function useApplications() {
             queryClient.setQueryData(['applications'], (old) => 
                 old?.map(app => app.id === newApp.id ? { 
                     ...app, 
-                    ...(newApp.newStatus !== undefined ? { STATUS: newApp.newStatus } : {}),
-                    ...(newApp.newStage !== undefined ? { STAGE: newApp.newStage } : {})
+                    ...(newApp.newStatus !== undefined && !newApp.eventDate ? { STATUS: newApp.newStatus } : {}),
+                    ...(newApp.newStage !== undefined && !newApp.eventDate ? { STAGE: newApp.newStage } : {})
                 } : app)
             );
             return { previousApps };
+        },
+        onSuccess: (updatedApp, variables) => {
+            queryClient.setQueryData(['applications'], (old) => 
+                old?.map(app => app.id === variables.id ? { 
+                    ...app, 
+                    STATUS: updatedApp.status, 
+                    STAGE: updatedApp.stage,
+                    DATE: updatedApp.date,
+                    REJECTION_REASON: updatedApp.rejection_reason
+                } : app)
+            );
         },
         onError: (err, newApp, context) => {
             if (context?.previousApps) {
                 queryClient.setQueryData(['applications'], context.previousApps);
             }
-            alert(`Failed to update application: ${err.message || 'Unknown error'}`);
+            if (err.response?.data?.code === 'CONFLICTING_EVENT') {
+                setConflict({
+                    appId: newApp.id,
+                    newStatus: newApp.newStatus,
+                    newStage: newApp.newStage,
+                    eventDate: newApp.eventDate,
+                    rejectionReason: newApp.rejectionReason,
+                    automaticRejection: newApp.automaticRejection,
+                    notes: newApp.notes,
+                    withWho: newApp.withWho,
+                    conflictData: err.response.data.conflictData
+                });
+            } else {
+                alert(`Failed to update application: ${err.response?.data?.error || err.message || 'Unknown error'}`);
+            }
         },
         onSettled: (data, error, variables) => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -101,10 +153,39 @@ export function useApplications() {
         }
     });
 
-    const updateApplication = async (id, newStatus, newStage, customDate = null) => {
+    const updateApplication = async (id, newStatus, newStage, customDate = null, rejectionReason = undefined, automaticRejection = undefined, notes = undefined, withWho = undefined) => {
         const today = new Date().toISOString().split('T')[0];
         const eventDateToUse = customDate || today;
-        updateApplicationMutation.mutate({ id, newStatus, newStage, eventDate: eventDateToUse });
+        updateApplicationMutation.mutate({ 
+            id, 
+            newStatus, 
+            newStage, 
+            eventDate: eventDateToUse,
+            rejectionReason,
+            automaticRejection,
+            notes,
+            withWho
+        });
+    };
+
+    const handleConflictResolution = (resolution) => {
+        if (!conflict) return;
+        if (resolution === 'abort') {
+            setConflict(null);
+            return;
+        }
+        updateApplicationMutation.mutate({
+            id: conflict.appId,
+            newStatus: conflict.newStatus,
+            newStage: conflict.newStage,
+            eventDate: conflict.eventDate,
+            rejectionReason: conflict.rejectionReason,
+            automaticRejection: conflict.automaticRejection,
+            notes: conflict.notes,
+            withWho: conflict.withWho,
+            conflictResolution: resolution
+        });
+        setConflict(null);
     };
 
     const addApplication = async (newApp) => {
@@ -113,7 +194,7 @@ export function useApplications() {
 
     const stats = useMemo(() => ({
         total: applications.length,
-        active: applications.filter(a => !a.STATUS?.toLowerCase().includes('reject') && !a.STATUS?.toLowerCase().includes('offer')).length,
+        active: applications.filter(a => !a.STATUS?.toLowerCase().includes('reject') && !a.STATUS?.toLowerCase().includes('offer') && !a.STATUS?.toLowerCase().includes('ignored')).length,
         interview: applications.filter(a => a.STATUS?.toLowerCase().includes('interview') || a.STATUS?.toLowerCase().includes('phone')).length,
         offer: applications.filter(a => a.STATUS?.toLowerCase().includes('offer')).length
     }), [applications]);
@@ -156,5 +237,5 @@ export function useApplications() {
         updateApplicationMutation.mutate({ id, newStatus });
     };
 
-    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication };
+    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting };
 }
