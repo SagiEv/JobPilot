@@ -130,9 +130,11 @@ const updateApplication = async (userId, id, data) => {
     const statusEvents = updatedHistory
         .filter(h => h.new_status != null)
         .sort((a, b) => {
-            const timeA = new Date(a.event_date || a.created_at || 0).getTime();
-            const timeB = new Date(b.event_date || b.created_at || 0).getTime();
-            if (timeB !== timeA) return timeB - timeA;
+            const dateA = new Date(a.event_date || a.created_at || 0).toISOString().split('T')[0];
+            const dateB = new Date(b.event_date || b.created_at || 0).toISOString().split('T')[0];
+            if (dateB !== dateA) {
+                return dateB.localeCompare(dateA);
+            }
             return b.id - a.id;
         });
         
