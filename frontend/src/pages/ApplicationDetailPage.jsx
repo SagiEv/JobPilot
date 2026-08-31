@@ -167,7 +167,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
     
     const [tempStatus, setTempStatus] = useState(app.STATUS);
     const [tempStage, setTempStage] = useState(app.STAGE);
-    const [tempDate, setTempDate] = useState(app.DATE || new Date().toISOString().split('T')[0]);
+    const [tempDate, setTempDate] = useState(new Date().toISOString().split('T')[0]);
     const [tempNotes, setTempNotes] = useState('');
     const [tempWithWho, setTempWithWho] = useState('');
     const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
@@ -190,7 +190,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
     const handleCancel = () => {
         setTempStatus(app.STATUS);
         setTempStage(app.STAGE);
-        setTempDate(app.DATE || new Date().toISOString().split('T')[0]);
+        setTempDate(new Date().toISOString().split('T')[0]);
         setTempNotes('');
         setTempWithWho('');
         setIsEditing(false);
