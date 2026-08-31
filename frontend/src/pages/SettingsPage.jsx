@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { authService } from '../services/authService';
 import PageLoader from '../components/PageLoader';
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
+
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const GroqIcon = () => (
@@ -56,6 +59,8 @@ const PROVIDER_CONFIGS = {
 };
 
 const ProviderIcon = ({ provider }) => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     return PROVIDER_CONFIGS[provider]?.icon || null;
 };
 
@@ -186,9 +191,6 @@ const SettingsPage = () => {
     const [logsLoading, setLogsLoading] = useState(false);
     const [logsOpen, setLogsOpen]       = useState(false);
 
-    // Global feedback
-    const [feedback, setFeedback] = useState(null);
-
     // Account & Security state
     const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
     const [passwordLoading, setPasswordLoading] = useState(false);
@@ -219,7 +221,7 @@ const SettingsPage = () => {
     };
 
     const handleLogout = async () => {
-        if (!window.confirm('Are you sure you want to log out?')) return;
+        if (!(await confirm('Are you sure you want to log out?'))) return;
         try {
             await authService.logout();
         } catch {
@@ -247,8 +249,7 @@ const SettingsPage = () => {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     const flash = (type, msg) => {
-        setFeedback({ type, msg });
-        setTimeout(() => setFeedback(null), 3500);
+        addToast(msg, type);
     };
 
     const setSmtpField = (key, value) => {
@@ -526,7 +527,7 @@ const SettingsPage = () => {
                                                 }} disabled={testingTokens[provider]}>{testingTokens[provider] ? 'Testing...' : 'Test'}</button>
                                                 <button className="btn btn-sm" onClick={() => { setShowInputs(prev => ({...prev, [provider]: true})); setTokenInputs(prev => ({...prev, [provider]: ''})); }}>Replace</button>
                                                 <button className="btn btn-sm btn-danger-ghost" onClick={async () => {
-                                                    if (!window.confirm(`Remove the saved ${provider} API key?`)) return;
+                                                    if (!(await confirm(`Remove the saved ${provider} API key?`))) return;
                                                     try { await saveAiToken(provider, ''); flash('success', `${provider} API key removed.`); setTokenTestResults(prev => ({...prev, [provider]: null})); }
                                                     catch { flash('error', 'Failed to remove key.'); }
                                                 }} disabled={saving}><TrashIcon /> Remove</button>

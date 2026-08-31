@@ -1,3 +1,5 @@
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState } from 'react';
 import { useProfile } from '../hooks/useProfile';
 import ReactQuill from 'react-quill';
@@ -6,6 +8,8 @@ import 'react-quill/dist/quill.snow.css';
 import PageLoader from '../components/PageLoader';
 
 const EditableCVField = ({ title, value, onChange }) => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [isEditing, setIsEditing] = useState(false);
     const [tempValue, setTempValue] = useState(value || '');
 
@@ -23,8 +27,8 @@ const EditableCVField = ({ title, value, onChange }) => {
         setIsEditing(false);
     };
 
-    const handleClear = () => {
-        if (window.confirm("Are you sure you want to clear this section?")) {
+    const handleClear = async () => {
+        if ((await confirm("Are you sure you want to clear this section?"))) {
             setTempValue('');
             onChange('');
             setIsEditing(false);
@@ -87,7 +91,7 @@ const ProfilePage = () => {
             const html = await handlePreviewCV(selectedTheme);
             setPreviewHtml(html);
         } catch (err) {
-            alert("Failed to load preview");
+            addToast("Failed to load preview", 'error');
         } finally {
             setIsPreviewLoading(false);
         }
@@ -101,7 +105,7 @@ const ProfilePage = () => {
             const html = await handlePreviewCV(newTheme);
             setPreviewHtml(html);
         } catch (err) {
-            alert("Failed to update preview");
+            addToast("Failed to update preview", 'error');
         } finally {
             setIsPreviewLoading(false);
         }
@@ -131,7 +135,7 @@ const ProfilePage = () => {
     //         link.parentNode.removeChild(link);
     //     } catch (error) {
     //         console.error("Failed to generate CV", error);
-    //         alert("Failed to generate CV");
+    //         addToast("Failed to generate CV", 'error');
     //     } finally {
     //         setIsGenerating(false);
     //     }

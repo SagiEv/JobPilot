@@ -1,3 +1,5 @@
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
@@ -22,6 +24,8 @@ const fromDb = (row) => ({
 });
 
 const toDb = (app) => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const data = {
         company: app.COMPANY || '',
         role_id: app.ROLE_ID || '',
@@ -124,7 +128,7 @@ export function useApplications() {
                     conflictData: err.response.data.conflictData
                 });
             } else {
-                alert(`Failed to update application: ${err.response?.data?.error || err.message || 'Unknown error'}`);
+                addToast(`Failed to update application: ${err.response?.data?.error || err.message || 'Unknown error'}`, 'error');
             }
         },
         onSettled: (data, error, variables) => {

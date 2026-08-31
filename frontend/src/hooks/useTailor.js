@@ -1,8 +1,12 @@
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import { useState, useRef, useEffect } from 'react';
 import { runTailor } from '../services/dataService';
 import { useJobs } from '../components/JobProvider';
 
 export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode = 'standard') => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const { startJob, lastTailorResult, setLastTailorResult } = useJobs();
     const [jobUrl, setJobUrl] = useState('');
     const [jobDescription, setJobDescription] = useState('');
@@ -47,7 +51,7 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
     const runAITailor = async () => {
         if (!groqReady) return;
         if (!jobDescription.trim() && !jobUrl.trim()) {
-            alert('Please paste a job description or enter a job URL first.');
+            addToast('Please paste a job description or enter a job URL first.', 'warn');
             return;
         }
 
@@ -101,7 +105,7 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
     const handleCopy = () => {
         if (!output || isProcessing) return;
         navigator.clipboard.writeText(output);
-        alert('Tailored CV copied to clipboard!');
+        addToast('Tailored CV copied to clipboard!', 'success');
     };
 
     return {

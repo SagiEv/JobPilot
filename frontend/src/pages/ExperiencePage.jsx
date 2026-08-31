@@ -1,8 +1,12 @@
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState } from 'react';
 import { useExperience } from '../hooks/useExperience';
 import PageLoader from '../components/PageLoader';
 
 const ExperiencePage = () => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const { projects, loading, experienceText, setExperienceText, addProject, updateProject, deleteProject } = useExperience();
 
     // Modals/Forms State
@@ -25,8 +29,8 @@ const ExperiencePage = () => {
         setProjectModal({ show: true, mode: 'edit', id: p.id });
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this project?")) {
+    const handleDelete = async (id) => {
+        if ((await confirm("Are you sure you want to delete this project?"))) {
             deleteProject(id);
         }
     };

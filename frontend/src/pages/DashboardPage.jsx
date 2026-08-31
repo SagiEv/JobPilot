@@ -1,3 +1,5 @@
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import { useEvents } from '../hooks/useEvents';
@@ -10,6 +12,8 @@ import { useSettings } from '../hooks/useSettings';
 import { formatDate } from '../utils/helpers';
 
 const DashboardPage = () => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const { settings } = useSettings();
     const { applications, loading: appsLoading } = useApplications();
     const { events, loading: eventsLoading, addEvent } = useEvents();
@@ -138,13 +142,13 @@ const DashboardPage = () => {
     };
 
     const handleFetchDescription = () => {
-        alert("Fetching description from URL... (This is a placeholder, will be connected to web scraper agent)");
+        addToast("Fetching description from URL... (This is a placeholder, will be connected to web scraper agent, 'info')");
         setEmailComposer(prev => ({ ...prev, description: "Software Engineer role requiring React and Node.js..." }));
     };
 
     const handleGenerateMessage = async () => {
         if(!emailComposer.jobLink && !emailComposer.description) {
-            alert("Please provide a job link or description.");
+            addToast("Please provide a job link or description.", 'warn');
             return;
         }
         setIsComposing(true);
@@ -166,7 +170,7 @@ const DashboardPage = () => {
             setComposedMessage(res.data.message);
         } catch(err) {
             console.error(err);
-            alert("Failed to generate message. Ensure you have configured your API Key in Settings.");
+            addToast("Failed to generate message. Ensure you have configured your API Key in Settings.", 'error');
         } finally {
             setIsComposing(false);
         }

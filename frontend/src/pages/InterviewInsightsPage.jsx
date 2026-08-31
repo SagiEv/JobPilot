@@ -1,9 +1,13 @@
+import { useToast } from '../components/ToastProvider';
+import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useInterviews } from '../hooks/useInterviews';
 import PageLoader from '../components/PageLoader';
 import ProviderBadge from '../components/ProviderBadge';
 
 const InterviewInsightsPage = () => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const { 
         interviews, loading, addInterview, updateInterview, deleteInterview,
         aiReports, loadingReports, generateAiReport, isGeneratingReport
@@ -71,15 +75,15 @@ const InterviewInsightsPage = () => {
         setShowModal(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this interview insight?")) {
+    const handleDelete = async (id) => {
+        if ((await confirm("Are you sure you want to delete this interview insight?"))) {
             deleteInterview(id);
         }
     };
 
     const startFlashcards = () => {
         if (allFlashcards.length === 0) {
-            alert("No insights available for flashcards.");
+            addToast("No insights available for flashcards.", 'info');
             return;
         }
         setFlashcardIndex(0);
