@@ -249,7 +249,7 @@ const ApplicationsPage = () => {
                                                 updateApplication(app.id, 'Ignored', app.STAGE);
                                             }}
                                             style={{ 
-                                                background: 'var(--text-muted)', 
+                                                background: 'var(--neutral-c)', 
                                                 border: 'none', 
                                                 color: '#fff', 
                                                 cursor: 'pointer', 
