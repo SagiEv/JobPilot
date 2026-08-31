@@ -155,6 +155,8 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     const [tempStatus, setTempStatus] = useState(app.STATUS);
     const [tempStage, setTempStage] = useState(app.STAGE);
     const [tempDate, setTempDate] = useState(app.DATE || new Date().toISOString().split('T')[0]);
+    const [tempNotes, setTempNotes] = useState('');
+    const [tempWithWho, setTempWithWho] = useState('');
     const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
     
     const [newNote, setNewNote] = useState('');
@@ -166,14 +168,18 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     };
 
     const handleConfirm = () => {
-        onUpdate(app.id, tempStatus, tempStage, tempDate);
+        onUpdate(app.id, tempStatus, tempStage, tempDate, undefined, undefined, tempNotes, tempWithWho);
         setIsEditing(false);
+        setTempNotes('');
+        setTempWithWho('');
     };
     
     const handleCancel = () => {
         setTempStatus(app.STATUS);
         setTempStage(app.STAGE);
         setTempDate(app.DATE || new Date().toISOString().split('T')[0]);
+        setTempNotes('');
+        setTempWithWho('');
         setIsEditing(false);
     };
 
@@ -264,6 +270,26 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                     style={{ width: '130px', margin: 0 }}
                                 />
                             </div>
+                            {tempStage === 'Recruiter / HR Screen' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', background: 'var(--bg-card-alt)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                    <h4 style={{ margin: 0, fontSize: '12px', color: 'var(--text-main)' }}>HR Screen Notes (Optional)</h4>
+                                    <input 
+                                        type="text" 
+                                        className="field-input" 
+                                        placeholder="Recruiter Name" 
+                                        value={tempWithWho}
+                                        onChange={e => setTempWithWho(e.target.value)}
+                                        style={{ margin: 0, fontSize: '12px', padding: '6px' }}
+                                    />
+                                    <textarea 
+                                        className="textarea" 
+                                        placeholder="Topics discussed, salary expectations, next steps..." 
+                                        value={tempNotes}
+                                        onChange={e => setTempNotes(e.target.value)}
+                                        style={{ minHeight: '60px', margin: 0, fontSize: '12px', padding: '6px' }}
+                                    />
+                                </div>
+                            )}
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-primary btn-sm" onClick={handleConfirm}>Confirm</button>
                                 <button className="btn btn-sm" onClick={handleCancel}>Cancel</button>

@@ -159,4 +159,36 @@ describe('applications.service - updateApplication', () => {
             automatic_rejection: false
         }));
     });
+
+    it('should pass notes and with_who to logChange', async () => {
+        applicationRepository.findById.mockResolvedValue({
+            data: { id: 1, status: 'Applied', stage: null }
+        });
+        applicationRepository.update.mockImplementation((userId, id, data) => Promise.resolve({ data: { ...data, id } }));
+        applicationHistoryService.logChange.mockResolvedValue({});
+        
+        applicationHistoryService.getHistoryByApplicationId.mockResolvedValue([
+            { id: 2, event_date: new Date().toISOString(), new_status: 'Interviewing', new_stage: 'Recruiter / HR Screen' }
+        ]);
+
+        const result = await applicationService.updateApplication('user123', 1, {
+            status: 'Interviewing',
+            stage: 'Recruiter / HR Screen',
+            notes: 'Discussed salary and next steps',
+            with_who: 'John HR'
+        });
+
+        expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
+            1, // applicationId
+            'Status & Stage Change', // eventType
+            'Applied', // oldStatus
+            'Interviewing', // inputStatus
+            null, // oldStage
+            'Recruiter / HR Screen', // inputStage
+            'Discussed salary and next steps', // notes
+            'John HR', // with_who
+            null, // interviewId
+            null // event_date
+        );
+    });
 });

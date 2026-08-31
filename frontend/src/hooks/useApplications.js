@@ -54,7 +54,7 @@ export function useApplications() {
     });
 
     const updateApplicationMutation = useMutation({
-        mutationFn: async ({ id, newStatus, newStage, date, eventDate, rejectionReason, automaticRejection, conflictResolution }) => {
+        mutationFn: async ({ id, newStatus, newStage, date, eventDate, rejectionReason, automaticRejection, conflictResolution, notes, withWho }) => {
             const payload = {};
             if (newStatus !== undefined) payload.status = newStatus;
             if (newStage !== undefined) payload.stage = newStage;
@@ -63,6 +63,8 @@ export function useApplications() {
             if (rejectionReason !== undefined) payload.rejection_reason = rejectionReason;
             if (automaticRejection !== undefined) payload.automatic_rejection = automaticRejection;
             if (conflictResolution !== undefined) payload.conflict_resolution = conflictResolution;
+            if (notes !== undefined) payload.notes = notes;
+            if (withWho !== undefined) payload.with_who = withWho;
             await apiClient.put(`/api/applications/${id}`, payload);
         },
         onMutate: async (newApp) => {
@@ -89,6 +91,8 @@ export function useApplications() {
                     eventDate: newApp.eventDate,
                     rejectionReason: newApp.rejectionReason,
                     automaticRejection: newApp.automaticRejection,
+                    notes: newApp.notes,
+                    withWho: newApp.withWho,
                     conflictData: err.response.data.conflictData
                 });
             } else {
@@ -121,7 +125,7 @@ export function useApplications() {
         }
     });
 
-    const updateApplication = async (id, newStatus, newStage, customDate = null, rejectionReason = undefined, automaticRejection = undefined) => {
+    const updateApplication = async (id, newStatus, newStage, customDate = null, rejectionReason = undefined, automaticRejection = undefined, notes = undefined, withWho = undefined) => {
         const today = new Date().toISOString().split('T')[0];
         const eventDateToUse = customDate || today;
         updateApplicationMutation.mutate({ 
@@ -130,7 +134,9 @@ export function useApplications() {
             newStage, 
             eventDate: eventDateToUse,
             rejectionReason,
-            automaticRejection
+            automaticRejection,
+            notes,
+            withWho
         });
     };
 
@@ -147,6 +153,8 @@ export function useApplications() {
             eventDate: conflict.eventDate,
             rejectionReason: conflict.rejectionReason,
             automaticRejection: conflict.automaticRejection,
+            notes: conflict.notes,
+            withWho: conflict.withWho,
             conflictResolution: resolution
         });
         setConflict(null);

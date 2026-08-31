@@ -31,7 +31,7 @@ const updateApplication = async (userId, id, data) => {
     if (!oldApp) throw new Error("Application not found");
     
     // Extract event_date and conflict_resolution so they're not saved directly in applications table
-    const { event_date, conflict_resolution, ...updateData } = data;
+    const { event_date, conflict_resolution, notes, with_who, ...updateData } = data;
 
     // We check if the update intends to change the status or stage
     const inputStatus = updateData.status !== undefined ? updateData.status : oldApp.status;
@@ -68,13 +68,15 @@ const updateApplication = async (userId, id, data) => {
                         inputStatus,
                         oldApp.stage,
                         inputStage,
-                        '', '', null, event_date || null
+                        notes || '', with_who || '', null, event_date || null
                     );
                 } else if (conflict_resolution === 'overwrite') {
                     await applicationHistoryService.updateHistory(existingEvent.id, {
                         event_type: eventType,
                         new_status: inputStatus,
-                        new_stage: inputStage
+                        new_stage: inputStage,
+                        notes: notes !== undefined ? notes : existingEvent.notes,
+                        with_who: with_who !== undefined ? with_who : existingEvent.with_who
                     });
                 } else {
                     const error = new Error('Conflicting event on this date');
@@ -91,7 +93,7 @@ const updateApplication = async (userId, id, data) => {
                 inputStatus,
                 oldApp.stage,
                 inputStage,
-                '', '', null, event_date || null
+                notes || '', with_who || '', null, event_date || null
             );
         }
     }
