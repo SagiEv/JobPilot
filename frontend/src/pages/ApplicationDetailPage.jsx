@@ -3,6 +3,7 @@ import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
 import { useApplicationHistory } from '../hooks/useApplicationHistory';
 import { useEvents } from '../hooks/useEvents';
+import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
 
 // ── Status pipeline order ─────────────────────────────────────────────────────
 const STATUS_PIPELINE = [
@@ -17,7 +18,8 @@ const STATUS_PIPELINE = [
 const ALL_STATUSES = [
     ...STATUS_PIPELINE,
     { label: 'Rejected', icon: '✕' },
-    { label: 'Withdrawn', icon: '↩️' }
+    { label: 'Withdrawn', icon: '↩️' },
+    { label: 'Ignored', icon: '👻' }
 ];
 
 const STAGES = [
@@ -90,11 +92,22 @@ function CompanyAvatar({ name }) {
 function StatusStepper({ current }) {
     const isRejected = current?.toLowerCase() === 'rejected';
     const isWithdrawn = current?.toLowerCase() === 'withdrawn';
+    const isIgnored = current?.toLowerCase() === 'ignored';
     const currentIdx = STATUS_PIPELINE.findIndex(
         s => s.label.toLowerCase() === current?.toLowerCase()
     );
 
-    if (isRejected || isWithdrawn) {
+    if (isRejected || isWithdrawn || isIgnored) {
+        let label = 'Rejected';
+        let icon = '✕';
+        if (isWithdrawn) {
+            label = 'Withdrawn';
+            icon = '↩️';
+        } else if (isIgnored) {
+            label = 'Ignored';
+            icon = '👻';
+        }
+
         return (
             <div className="adp-stepper">
                 {STATUS_PIPELINE.map((s, i) => (
@@ -108,8 +121,8 @@ function StatusStepper({ current }) {
                 ))}
                 <div className="adp-step-line adp-step-line--skipped" />
                 <div className="adp-step adp-step--rejected">
-                    <div className="adp-step-dot">{isRejected ? '✕' : '↩️'}</div>
-                    <span>{isRejected ? 'Rejected' : 'Withdrawn'}</span>
+                    <div className="adp-step-dot">{icon}</div>
+                    <span>{label}</span>
                 </div>
             </div>
         );
@@ -146,7 +159,7 @@ function calculateDaysDifference(date1, date2) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
+const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {}, dismissGhosting = () => {} }) => {
     const { settings } = useSettings();
     const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
     const { events } = useEvents();
@@ -194,6 +207,10 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
     const jobLink = app.LINK
         ? (app.LINK.startsWith('http') ? app.LINK : `https://${app.LINK}`)
         : null;
+
+    const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
+    const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
+    const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
 
     return (
         <div className="adp-root section">
@@ -298,6 +315,24 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                     )}
                 </div>
             </div>
+
+            {/* ── Ghosting Suggestion Banner ── */}
+            {isGhosting && (
+                <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-card-alt)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '16px' }}>👻</span> No updates in a while
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                            It's been {daysSinceActivity} days since the last activity on this application. Would you like to mark it as Ignored/Ghosting to keep your active list clean?
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '20px' }}>
+                        <button className="btn btn-sm" style={{ border: '1px solid var(--border-color)', background: 'transparent' }} onClick={() => dismissGhosting(app.id)}>Dismiss</button>
+                        <button className="btn btn-sm btn-primary" onClick={() => onUpdate(app.id, 'Ignored', app.STAGE)}>Mark as Ignored</button>
+                    </div>
+                </div>
+            )}
 
             {/* ── Progress stepper ── */}
             <div className="adp-stepper-card">

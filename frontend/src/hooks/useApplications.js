@@ -16,6 +16,7 @@ const fromDb = (row) => ({
     REFERAL: row.referal || '',
     LINK: row.link || '',
     CV_FILE: row.cv_file || '',
+    LAST_ACTIVITY_DATE: row.last_activity_date || row.date || '',
     REJECTION_REASON: row.rejection_reason || '',
     AUTOMATIC_REJECTION: row.automatic_rejection || false
 });
@@ -43,6 +44,21 @@ export function useApplications() {
     const queryClient = useQueryClient();
     const [status, setStatus] = useState('');
     const [conflict, setConflict] = useState(null);
+    const [dismissedGhostings, setDismissedGhostings] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('dismissedGhostings') || '{}');
+        } catch {
+            return {};
+        }
+    });
+
+    const dismissGhosting = (appId) => {
+        setDismissedGhostings(prev => {
+            const next = { ...prev, [appId]: true };
+            localStorage.setItem('dismissedGhostings', JSON.stringify(next));
+            return next;
+        });
+    };
 
     const { data: applications = [], isLoading: loading } = useQuery({
         enabled: !!getAccessToken(),
@@ -166,7 +182,7 @@ export function useApplications() {
 
     const stats = useMemo(() => ({
         total: applications.length,
-        active: applications.filter(a => !a.STATUS?.toLowerCase().includes('reject') && !a.STATUS?.toLowerCase().includes('offer')).length,
+        active: applications.filter(a => !a.STATUS?.toLowerCase().includes('reject') && !a.STATUS?.toLowerCase().includes('offer') && !a.STATUS?.toLowerCase().includes('ignored')).length,
         interview: applications.filter(a => a.STATUS?.toLowerCase().includes('interview') || a.STATUS?.toLowerCase().includes('phone')).length,
         offer: applications.filter(a => a.STATUS?.toLowerCase().includes('offer')).length
     }), [applications]);
@@ -209,5 +225,5 @@ export function useApplications() {
         updateApplicationMutation.mutate({ id, newStatus });
     };
 
-    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication, conflict, handleConflictResolution };
+    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting };
 }

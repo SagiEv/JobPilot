@@ -4,6 +4,7 @@ import { useSettings } from '../hooks/useSettings';
 import ApplicationDetailPage from './ApplicationDetailPage';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
+import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
 
 const ConflictModal = ({ conflict, onResolve }) => (
     <div className="modal-overlay" onClick={() => onResolve('abort')}>
@@ -37,7 +38,7 @@ const ConflictModal = ({ conflict, onResolve }) => (
 );
 
 const ApplicationsPage = () => {
-    const { applications, stats, status, handleUpload, updateApplication, addApplication, loading, conflict, handleConflictResolution } = useApplications();
+    const { applications, stats, status, handleUpload, updateApplication, addApplication, loading, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting } = useApplications();
     const { settings } = useSettings();
 
     // UI State
@@ -68,11 +69,11 @@ const ApplicationsPage = () => {
 
                 switch (filterType) {
                     case 'active':
-                        return !status.includes('reject') && !status.includes('offer');
+                        return !status.includes('reject') && !status.includes('offer') && !status.includes('ignored');
                     case 'interview':
                         return status.includes('interview') || status.includes('phone') || status.includes('tech');
                     case 'archived':
-                        return status === 'rejected';
+                        return status === 'rejected' || status === 'ignored';
                     case 'all':
                     default:
                         // 'all' view shows everything including rejected
@@ -99,6 +100,8 @@ const ApplicationsPage = () => {
                     app={currentApp}
                     onBack={() => setViewingAppId(null)}
                     onUpdate={updateApplication}
+                    dismissedGhostings={dismissedGhostings}
+                    dismissGhosting={dismissGhosting}
                 />
                 {conflict && <ConflictModal conflict={conflict} onResolve={handleConflictResolution} />}
             </>
@@ -130,7 +133,7 @@ const ApplicationsPage = () => {
                     onClick={() => setFilterType('archived')}
                 >
                     <div className="stat-num" style={{ color: 'var(--danger-c)' }}>
-                        {applications.filter(a => a.STATUS?.toLowerCase() === 'rejected').length}
+                        {applications.filter(a => a.STATUS?.toLowerCase() === 'rejected' || a.STATUS?.toLowerCase() === 'ignored').length}
                     </div>
                     <div className="stat-lbl">Archived</div>
                 </div>
@@ -193,7 +196,12 @@ const ApplicationsPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredApplications.map((app) => (
+                        {filteredApplications.map((app) => {
+                            const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
+                            const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
+                            const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
+
+                            return (
                             <tr 
                                 key={app.id} 
                                 onClick={() => setViewingAppId(app.id)}
@@ -207,7 +215,7 @@ const ApplicationsPage = () => {
                                     <select
                                         className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
                                         value={
-                                            ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn']
+                                            ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Ignored']
                                                 .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS || 'Applied'
                                         }
                                         onChange={(e) => {
@@ -231,8 +239,26 @@ const ApplicationsPage = () => {
                                         <option value="Hired">Hired</option>
                                         <option value="Rejected">Rejected</option>
                                         <option value="Withdrawn">Withdrawn</option>
+                                        <option value="Ignored">Ignored</option>
                                     </select>
-                                    {app.STATUS?.toLowerCase() !== 'rejected' && (
+                                    {isGhosting && (
+                                        <div 
+                                            title={`No updates in ${daysSinceActivity} days. Consider marking as Ignored.`}
+                                            style={{ cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const action = window.confirm(`This application hasn't had updates in ${daysSinceActivity} days.\n\nClick OK to mark as Ignored/Ghosting, or Cancel to dismiss this suggestion.`);
+                                                if (action) {
+                                                    updateApplication(app.id, 'Ignored', app.STAGE);
+                                                } else {
+                                                    dismissGhosting(app.id);
+                                                }
+                                            }}
+                                        >
+                                            👻
+                                        </div>
+                                    )}
+                                    {app.STATUS?.toLowerCase() !== 'rejected' && app.STATUS?.toLowerCase() !== 'ignored' && (
                                         <button 
                                             title="Quick Reject"
                                             onClick={(e) => {
@@ -292,7 +318,8 @@ const ApplicationsPage = () => {
                                     </td>
                                 )}
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -363,6 +390,7 @@ const ApplicationsPage = () => {
                                         <option value="Hired">Hired</option>
                                         <option value="Rejected">Rejected</option>
                                         <option value="Withdrawn">Withdrawn</option>
+                                        <option value="Ignored">Ignored</option>
                                     </select>
                                 </div>
                                 <div className="modal-section">

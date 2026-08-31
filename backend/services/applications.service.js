@@ -4,6 +4,33 @@ const applicationHistoryService = require('./applicationHistory.service');
 const getAllApplications = async (userId) => {
     const { data, error } = await applicationRepository.findAll(userId);
     if (error) throw new Error(error.message);
+
+    const appIds = data.map(a => a.id);
+    if (appIds.length > 0) {
+        const supabase = require('../supabaseClient');
+        const { data: history, error: histError } = await supabase
+            .from('application_history')
+            .select('application_id, event_date, created_at, event_type')
+            .in('application_id', appIds);
+            
+        if (!histError && history) {
+            const latestDates = {};
+            history.forEach(h => {
+                const dateToUse = h.event_date || h.created_at;
+                if (!latestDates[h.application_id] || new Date(dateToUse) > new Date(latestDates[h.application_id])) {
+                    latestDates[h.application_id] = dateToUse;
+                }
+            });
+            data.forEach(app => {
+                app.last_activity_date = latestDates[app.id] || app.date || app.created_at;
+            });
+        } else {
+            data.forEach(app => {
+                app.last_activity_date = app.date || app.created_at;
+            });
+        }
+    }
+
     return data;
 };
 
