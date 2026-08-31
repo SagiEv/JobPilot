@@ -19,7 +19,7 @@ const ALL_STATUSES = [
     ...STATUS_PIPELINE,
     { label: 'Rejected', icon: '✕' },
     { label: 'Withdrawn', icon: '↩️' },
-    { label: 'Ignored', icon: '👻' }
+    { label: 'Ignored', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg> }
 ];
 
 const STAGES = [
@@ -105,7 +105,7 @@ function StatusStepper({ current }) {
             icon = '↩️';
         } else if (isIgnored) {
             label = 'Ignored';
-            icon = '👻';
+            icon = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>;
         }
 
         return (
@@ -286,27 +286,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                     onChange={e => setTempDate(e.target.value)}
                                     style={{ width: '130px', margin: 0 }}
                                 />
-                            </div>
-                            {tempStage === 'Recruiter / HR Screen' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', background: 'var(--bg-card-alt)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                                    <h4 style={{ margin: 0, fontSize: '12px', color: 'var(--text-main)' }}>HR Screen Notes (Optional)</h4>
-                                    <input 
-                                        type="text" 
-                                        className="field-input" 
-                                        placeholder="Recruiter Name" 
-                                        value={tempWithWho}
-                                        onChange={e => setTempWithWho(e.target.value)}
-                                        style={{ margin: 0, fontSize: '12px', padding: '6px' }}
-                                    />
-                                    <textarea 
-                                        className="textarea" 
-                                        placeholder="Topics discussed, salary expectations, next steps..." 
-                                        value={tempNotes}
-                                        onChange={e => setTempNotes(e.target.value)}
-                                        style={{ minHeight: '60px', margin: 0, fontSize: '12px', padding: '6px' }}
-                                    />
                                 </div>
-                            )}
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-primary btn-sm" onClick={handleConfirm}>Confirm</button>
                                 <button className="btn btn-sm" onClick={handleCancel}>Cancel</button>
@@ -316,12 +296,36 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                 </div>
             </div>
 
+            {/* ── HR Screen Notes (outside hero for stable layout) ── */}
+            {isEditing && tempStage === 'Recruiter / HR Screen' && (
+                <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', marginBottom: '14px', boxShadow: '0 1px 6px rgba(0,0,0,.05)' }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--text-main)' }}>HR Screen Notes (Optional)</h4>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                            type="text" 
+                            className="field-input" 
+                            placeholder="Recruiter Name" 
+                            value={tempWithWho}
+                            onChange={e => setTempWithWho(e.target.value)}
+                            style={{ margin: 0, fontSize: '12px', padding: '8px', flex: '0 0 200px' }}
+                        />
+                        <textarea 
+                            className="textarea" 
+                            placeholder="Topics discussed, salary expectations, next steps..." 
+                            value={tempNotes}
+                            onChange={e => setTempNotes(e.target.value)}
+                            style={{ minHeight: '44px', margin: 0, fontSize: '12px', padding: '8px', flex: 1 }}
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* ── Ghosting Suggestion Banner ── */}
             {isGhosting && (
                 <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-card-alt)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '16px' }}>👻</span> No updates in a while
+                            <span style={{ display: 'flex' }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg></span> No updates in a while
                         </h4>
                         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
                             It's been {daysSinceActivity} days since the last activity on this application. Would you like to mark it as Ignored/Ghosting to keep your active list clean?

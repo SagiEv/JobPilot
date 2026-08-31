@@ -242,21 +242,30 @@ const ApplicationsPage = () => {
                                         <option value="Ignored">Ignored</option>
                                     </select>
                                     {isGhosting && (
-                                        <div 
+                                        <button 
                                             title={`No updates in ${daysSinceActivity} days. Consider marking as Ignored.`}
-                                            style={{ cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                const action = window.confirm(`This application hasn't had updates in ${daysSinceActivity} days.\n\nClick OK to mark as Ignored/Ghosting, or Cancel to dismiss this suggestion.`);
-                                                if (action) {
-                                                    updateApplication(app.id, 'Ignored', app.STAGE);
-                                                } else {
-                                                    dismissGhosting(app.id);
-                                                }
+                                                updateApplication(app.id, 'Ignored', app.STAGE);
+                                            }}
+                                            style={{ 
+                                                background: 'var(--text-muted)', 
+                                                border: 'none', 
+                                                color: '#fff', 
+                                                cursor: 'pointer', 
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: 0
                                             }}
                                         >
-                                            👻
-                                        </div>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                                                <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+                                            </svg>
+                                        </button>
                                     )}
                                     {app.STATUS?.toLowerCase() !== 'rejected' && app.STATUS?.toLowerCase() !== 'ignored' && (
                                         <button 

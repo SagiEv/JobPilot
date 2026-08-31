@@ -1551,7 +1551,7 @@ td:nth-child(3) {
 }
 
 .stat-card:nth-child(4) .stat-num {
-  color: #155724;
+  color: var(--text-main);
 }
 
 .sort-group {
