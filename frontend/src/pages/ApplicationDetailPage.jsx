@@ -181,7 +181,8 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
     };
 
     const handleConfirm = () => {
-        onUpdate(app.id, tempStatus, tempStage, tempDate, undefined, undefined, tempNotes, tempWithWho);
+        const finalStage = tempStatus?.toLowerCase() === 'interviewing' ? tempStage : '';
+        onUpdate(app.id, tempStatus, finalStage, tempDate, undefined, undefined, tempNotes, tempWithWho);
         setIsEditing(false);
         setTempNotes('');
         setTempWithWho('');

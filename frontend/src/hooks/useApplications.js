@@ -81,7 +81,8 @@ export function useApplications() {
             if (conflictResolution !== undefined) payload.conflict_resolution = conflictResolution;
             if (notes !== undefined) payload.notes = notes;
             if (withWho !== undefined) payload.with_who = withWho;
-            await apiClient.put(`/api/applications/${id}`, payload);
+            const { data } = await apiClient.put(`/api/applications/${id}`, payload);
+            return data;
         },
         onMutate: async (newApp) => {
             await queryClient.cancelQueries({ queryKey: ['applications'] });
@@ -89,11 +90,22 @@ export function useApplications() {
             queryClient.setQueryData(['applications'], (old) => 
                 old?.map(app => app.id === newApp.id ? { 
                     ...app, 
-                    ...(newApp.newStatus !== undefined ? { STATUS: newApp.newStatus } : {}),
-                    ...(newApp.newStage !== undefined ? { STAGE: newApp.newStage } : {})
+                    ...(newApp.newStatus !== undefined && !newApp.eventDate ? { STATUS: newApp.newStatus } : {}),
+                    ...(newApp.newStage !== undefined && !newApp.eventDate ? { STAGE: newApp.newStage } : {})
                 } : app)
             );
             return { previousApps };
+        },
+        onSuccess: (updatedApp, variables) => {
+            queryClient.setQueryData(['applications'], (old) => 
+                old?.map(app => app.id === variables.id ? { 
+                    ...app, 
+                    STATUS: updatedApp.status, 
+                    STAGE: updatedApp.stage,
+                    DATE: updatedApp.date,
+                    REJECTION_REASON: updatedApp.rejection_reason
+                } : app)
+            );
         },
         onError: (err, newApp, context) => {
             if (context?.previousApps) {
