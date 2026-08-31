@@ -14,6 +14,9 @@ const ApplicationsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('active'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [rejectModalApp, setRejectModalApp] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [autoReject, setAutoReject] = useState(false);
     const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
 
     // Sorting State
@@ -173,7 +176,16 @@ const ApplicationsPage = () => {
                                             ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn']
                                                 .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS || 'Applied'
                                         }
-                                        onChange={(e) => updateApplication(app.id, e.target.value, app.STAGE)}
+                                        onChange={(e) => {
+                                            const newStatus = e.target.value;
+                                            if (newStatus === 'Rejected') {
+                                                setRejectModalApp(app);
+                                                setRejectReason('');
+                                                setAutoReject(false);
+                                            } else {
+                                                updateApplication(app.id, newStatus, app.STAGE);
+                                            }
+                                        }}
                                         onClick={(e) => e.stopPropagation()}
                                         style={{ margin: 0, width: '130px' }}
                                     >
@@ -191,7 +203,9 @@ const ApplicationsPage = () => {
                                             title="Quick Reject"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                updateApplication(app.id, 'Rejected', app.STAGE);
+                                                setRejectModalApp(app);
+                                                setRejectReason('');
+                                                setAutoReject(false);
                                             }}
                                             style={{ 
                                                 background: 'var(--danger-c)', 
@@ -215,7 +229,7 @@ const ApplicationsPage = () => {
                                 </td>
                                 {filterType !== 'archived' && (
                                     <td>
-                                        {app.STATUS?.toLowerCase() !== 'applied' ? (
+                                        {app.STATUS?.toLowerCase() === 'interviewing' ? (
                                             <select
                                                 className="status-select-table badge-pending"
                                                 style={{ margin: 0, width: '150px' }}
@@ -396,6 +410,60 @@ const ApplicationsPage = () => {
                                 <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" disabled={!newAppForm.COMPANY || !newAppForm.ROLE_ID}>
                                     Save Application
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Application Modal */}
+            {rejectModalApp && (
+                <div className="modal-overlay" onClick={() => setRejectModalApp(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Reject Application: {rejectModalApp.COMPANY}</h2>
+                            <button className="modal-close" onClick={() => setRejectModalApp(null)}>✕</button>
+                        </div>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            updateApplication(
+                                rejectModalApp.id, 
+                                'Rejected', 
+                                rejectModalApp.STAGE, 
+                                null, 
+                                rejectReason, 
+                                autoReject
+                            );
+                            setRejectModalApp(null);
+                        }}>
+                            <div className="modal-body">
+                                <div className="modal-section">
+                                    <label>Rejection Reason / Comments <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
+                                    <textarea
+                                        className="textarea"
+                                        style={{ minHeight: '80px' }}
+                                        value={rejectReason}
+                                        onChange={e => setRejectReason(e.target.value)}
+                                        placeholder="e.g. They went with an internal candidate"
+                                        dir="auto"
+                                    />
+                                </div>
+                                <div className="modal-section" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="autoRejectCheck"
+                                        checked={autoReject} 
+                                        onChange={e => setAutoReject(e.target.checked)} 
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="autoRejectCheck" style={{ margin: 0, cursor: 'pointer' }}>Automatically rejected (e.g. CV screening failed without call)</label>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn" onClick={() => setRejectModalApp(null)}>Cancel</button>
+                                <button type="submit" className="btn" style={{ background: 'var(--danger-c)', color: 'white', border: 'none' }}>
+                                    Confirm Rejection
                                 </button>
                             </div>
                         </form>

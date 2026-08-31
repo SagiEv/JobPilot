@@ -244,16 +244,18 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                         <option key={s.label} value={s.label}>{s.label}</option>
                                     ))}
                                 </select>
-                                <select
-                                    className="adp-select"
-                                    value={tempStage || ''}
-                                    onChange={e => setTempStage(e.target.value)}
-                                >
-                                    <option value="">- No Stage -</option>
-                                    {STAGES.map(s => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
+                                {tempStatus?.toLowerCase() === 'interviewing' && (
+                                    <select
+                                        className="adp-select"
+                                        value={tempStage || ''}
+                                        onChange={e => setTempStage(e.target.value)}
+                                    >
+                                        <option value="">- No Stage -</option>
+                                        {STAGES.map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                )}
                                 <input
                                     type="date"
                                     className="field-input"
@@ -306,8 +308,16 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                         <div className="adp-stat-lbl">CV Used</div>
                         <div className="adp-stat-val">{app.CV_FILE || 'None'}</div>
                     </div>
-                </div>
             </div>
+
+            {/* ── Rejection Details ── */}
+            {app.STATUS?.toLowerCase() === 'rejected' && (app.REJECTION_REASON || app.AUTOMATIC_REJECTION) && (
+                <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px' }}>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: 'var(--danger-c)' }}>Rejection Details</h3>
+                    {app.REJECTION_REASON && <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: 'var(--text-main)' }}><strong>Reason:</strong> {app.REJECTION_REASON}</p>}
+                    {app.AUTOMATIC_REJECTION && <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}><em>Automatically Rejected</em></p>}
+                </div>
+            )}
 
             <div style={{ marginTop: '20px' }}>
                 {/* ── Activity Log ── */}

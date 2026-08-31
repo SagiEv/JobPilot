@@ -84,6 +84,11 @@ const updateApplication = async (userId, id, data) => {
     }
 
     // 3. Update the applications table with the true latest state
+    if (updateData.status && updateData.status.toLowerCase() !== 'rejected') {
+        updateData.rejection_reason = null;
+        updateData.automatic_rejection = false;
+    }
+
     const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData);
     if (error) throw new Error(error.message);
 

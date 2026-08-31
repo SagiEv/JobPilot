@@ -15,7 +15,9 @@ const fromDb = (row) => ({
     INFO: row.info || '',
     REFERAL: row.referal || '',
     LINK: row.link || '',
-    CV_FILE: row.cv_file || ''
+    CV_FILE: row.cv_file || '',
+    REJECTION_REASON: row.rejection_reason || '',
+    AUTOMATIC_REJECTION: row.automatic_rejection || false
 });
 
 const toDb = (app) => {
@@ -29,7 +31,9 @@ const toDb = (app) => {
         info: app.INFO || '',
         referal: app.REFERAL || '',
         link: app.LINK || '',
-        cv_file: app.CV_FILE || ''
+        cv_file: app.CV_FILE || '',
+        rejection_reason: app.REJECTION_REASON || '',
+        automatic_rejection: app.AUTOMATIC_REJECTION || false
     };
     if (typeof app.id === 'number') data.id = app.id;
     return data;
@@ -49,12 +53,14 @@ export function useApplications() {
     });
 
     const updateApplicationMutation = useMutation({
-        mutationFn: async ({ id, newStatus, newStage, date, eventDate }) => {
+        mutationFn: async ({ id, newStatus, newStage, date, eventDate, rejectionReason, automaticRejection }) => {
             const payload = {};
             if (newStatus !== undefined) payload.status = newStatus;
             if (newStage !== undefined) payload.stage = newStage;
             if (date) payload.date = date;
             if (eventDate) payload.event_date = eventDate;
+            if (rejectionReason !== undefined) payload.rejection_reason = rejectionReason;
+            if (automaticRejection !== undefined) payload.automatic_rejection = automaticRejection;
             await apiClient.put(`/api/applications/${id}`, payload);
         },
         onMutate: async (newApp) => {
@@ -101,10 +107,17 @@ export function useApplications() {
         }
     });
 
-    const updateApplication = async (id, newStatus, newStage, customDate = null) => {
+    const updateApplication = async (id, newStatus, newStage, customDate = null, rejectionReason = undefined, automaticRejection = undefined) => {
         const today = new Date().toISOString().split('T')[0];
         const eventDateToUse = customDate || today;
-        updateApplicationMutation.mutate({ id, newStatus, newStage, eventDate: eventDateToUse });
+        updateApplicationMutation.mutate({ 
+            id, 
+            newStatus, 
+            newStage, 
+            eventDate: eventDateToUse,
+            rejectionReason,
+            automaticRejection
+        });
     };
 
     const addApplication = async (newApp) => {
