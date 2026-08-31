@@ -28,40 +28,64 @@ const createApplication = async (userId, data) => {
 const updateApplication = async (userId, id, data) => {
     // Fetch existing application
     const { data: oldApp } = await applicationRepository.findById(userId, id);
+    if (!oldApp) throw new Error("Application not found");
     
-    // Extract event_date so it's not saved in the applications table, 
-    // unless you want to update the application's main date too.
-    // Actually, in useApplications we send `date` and `eventDate`.
-    // So `data.date` is the app date, `data.event_date` is for history.
+    // Extract event_date so it's not saved directly in applications table
     const { event_date, ...updateData } = data;
+
+    // We check if the update intends to change the status or stage
+    const inputStatus = updateData.status !== undefined ? updateData.status : oldApp.status;
+    const inputStage = updateData.stage !== undefined ? updateData.stage : oldApp.stage;
     
+    const isStatusChange = oldApp.status !== inputStatus;
+    const isStageChange = oldApp.stage !== inputStage;
+
+    // 1. Log the change FIRST if status or stage changed
+    if (isStatusChange || isStageChange) {
+        let eventType = 'Status Change';
+        if (isStatusChange && isStageChange) eventType = 'Status & Stage Change';
+        else if (isStageChange) eventType = 'Stage Change';
+
+        await applicationHistoryService.logChange(
+            id,
+            eventType,
+            oldApp.status,
+            inputStatus,
+            oldApp.stage,
+            inputStage,
+            '', // notes
+            '', // with_who
+            null, // interviewId
+            event_date || null
+        );
+    }
+    
+    // 2. Recalculate latest status and stage from history
+    const history = await applicationHistoryService.getHistoryByApplicationId(id);
+    const statusEvents = history
+        .filter(h => h.new_status != null)
+        .sort((a, b) => {
+            const timeA = new Date(a.event_date || a.created_at || 0).getTime();
+            const timeB = new Date(b.event_date || b.created_at || 0).getTime();
+            if (timeB !== timeA) return timeB - timeA;
+            return b.id - a.id;
+        });
+        
+    if (statusEvents.length > 0) {
+        const latestEvent = statusEvents[0];
+        updateData.status = latestEvent.new_status;
+        if (latestEvent.new_stage !== undefined) {
+            updateData.stage = latestEvent.new_stage;
+        }
+    } else {
+        // Fallback to input if no history exists (e.g. legacy apps)
+        updateData.status = inputStatus;
+        updateData.stage = inputStage;
+    }
+
+    // 3. Update the applications table with the true latest state
     const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData);
     if (error) throw new Error(error.message);
-
-    // Log change if status or stage is updated
-    if (oldApp) {
-        const isStatusChange = oldApp.status !== updatedApp.status;
-        const isStageChange = oldApp.stage !== updatedApp.stage;
-
-        if (isStatusChange || isStageChange) {
-            let eventType = 'Status Change';
-            if (isStatusChange && isStageChange) eventType = 'Status & Stage Change';
-            else if (isStageChange) eventType = 'Stage Change';
-
-            await applicationHistoryService.logChange(
-                updatedApp.id,
-                eventType,
-                oldApp.status,
-                updatedApp.status,
-                oldApp.stage,
-                updatedApp.stage,
-                '', // notes
-                '', // with_who
-                null, // interviewId
-                event_date || null
-            );
-        }
-    }
 
     return updatedApp;
 };

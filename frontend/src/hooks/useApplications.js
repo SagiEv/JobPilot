@@ -57,8 +57,27 @@ export function useApplications() {
             if (eventDate) payload.event_date = eventDate;
             await apiClient.put(`/api/applications/${id}`, payload);
         },
-        onSuccess: () => {
+        onMutate: async (newApp) => {
+            await queryClient.cancelQueries({ queryKey: ['applications'] });
+            const previousApps = queryClient.getQueryData(['applications']);
+            queryClient.setQueryData(['applications'], (old) => 
+                old?.map(app => app.id === newApp.id ? { 
+                    ...app, 
+                    ...(newApp.newStatus !== undefined ? { STATUS: newApp.newStatus } : {}),
+                    ...(newApp.newStage !== undefined ? { STAGE: newApp.newStage } : {})
+                } : app)
+            );
+            return { previousApps };
+        },
+        onError: (err, newApp, context) => {
+            if (context?.previousApps) {
+                queryClient.setQueryData(['applications'], context.previousApps);
+            }
+            alert(`Failed to update application: ${err.message || 'Unknown error'}`);
+        },
+        onSettled: (data, error, variables) => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['applicationHistory', variables.id] });
         }
     });
 
@@ -85,14 +104,6 @@ export function useApplications() {
     const updateApplication = async (id, newStatus, newStage, customDate = null) => {
         const today = new Date().toISOString().split('T')[0];
         const eventDateToUse = customDate || today;
-        // Optimistic update
-        queryClient.setQueryData(['applications'], (old) => 
-            old.map(app => app.id === id ? { 
-                ...app, 
-                ...(newStatus !== undefined ? { STATUS: newStatus } : {}),
-                ...(newStage !== undefined ? { STAGE: newStage } : {})
-            } : app)
-        );
         updateApplicationMutation.mutate({ id, newStatus, newStage, eventDate: eventDateToUse });
     };
 
@@ -142,9 +153,6 @@ export function useApplications() {
     };
 
     const updateAppStatus = async (id, newStatus) => {
-        queryClient.setQueryData(['applications'], (old) => 
-            old.map(app => app.id === id ? { ...app, STATUS: newStatus } : app)
-        );
         updateApplicationMutation.mutate({ id, newStatus });
     };
 
