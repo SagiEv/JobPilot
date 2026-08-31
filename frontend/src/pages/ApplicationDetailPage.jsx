@@ -308,6 +308,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                         <div className="adp-stat-lbl">CV Used</div>
                         <div className="adp-stat-val">{app.CV_FILE || 'None'}</div>
                     </div>
+                </div>
             </div>
 
             {/* ── Rejection Details ── */}
