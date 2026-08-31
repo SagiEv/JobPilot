@@ -12,6 +12,13 @@ const addHistory = async (historyData) => {
     return data;
 };
 
+const updateHistory = async (id, historyData) => {
+    const { data, error } = await applicationHistoryRepo.update(id, historyData);
+    if (error) throw new Error(error.message);
+    return data;
+};
+
+
 const logChange = async (applicationId, eventType, oldStatus, newStatus, oldStage, newStage, notes = '', withWho = '', interviewId = null, eventDate = null) => {
     // Only log if something changed or if it's a specific manual event
     if (oldStatus === newStatus && oldStage === newStage && eventType !== 'Note' && eventType !== 'Interview') {
@@ -40,5 +47,6 @@ const logChange = async (applicationId, eventType, oldStatus, newStatus, oldStag
 module.exports = {
     getHistoryByApplicationId,
     addHistory,
+    updateHistory,
     logChange
 };

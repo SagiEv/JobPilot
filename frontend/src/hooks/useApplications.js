@@ -42,6 +42,7 @@ const toDb = (app) => {
 export function useApplications() {
     const queryClient = useQueryClient();
     const [status, setStatus] = useState('');
+    const [conflict, setConflict] = useState(null);
 
     const { data: applications = [], isLoading: loading } = useQuery({
         enabled: !!getAccessToken(),
@@ -53,7 +54,7 @@ export function useApplications() {
     });
 
     const updateApplicationMutation = useMutation({
-        mutationFn: async ({ id, newStatus, newStage, date, eventDate, rejectionReason, automaticRejection }) => {
+        mutationFn: async ({ id, newStatus, newStage, date, eventDate, rejectionReason, automaticRejection, conflictResolution }) => {
             const payload = {};
             if (newStatus !== undefined) payload.status = newStatus;
             if (newStage !== undefined) payload.stage = newStage;
@@ -61,6 +62,7 @@ export function useApplications() {
             if (eventDate) payload.event_date = eventDate;
             if (rejectionReason !== undefined) payload.rejection_reason = rejectionReason;
             if (automaticRejection !== undefined) payload.automatic_rejection = automaticRejection;
+            if (conflictResolution !== undefined) payload.conflict_resolution = conflictResolution;
             await apiClient.put(`/api/applications/${id}`, payload);
         },
         onMutate: async (newApp) => {
@@ -79,7 +81,19 @@ export function useApplications() {
             if (context?.previousApps) {
                 queryClient.setQueryData(['applications'], context.previousApps);
             }
-            alert(`Failed to update application: ${err.message || 'Unknown error'}`);
+            if (err.response?.data?.code === 'CONFLICTING_EVENT') {
+                setConflict({
+                    appId: newApp.id,
+                    newStatus: newApp.newStatus,
+                    newStage: newApp.newStage,
+                    eventDate: newApp.eventDate,
+                    rejectionReason: newApp.rejectionReason,
+                    automaticRejection: newApp.automaticRejection,
+                    conflictData: err.response.data.conflictData
+                });
+            } else {
+                alert(`Failed to update application: ${err.response?.data?.error || err.message || 'Unknown error'}`);
+            }
         },
         onSettled: (data, error, variables) => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -118,6 +132,24 @@ export function useApplications() {
             rejectionReason,
             automaticRejection
         });
+    };
+
+    const handleConflictResolution = (resolution) => {
+        if (!conflict) return;
+        if (resolution === 'abort') {
+            setConflict(null);
+            return;
+        }
+        updateApplicationMutation.mutate({
+            id: conflict.appId,
+            newStatus: conflict.newStatus,
+            newStage: conflict.newStage,
+            eventDate: conflict.eventDate,
+            rejectionReason: conflict.rejectionReason,
+            automaticRejection: conflict.automaticRejection,
+            conflictResolution: resolution
+        });
+        setConflict(null);
     };
 
     const addApplication = async (newApp) => {
@@ -169,5 +201,5 @@ export function useApplications() {
         updateApplicationMutation.mutate({ id, newStatus });
     };
 
-    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication };
+    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication, conflict, handleConflictResolution };
 }

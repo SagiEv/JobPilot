@@ -347,7 +347,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate }) => {
                                         isEvent: true,
                                         type: e.type
                                     }));
-                                    const rawHistoryList = history.filter(evt => evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status')));
+                                    const rawHistoryList = history.filter(evt => evt.event_type !== 'Application Added' && evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status')));
                                     const combinedHistory = [...rawHistoryList, ...appEvents].sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
                                     
                                     if (combinedHistory.length === 0) {

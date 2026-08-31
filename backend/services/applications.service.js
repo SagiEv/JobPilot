@@ -14,7 +14,7 @@ const createApplication = async (userId, data) => {
     // Log creation
     await applicationHistoryService.logChange(
         newApp.id,
-        'Initial Import',
+        'Application Added',
         null,
         newApp.status,
         null,
@@ -30,8 +30,8 @@ const updateApplication = async (userId, id, data) => {
     const { data: oldApp } = await applicationRepository.findById(userId, id);
     if (!oldApp) throw new Error("Application not found");
     
-    // Extract event_date so it's not saved directly in applications table
-    const { event_date, ...updateData } = data;
+    // Extract event_date and conflict_resolution so they're not saved directly in applications table
+    const { event_date, conflict_resolution, ...updateData } = data;
 
     // We check if the update intends to change the status or stage
     const inputStatus = updateData.status !== undefined ? updateData.status : oldApp.status;
@@ -40,29 +40,65 @@ const updateApplication = async (userId, id, data) => {
     const isStatusChange = oldApp.status !== inputStatus;
     const isStageChange = oldApp.stage !== inputStage;
 
-    // 1. Log the change FIRST if status or stage changed
+    // 1. Fetch history to detect conflicts
+    const history = await applicationHistoryService.getHistoryByApplicationId(id);
+
+    // 2. Log the change FIRST if status or stage changed
     if (isStatusChange || isStageChange) {
         let eventType = 'Status Change';
         if (isStatusChange && isStageChange) eventType = 'Status & Stage Change';
         else if (isStageChange) eventType = 'Stage Change';
 
-        await applicationHistoryService.logChange(
-            id,
-            eventType,
-            oldApp.status,
-            inputStatus,
-            oldApp.stage,
-            inputStage,
-            '', // notes
-            '', // with_who
-            null, // interviewId
-            event_date || null
-        );
+        const targetDate = event_date ? new Date(event_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        const existingEvent = history.find(h => {
+            if (!h.event_date) return false;
+            const hDate = new Date(h.event_date).toISOString().split('T')[0];
+            return hDate === targetDate && (h.event_type === 'Status Change' || h.event_type === 'Stage Change' || h.event_type === 'Status & Stage Change');
+        });
+
+        if (existingEvent) {
+            if (existingEvent.new_status === inputStatus && existingEvent.new_stage === inputStage) {
+                // Exact duplicate: ignore new event
+            } else {
+                if (conflict_resolution === 'keep_both') {
+                    await applicationHistoryService.logChange(
+                        id,
+                        eventType,
+                        oldApp.status,
+                        inputStatus,
+                        oldApp.stage,
+                        inputStage,
+                        '', '', null, event_date || null
+                    );
+                } else if (conflict_resolution === 'overwrite') {
+                    await applicationHistoryService.updateHistory(existingEvent.id, {
+                        event_type: eventType,
+                        new_status: inputStatus,
+                        new_stage: inputStage
+                    });
+                } else {
+                    const error = new Error('Conflicting event on this date');
+                    error.code = 'CONFLICTING_EVENT';
+                    error.conflictData = { existingEvent, inputStatus, inputStage, targetDate };
+                    throw error;
+                }
+            }
+        } else {
+            await applicationHistoryService.logChange(
+                id,
+                eventType,
+                oldApp.status,
+                inputStatus,
+                oldApp.stage,
+                inputStage,
+                '', '', null, event_date || null
+            );
+        }
     }
     
-    // 2. Recalculate latest status and stage from history
-    const history = await applicationHistoryService.getHistoryByApplicationId(id);
-    const statusEvents = history
+    // 3. Recalculate latest status and stage from history
+    const updatedHistory = await applicationHistoryService.getHistoryByApplicationId(id);
+    const statusEvents = updatedHistory
         .filter(h => h.new_status != null)
         .sort((a, b) => {
             const timeA = new Date(a.event_date || a.created_at || 0).getTime();

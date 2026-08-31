@@ -38,6 +38,9 @@ const update = async (req, res) => {
         const data = await applicationService.updateApplication(userId, req.params.id, req.body);
         res.json(data);
     } catch (error) {
+        if (error.code === 'CONFLICTING_EVENT') {
+            return res.status(409).json({ error: error.message, code: error.code, conflictData: error.conflictData });
+        }
         res.status(400).json({ error: error.message });
     }
 };
