@@ -16,14 +16,20 @@ const queryClient = new QueryClient({
 })
 
 import { JobProvider } from './components/JobProvider';
+import { ToastProvider } from './components/ToastProvider';
+import { ConfirmProvider } from './components/ConfirmProvider';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <JobProvider>
-          <App />
-        </JobProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <JobProvider>
+              <App />
+            </JobProvider>
+          </ConfirmProvider>
+        </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useProfile() {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const queryClient = useQueryClient();
     const [isGeneratingCV, setIsGeneratingCV] = useState(false);
 
@@ -75,7 +77,7 @@ export function useProfile() {
             link.parentNode.removeChild(link);
         } catch (err) {
             console.error("Failed to generate CV", err);
-            alert("Failed to generate CV");
+            addToast("Failed to generate CV", 'error');
         } finally {
             setIsGeneratingCV(false);
         }
@@ -139,7 +141,7 @@ export function useProfile() {
             link.parentNode.removeChild(link);
         } catch (err) {
             console.error("Failed to generate JSONResume CV", err);
-            alert("Failed to generate JSONResume CV");
+            addToast("Failed to generate JSONResume CV", 'error');
         } finally {
             setIsGeneratingCV(false);
         }

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { authService, handleRedirectSession } from '../services/authService';
 
 const LoginPage = () => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -30,7 +32,7 @@ const LoginPage = () => {
         try {
             if (isRegistering) {
                 await authService.signup(email, password);
-                alert("Check your email for verification!");
+                addToast("Check your email for verification!", 'info');
             } else {
                 await authService.login(email, password);
                 // Signal App.jsx to unlock and go to dashboard

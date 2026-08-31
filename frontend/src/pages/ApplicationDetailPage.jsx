@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useConfirm } from '../components/ConfirmProvider';
+import { useToast } from '../components/ToastProvider';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
 import { useApplicationHistory } from '../hooks/useApplicationHistory';
@@ -76,6 +78,8 @@ const IconStage = () => (
 
 // ── Company initial avatar ────────────────────────────────────────────────────
 function CompanyAvatar({ name }) {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const initials = name
         ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
         : '?';
@@ -530,7 +534,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                 style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                                 onClick={() => {
                                     navigator.clipboard.writeText(app.INFO);
-                                    alert("Description copied to clipboard!");
+                                    addToast("Description copied to clipboard!", 'success');
                                 }}
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
