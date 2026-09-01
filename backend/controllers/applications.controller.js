@@ -75,11 +75,24 @@ const getAnalyticsMetrics = async (req, res) => {
     }
 };
 
+const getDailyStats = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { start, end } = req.query;
+        if (!start || !end) return res.status(400).json({ error: "Missing start or end query parameters" });
+        const stats = await applicationService.getDailyStats(userId, start, end);
+        res.json(stats);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAll,
     create,
     update,
     remove,
     bulkCreate,
-    getAnalyticsMetrics
+    getAnalyticsMetrics,
+    getDailyStats
 };

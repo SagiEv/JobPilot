@@ -268,11 +268,45 @@ const getAnalyticsMetrics = async (userId) => {
     };
 };
 
+const getDailyStats = async (userId, startIso, endIso) => {
+    const { data: apps, error: appsError } = await applicationRepository.findAll(userId);
+    if (appsError) throw new Error(appsError.message);
+    
+    if (!apps || apps.length === 0) {
+        return { appliedToday: 0, rejectedToday: 0 };
+    }
+    
+    const appIds = apps.map(a => a.id);
+    const supabase = require('../supabaseClient');
+    
+    const { data: history, error: histError } = await supabase
+        .from('application_history')
+        .select('event_type, new_status, event_date')
+        .in('application_id', appIds)
+        .gte('event_date', startIso)
+        .lte('event_date', endIso);
+
+    if (histError) throw new Error(histError.message);
+
+    let appliedToday = 0;
+    let rejectedToday = 0;
+
+    if (history) {
+        history.forEach(event => {
+            if (event.event_type === 'Application Added') appliedToday++;
+            if (event.new_status === 'Rejected') rejectedToday++;
+        });
+    }
+
+    return { appliedToday, rejectedToday };
+};
+
 module.exports = {
     getAllApplications,
     createApplication,
     updateApplication,
     deleteApplication,
     bulkCreateApplications,
-    getAnalyticsMetrics
+    getAnalyticsMetrics,
+    getDailyStats
 };

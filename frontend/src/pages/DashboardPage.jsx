@@ -1,6 +1,7 @@
 import { useToast } from '../components/ToastProvider';
 import React, { useState, useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
+import { useDailyStats } from '../hooks/useDailyStats';
 import { useEvents } from '../hooks/useEvents';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRss } from '../hooks/useRss';
@@ -14,6 +15,7 @@ const DashboardPage = () => {
     const { addToast } = useToast();
     const { settings } = useSettings();
     const { applications, loading: appsLoading } = useApplications();
+    const { data: dailyStats } = useDailyStats();
     const { events, loading: eventsLoading, addEvent } = useEvents();
     const { jobs: rssJobs, jobsLoading: rssLoading } = useRss();
 
@@ -30,22 +32,13 @@ const DashboardPage = () => {
     const stats = useMemo(() => {
         if (appsLoading || !applications) return { active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 };
         const apps = applications;
-        const todayStr = localDateStr(new Date());
         return {
             active: apps.filter(a => a.STATUS !== 'Rejected' && a.STATUS !== 'Offer').length,
             rejected: apps.filter(a => a.STATUS === 'Rejected').length,
-            appliedToday: apps.filter(a => {
-                if (!a.DATE) return false;
-                return localDateStr(a.DATE) === todayStr;
-            }).length,
-            rejectedToday: apps.filter(a => {
-                if (a.STATUS !== 'Rejected') return false;
-                const dateToCheck = a.updated_at || a.updatedAt || a.DATE;
-                if (!dateToCheck) return false;
-                return localDateStr(dateToCheck) === todayStr;
-            }).length
+            appliedToday: dailyStats?.appliedToday || 0,
+            rejectedToday: dailyStats?.rejectedToday || 0
         };
-    }, [applications, appsLoading]);
+    }, [applications, appsLoading, dailyStats]);
     const { notifications, isLoading: notifLoading, markAllRead, markRead } = useNotifications();
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());

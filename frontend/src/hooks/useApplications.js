@@ -88,6 +88,7 @@ export function useApplications() {
         },
         onMutate: async (newApp) => {
             await queryClient.cancelQueries({ queryKey: ['applications'] });
+            await queryClient.cancelQueries({ queryKey: ['dailyStats'] });
             const previousApps = queryClient.getQueryData(['applications']);
             queryClient.setQueryData(['applications'], (old) => 
                 old?.map(app => app.id === newApp.id ? { 
@@ -143,6 +144,7 @@ export function useApplications() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
         }
     });
 
@@ -152,6 +154,7 @@ export function useApplications() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
         }
     });
 
