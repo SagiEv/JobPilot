@@ -4,7 +4,7 @@ import SettingsPage from '../SettingsPage';
 import { useSettings } from '../../hooks/useSettings';
 import { useToast } from '../../components/ToastProvider';
 import { useConfirm } from '../../components/ConfirmProvider';
-import { authService } from '../../services/authService';
+
 
 vi.mock('../../hooks/useSettings', () => ({ useSettings: vi.fn() }));
 vi.mock('../../components/ToastProvider', () => ({ useToast: vi.fn() }));

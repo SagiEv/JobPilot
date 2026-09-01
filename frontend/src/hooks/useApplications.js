@@ -1,9 +1,8 @@
-import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
+import { useToast } from '../components/ToastProvider';
 
 // Map between DB schema and frontend state
 const fromDb = (row) => ({
@@ -44,6 +43,7 @@ const toDb = (app) => {
 
 export function useApplications() {
     const queryClient = useQueryClient();
+    const { addToast } = useToast();
     const [status, setStatus] = useState('');
     const [conflict, setConflict] = useState(null);
     const [dismissedGhostings, setDismissedGhostings] = useState(() => {

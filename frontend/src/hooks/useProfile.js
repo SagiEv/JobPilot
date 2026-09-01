@@ -1,12 +1,10 @@
 import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 
 export function useProfile() {
     const { addToast } = useToast();
-    const confirm = useConfirm();
     const queryClient = useQueryClient();
     const [isGeneratingCV, setIsGeneratingCV] = useState(false);
 
@@ -83,7 +81,7 @@ export function useProfile() {
         } finally {
             setIsGeneratingCV(false);
         }
-    }, [profile]);
+    }, [profile, addToast]);
 
     const handlePreviewCV = useCallback(async (themeId) => {
         try {
@@ -147,7 +145,7 @@ export function useProfile() {
         } finally {
             setIsGeneratingCV(false);
         }
-    }, [profile]);
+    }, [profile, addToast]);
 
     return {
         profile,

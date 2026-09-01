@@ -1,6 +1,5 @@
 import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import { useEvents } from '../hooks/useEvents';
 import { useNotifications } from '../hooks/useNotifications';
@@ -13,7 +12,6 @@ import { formatDate } from '../utils/helpers';
 
 const DashboardPage = () => {
     const { addToast } = useToast();
-    const confirm = useConfirm();
     const { settings } = useSettings();
     const { applications, loading: appsLoading } = useApplications();
     const { events, loading: eventsLoading, addEvent } = useEvents();
@@ -29,7 +27,25 @@ const DashboardPage = () => {
         return `${y}-${m}-${day}`;
     };
 
-    const [stats, setStats] = useState({ active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 });
+    const stats = useMemo(() => {
+        if (appsLoading || !applications) return { active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 };
+        const apps = applications;
+        const todayStr = localDateStr(new Date());
+        return {
+            active: apps.filter(a => a.STATUS !== 'Rejected' && a.STATUS !== 'Offer').length,
+            rejected: apps.filter(a => a.STATUS === 'Rejected').length,
+            appliedToday: apps.filter(a => {
+                if (!a.DATE) return false;
+                return localDateStr(a.DATE) === todayStr;
+            }).length,
+            rejectedToday: apps.filter(a => {
+                if (a.STATUS !== 'Rejected') return false;
+                const dateToCheck = a.updated_at || a.updatedAt || a.DATE;
+                if (!dateToCheck) return false;
+                return localDateStr(dateToCheck) === todayStr;
+            }).length
+        };
+    }, [applications, appsLoading]);
     const { notifications, isLoading: notifLoading, markAllRead, markRead } = useNotifications();
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -53,27 +69,6 @@ const DashboardPage = () => {
     const [isComposing, setIsComposing] = useState(false);
     const [composedMessage, setComposedMessage] = useState('');
 
-    useEffect(() => {
-        if (!appsLoading) {
-            const apps = applications || [];
-            const todayStr = localDateStr(new Date());
-
-            setStats({
-                active: apps.filter(a => a.STATUS !== 'Rejected' && a.STATUS !== 'Offer').length,
-                rejected: apps.filter(a => a.STATUS === 'Rejected').length,
-                appliedToday: apps.filter(a => {
-                    if (!a.DATE) return false;
-                    return localDateStr(a.DATE) === todayStr;
-                }).length,
-                rejectedToday: apps.filter(a => {
-                    if (a.STATUS !== 'Rejected') return false;
-                    const dateToCheck = a.updated_at || a.updatedAt || a.DATE;
-                    if (!dateToCheck) return false;
-                    return localDateStr(dateToCheck) === todayStr;
-                }).length
-            });
-        }
-    }, [applications, appsLoading]);
 
     const timeAgo = (dateStr) => {
         if (!dateStr) return '';
@@ -141,10 +136,7 @@ const DashboardPage = () => {
         setInterviewForm({ title: '', company: '', date: '', type: 'phone', details: '', interviewers: '', application_id: '', application_search: '' });
     };
 
-    const handleFetchDescription = () => {
-        addToast("Fetching description from URL... (This is a placeholder, will be connected to web scraper agent, 'info')");
-        setEmailComposer(prev => ({ ...prev, description: "Software Engineer role requiring React and Node.js..." }));
-    };
+
 
     const handleGenerateMessage = async () => {
         if(!emailComposer.jobLink && !emailComposer.description) {

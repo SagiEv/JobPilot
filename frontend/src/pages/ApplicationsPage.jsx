@@ -1,5 +1,4 @@
 import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState, useMemo } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import { useSettings } from '../hooks/useSettings';
@@ -41,7 +40,6 @@ const ConflictModal = ({ conflict, onResolve }) => (
 
 const ApplicationsPage = () => {
     const { addToast } = useToast();
-    const confirm = useConfirm();
     const { applications, stats, status, handleUpload, updateApplication, addApplication, loading, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting } = useApplications();
     const { settings } = useSettings();
 

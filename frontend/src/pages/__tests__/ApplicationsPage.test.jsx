@@ -2,6 +2,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ApplicationsPage from '../ApplicationsPage';
 import { renderWithProviders } from '../../test-utils';
+import { setAccessToken } from '../../services/apiClient';
 
 vi.mock('../../hooks/useSettings', () => ({
     useSettings: () => ({ settings: { timezone: 'UTC' } })
@@ -10,6 +11,7 @@ vi.mock('../../hooks/useSettings', () => ({
 describe('ApplicationsPage Integration Test', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        setAccessToken('fake-token');
     });
 
     it('renders loader initially, then displays applications from API', async () => {

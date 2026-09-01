@@ -12,6 +12,7 @@ const TailorPage = () => {
     const initialPipelineMode = settings?.ai_routing?.cvTailoring?.pipeline_mode || 'standard';
 
     const { state, actions, refs } = useTailor(aiReady, activeProvider, initialPipelineMode);
+    const { fileInputRef } = refs;
     const { jobUrl, jobDescription, cvFile, useProfileCv, tailorFocus, pipelineMode, output, report, scores, isProcessing } = state;
     
     const { profile } = useProfile();
@@ -77,7 +78,7 @@ const TailorPage = () => {
                             {cvFile ? cvFile.name : "Drop or click to upload"}
                             <input
                                 type="file"
-                                ref={refs.fileInputRef}
+                                ref={fileInputRef}
                                 accept=".pdf"
                                 style={{ display: 'none' }}
                                 onChange={actions.handleFileUpload}

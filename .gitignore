@@ -15,3 +15,10 @@ __pycache__/
 
 # Testing
 coverage/
+playwright-report/
+test-results/
+.playwright/
+
+# Linting
+.eslintcache
+lint-results.txt
