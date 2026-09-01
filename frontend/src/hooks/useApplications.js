@@ -24,8 +24,6 @@ const fromDb = (row) => ({
 });
 
 const toDb = (app) => {
-    const { addToast } = useToast();
-    const confirm = useConfirm();
     const data = {
         company: app.COMPANY || '',
         role_id: app.ROLE_ID || '',

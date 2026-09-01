@@ -352,7 +352,7 @@ const ApplicationsPage = () => {
                                 setIsAddModalOpen(false);
                                 setNewAppForm({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
                             } catch (error) {
-                                addToast("Failed to create application", 'error');
+                                addToast(`Failed to create application: ${error.response?.data?.error || error.message || 'Unknown error'}`, 'error');
                             }
                         }}>
                             <div className="modal-body">
