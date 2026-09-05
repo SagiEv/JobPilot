@@ -33,6 +33,11 @@ Service tests focus exclusively on business logic and orchestration.
 These tests check pure functions and Express middleware components (e.g., JWT extraction, role authorization). 
 - **Goal**: Validate specific atomic pieces of logic, like verifying an encryption algorithm or testing error handlers.
 
+#### 4. Integration Tests (`tests/integration/`)
+Integration tests validate the end-to-end flow of the backend by sending real HTTP requests (via `supertest`) to the Express application and verifying the resulting state.
+- **Mocking**: Database calls are managed via a custom `supabaseSandbox` tool, avoiding the need for a live Postgres instance while allowing full state verification. External HTTP calls (e.g., to the Python AI service) are mocked by default but can be run live.
+- **Goal**: Ensure the API, business logic, background pipelines (like email processing), and external service integrations (like the AI pipeline) function together correctly.
+
 ---
 
 ## The Global Environment (`tests/setup.js`)
@@ -67,6 +72,18 @@ After running this command, an interactive HTML report will be generated. You ca
 To run a specific test suite or test file, simply pass the path to Jest:
 ```bash
 npx jest tests/services/user.service.test.js
+```
+
+### Integration Tests
+To run only the integration tests (in mocked mode):
+```bash
+npm run test:integration
+```
+
+**Live Testing the AI Service:**
+For tests that interact with the FastAPI Python service (like `tailor-proxy` or `rss-ai-pipeline`), you can bypass the Node-level mocks and send real network requests by setting `LIVE_AI_SERVICE`:
+```bash
+npm run test:integration:live
 ```
 
 ---
