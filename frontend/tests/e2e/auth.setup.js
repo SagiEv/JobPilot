@@ -3,7 +3,7 @@ import { test as setup, expect } from '@playwright/test';
 const authFile = 'playwright/.auth/user.json';
 
 setup('authenticate', async ({ request, context }) => {
-  const email = `testuser_${Date.now()}@example.com`;
+  const email = `testuser_${Date.now()}@test-jobpilot.com`;
   const password = 'Password123!';
 
   const apiUrl = 'http://127.0.0.1:5000';
@@ -14,6 +14,9 @@ setup('authenticate', async ({ request, context }) => {
   });
   
   // Ignore 400s if user already exists, but we use a dynamic email so it should be 200/201.
+  if (!registerResponse.ok()) {
+    console.error('Registration failed:', await registerResponse.text());
+  }
   expect(registerResponse.ok()).toBeTruthy();
 
   // 2. Login via API

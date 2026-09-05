@@ -24,7 +24,7 @@ test.describe('CV and Tailoring Journeys', () => {
     });
 
     // 2. Mock the job status polling
-    await page.route('**/api/jobs/mock-job-123', async route => {
+    await page.route('**/api/tailor/jobs/mock-job-123', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

@@ -19,7 +19,7 @@ test.describe('Application Management Journeys', () => {
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
     
-    const saveResponse = page.waitForResponse('**/api/applications');
+    const saveResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST');
     await page.getByRole('button', { name: 'Save Application' }).click();
     await saveResponse;
 
@@ -35,7 +35,7 @@ test.describe('Application Management Journeys', () => {
     await page.getByText('+ New Application').click();
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Backend Developer');
-    const updateResponse = page.waitForResponse('**/api/applications');
+    const updateResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'PUT');
     await page.getByRole('button', { name: 'Save Application' }).click();
     await updateResponse;
     await expect(page.getByText(appName).first()).toBeVisible();
@@ -69,7 +69,7 @@ test.describe('Application Management Journeys', () => {
     await page.getByText('+ New Application').click();
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
-    const addResponse = page.waitForResponse('**/api/applications');
+    const addResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST');
     await page.getByRole('button', { name: 'Save Application' }).click();
     await addResponse;
     await expect(page.getByText(appName).first()).toBeVisible();
@@ -99,10 +99,9 @@ test.describe('Application Management Journeys', () => {
     await expect(page.getByRole('heading', { name: 'Schedule Interview' })).toBeVisible();
     
     await page.getByPlaceholder('e.g. First Round Technical').fill('Final Round');
-    // We should be more specific, but using placeholder or label is safer if available
-    // Let's use getByLabel or generic approach:
-    await page.locator('form').filter({ hasText: 'Schedule Interview' }).locator('input').nth(0).fill('Final Round');
-    await page.locator('form').filter({ hasText: 'Schedule Interview' }).locator('input').nth(1).fill('Test Company Inc');
+    const interviewModal = page.locator('.modal').filter({ hasText: 'Schedule Interview' });
+    await interviewModal.getByPlaceholder('e.g. First Round Technical').fill('Final Round');
+    await interviewModal.locator('.modal-section').filter({ hasText: 'Company' }).locator('input').fill('Test Company Inc');
     
     // Fill date time
     await page.locator('input[type="datetime-local"]').fill('2026-10-10T10:00');

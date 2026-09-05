@@ -9,7 +9,7 @@ test.describe('Authentication and Smoke Test', () => {
 
   test.beforeAll(async ({ request }) => {
     // Register a new test user just for this smoke test
-    testEmail = `smoke_${Date.now()}@example.com`;
+    testEmail = `smoke_${Date.now()}@test-jobpilot.com`;
     testPassword = 'Password123!';
     const apiUrl = 'http://127.0.0.1:5000';
     await request.post(`${apiUrl}/auth/signup`, {
@@ -47,7 +47,7 @@ test.describe('Authentication and Smoke Test', () => {
     await page.getByPlaceholder('e.g. Google').fill('Smoke Test Corp');
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Smoke Tester');
 
-    const smokeResponse = page.waitForResponse('**/api/applications');
+    const smokeResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST');
     await page.getByRole('button', { name: 'Save Application' }).click();
     await smokeResponse;
 
