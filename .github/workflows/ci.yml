@@ -92,12 +92,17 @@ jobs:
         
       - name: Get Supabase Local Credentials
         run: |
-          # Create .env in backend from the root directory so supabase CLI works
           echo "PORT=5000" >> backend/.env
           echo "NODE_ENV=test" >> backend/.env
           echo "CORS_ORIGIN=http://127.0.0.1:3000" >> backend/.env
-          # Get real local keys from the docker instance
-          npx supabase status -o env >> backend/.env
+          
+          # supabase status -o env outputs API_URL, ANON_KEY, and SERVICE_ROLE_KEY
+          # We must map these to SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_KEY
+          npx supabase status -o env > supabase.env
+          source supabase.env
+          echo "SUPABASE_URL=$API_URL" >> backend/.env
+          echo "SUPABASE_ANON_KEY=$ANON_KEY" >> backend/.env
+          echo "SUPABASE_KEY=$SERVICE_ROLE_KEY" >> backend/.env
           
       - name: Run Backend Integration Tests
         working-directory: ./backend
