@@ -1,5 +1,4 @@
 import { test as setup, expect } from '@playwright/test';
-import fs from 'fs';
 
 const authFile = 'playwright/.auth/user.json';
 
@@ -34,7 +33,8 @@ setup('authenticate', async ({ request, context }) => {
   // is to set the localStorage directly.
   await context.addInitScript((loginData) => {
     // Some apps use 'sb-...' we will set both the custom one and the standard ones.
-    localStorage.setItem('refresh_token', loginData.refresh_token);
+    // eslint-disable-next-line no-undef
+    window.localStorage.setItem('refresh_token', loginData.refresh_token);
     
     // Attempt to set Supabase token if VITE_SUPABASE_URL is known, 
     // but without project ref it's tricky. The app's restoreSession uses `refresh_token` 

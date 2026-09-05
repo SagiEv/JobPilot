@@ -90,7 +90,6 @@ test.describe('Application Management Journeys', () => {
     await expect(page.getByRole('heading', { name: 'Schedule Interview' })).toBeVisible();
     
     await page.getByPlaceholder('e.g. First Round Technical').fill('Final Round');
-    const companyInput = page.locator('input').filter({ hasText: '' }).nth(1); 
     // We should be more specific, but using placeholder or label is safer if available
     // Let's use getByLabel or generic approach:
     await page.locator('form').filter({ hasText: 'Schedule Interview' }).locator('input').nth(0).fill('Final Round');

@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import fs from 'fs';
 
 // Clear storage state for this suite so we can test the real login UI
 test.use({ storageState: { cookies: [], origins: [] } });
