@@ -70,7 +70,7 @@ app.use((req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
     startMailPolling();
     startRssPolling();
