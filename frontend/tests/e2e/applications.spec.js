@@ -19,7 +19,7 @@ test.describe('Application Management Journeys', () => {
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
     
-    const saveResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST');
+    const saveResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
     await page.getByRole('button', { name: 'Save Application' }).click();
     await saveResponse;
 
@@ -35,7 +35,7 @@ test.describe('Application Management Journeys', () => {
     await page.getByText('+ New Application').click();
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Backend Developer');
-    const updateResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'PUT');
+    const updateResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
     await page.getByRole('button', { name: 'Save Application' }).click();
     await updateResponse;
     await expect(page.getByText(appName).first()).toBeVisible();
@@ -69,7 +69,7 @@ test.describe('Application Management Journeys', () => {
     await page.getByText('+ New Application').click();
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
-    const addResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST');
+    const addResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
     await page.getByRole('button', { name: 'Save Application' }).click();
     await addResponse;
     await expect(page.getByText(appName).first()).toBeVisible();

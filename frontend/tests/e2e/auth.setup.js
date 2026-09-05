@@ -8,24 +8,27 @@ setup('authenticate', async ({ request, context }) => {
 
   const apiUrl = 'http://127.0.0.1:5000';
 
-  // 1. Register user
+  // 1. Register via API
   const registerResponse = await request.post(`${apiUrl}/auth/signup`, {
-    data: { email, password }
+    data: {
+      email,
+      password: 'Password123!'
+    }
   });
   
   // Ignore 400s if user already exists, but we use a dynamic email so it should be 200/201.
-  if (!registerResponse.ok()) {
-    console.error('Registration failed:', await registerResponse.text());
-  }
   expect(registerResponse.ok()).toBeTruthy();
-
+  
   // 2. Login via API
   const loginResponse = await request.post(`${apiUrl}/auth/login`, {
     data: { email, password }
   });
   
-  expect(loginResponse.ok()).toBeTruthy();
   const loginData = await loginResponse.json();
+  if (!loginResponse.ok()) {
+      console.error("Login failed!", loginData);
+  }
+  expect(loginResponse.ok()).toBeTruthy();
 
   // 3. Inject tokens into browser local storage for future contexts
   // The app expects `sb-<project-id>-auth-token` maybe? Or just uses the API token in local storage.

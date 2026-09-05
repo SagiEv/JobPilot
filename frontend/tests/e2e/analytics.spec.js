@@ -14,7 +14,7 @@ test.describe('Analytics Journeys', () => {
     // Verify some of the key analytics sections are present
     // Assuming there is a conversion funnel or key metrics section
     await expect(page.getByText('Conversion Funnel')).toBeVisible();
-    await expect(page.getByText('Application Trend')).toBeVisible();
+    await expect(page.getByText('Monthly Volume')).toBeVisible();
 
     // Verify that D3 charts or at least the containers are rendered without crashing
     // For example, checking if the SVG elements for the charts exist

@@ -18,18 +18,13 @@ test.describe('Authentication and Smoke Test', () => {
   });
 
   test('can login via UI and create an application', async ({ page }) => {
-    // 1. Login via UI
+    // Navigate to Login (assuming root redirects to login if not authenticated)
     await page.goto('/');
 
-    // Assuming we are redirected to login, or we need to click a login button.
-    // The LoginPage has fields for Email and Password.
-    await expect(page.getByPlaceholder('Email Address')).toBeVisible({ timeout: 10000 });
-    
-    await page.getByPlaceholder('Email Address').fill(testEmail);
-    await page.getByPlaceholder(/password/i).fill(testPassword);
-    
-    // There is probably a "Sign In" or "Login" button
-    await page.getByRole('button', { name: /log in|sign in/i }).click();
+    // Fill login form
+    await page.locator('input[type="email"]').fill(testEmail);
+    await page.locator('input[type="password"]').fill(testPassword);
+    await page.getByRole('button', { name: 'Log in', exact: true }).click();
 
     // Verify successful login by checking for Dashboard or Applications elements
     await expect(page.getByText('Dashboard').first()).toBeVisible({ timeout: 10000 });
@@ -47,7 +42,7 @@ test.describe('Authentication and Smoke Test', () => {
     await page.getByPlaceholder('e.g. Google').fill('Smoke Test Corp');
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Smoke Tester');
 
-    const smokeResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST');
+    const smokeResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
     await page.getByRole('button', { name: 'Save Application' }).click();
     await smokeResponse;
 
