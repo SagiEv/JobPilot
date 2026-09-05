@@ -98,6 +98,7 @@ jobs:
           echo "NODE_ENV=test" >> .env
           echo "CORS_ORIGIN=http://127.0.0.1:3000" >> .env
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> .env
+          echo "SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZmF1bHQiLCJyb2xlIjoibWFpbiIsImlhdCI6MTYxNjAzNjg5OCwiZXhwIjoxOTMxNjEyODk4fQ.5uG-4GZf-z_o-uF-7f3A2c_8uJ-dM3G3rI-x5L2o8" >> .env
           # Standard local service role key for Supabase CLI
           echo "SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZmF1bHQiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjE2MDM2ODk4LCJleHAiOjE5MzE2MTI4OTh9.3D_h17Q-D_Xy9Q1K7-F13A2c_8uJ-dM3G3rI-x5L2o8" >> .env
           
