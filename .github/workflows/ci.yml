@@ -100,9 +100,16 @@ jobs:
           # We must map these to SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_KEY
           npx supabase status -o env > supabase.env
           source supabase.env
+          
+          # Write backend .env
           echo "SUPABASE_URL=$API_URL" >> backend/.env
           echo "SUPABASE_ANON_KEY=$ANON_KEY" >> backend/.env
           echo "SUPABASE_KEY=$SERVICE_ROLE_KEY" >> backend/.env
+          
+          # Write frontend .env so React doesn't crash on load
+          echo "VITE_SUPABASE_URL=$API_URL" >> frontend/.env
+          echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY" >> frontend/.env
+          echo "VITE_API_URL=http://127.0.0.1:5000" >> frontend/.env
           
       - name: Run Backend Integration Tests
         working-directory: ./backend
