@@ -7,7 +7,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.js',
     globals: true,
-    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**']
+    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
+    env: {
+      VITE_SUPABASE_URL: 'http://localhost:54321',
+      VITE_SUPABASE_ANON_KEY: 'mock-anon-key'
+    }
   },
   server: {
     port: 3000,

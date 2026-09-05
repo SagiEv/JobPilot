@@ -90,7 +90,7 @@ jobs:
       - name: Start Supabase Local Stack
         run: supabase start
         
-      - name: Get Supabase Local Credentials & Start Backend
+      - name: Get Supabase Local Credentials
         working-directory: ./backend
         run: |
           # Supabase local defaults
@@ -101,12 +101,18 @@ jobs:
           # Standard local service role key for Supabase CLI
           echo "SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZmF1bHQiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjE2MDM2ODk4LCJleHAiOjE5MzE2MTI4OTh9.3D_h17Q-D_Xy9Q1K7-F13A2c_8uJ-dM3G3rI-x5L2o8" >> .env
           
-          # Start backend in background using test env
-          npm run start &
-          
       - name: Run Backend Integration Tests
         working-directory: ./backend
         run: npm run test:integration
+          
+      - name: Start Backend for E2E
+        working-directory: ./backend
+        run: |
+          # Start backend in background using development env so it listens on port 5000
+          # We export it so dotenv doesn't override it (dotenv skips existing keys)
+          export NODE_ENV=development
+          npm run start &
+          sleep 5
           
       - name: Run Playwright E2E Tests
         working-directory: ./frontend
