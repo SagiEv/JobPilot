@@ -1,38 +1,55 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
 
-test.describe('Applications Smoke Test', () => {
-  test('can open add application modal, fill form and submit without crashing', async ({ page }) => {
-    // Navigate to the root (assuming default routing goes to applications or similar)
-    // You might need to adjust the URL if authentication is required or if it routes differently.
+// Clear storage state for this suite so we can test the real login UI
+test.use({ storageState: { cookies: [], origins: [] } });
+
+test.describe('Authentication and Smoke Test', () => {
+  let testEmail;
+  let testPassword;
+
+  test.beforeAll(async ({ request }) => {
+    // Register a new test user just for this smoke test
+    testEmail = `smoke_${Date.now()}@example.com`;
+    testPassword = 'Password123!';
+    const apiUrl = 'http://127.0.0.1:5000';
+    await request.post(`${apiUrl}/auth/signup`, {
+      data: { email: testEmail, password: testPassword }
+    });
+  });
+
+  test('can login via UI and create an application', async ({ page }) => {
+    // 1. Login via UI
     await page.goto('/');
 
-    // Wait for the "New Application" button to appear and click it
-    // Note: If authentication is required, you would need to log in first.
-    // For this smoke test, we'll assume the app allows navigation or we mock auth in playwright.
+    // Assuming we are redirected to login, or we need to click a login button.
+    // The LoginPage has fields for Email and Password.
+    await expect(page.getByPlaceholder(/email/i)).toBeVisible({ timeout: 10000 });
     
-    // For a real app with Supabase Auth, you typically bypass auth in E2E tests 
-    // by setting a mock token in local storage or logging in via an API call before the test.
-    // We'll leave the skeleton here assuming the user lands on the dashboard.
+    await page.getByPlaceholder(/email/i).fill(testEmail);
+    await page.getByPlaceholder(/password/i).fill(testPassword);
     
+    // There is probably a "Sign In" or "Login" button
+    await page.getByRole('button', { name: /log in|sign in/i }).click();
+
+    // Verify successful login by checking for Dashboard or Applications elements
+    await expect(page.getByText('+ New Application')).toBeVisible({ timeout: 10000 });
+
+    // 2. Create an Application
     const newAppButton = page.getByText('+ New Application');
+    await newAppButton.click();
+
+    await expect(page.getByRole('heading', { name: 'New Application' })).toBeVisible();
+
+    await page.getByPlaceholder('e.g. Google').fill('Smoke Test Corp');
+    await page.getByPlaceholder('e.g. Frontend Engineer').fill('Smoke Tester');
+
+    await page.getByRole('button', { name: 'Save Application' }).click();
+
+    // Verify modal closes
+    await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();
     
-    // Check if the button is visible before clicking to ensure page loaded
-    // If not visible, it means we might need to handle auth first, which is standard in E2E setup.
-    if (await newAppButton.isVisible()) {
-      await newAppButton.click();
-
-      // Ensure modal opens
-      await expect(page.getByRole('heading', { name: 'New Application' })).toBeVisible();
-
-      // Fill in required fields
-      await page.getByPlaceholder('e.g. Google').fill('Playwright Test Corp');
-      await page.getByPlaceholder('e.g. Frontend Engineer').fill('E2E Tester');
-
-      // Submit
-      await page.getByRole('button', { name: 'Save Application' }).click();
-
-      // Ensure the modal closes (it doesn't crash)
-      await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();
-    }
+    // Verify the application appears in the list/board
+    await expect(page.getByText('Smoke Test Corp')).toBeVisible();
   });
 });
