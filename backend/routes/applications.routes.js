@@ -4,6 +4,7 @@ const applicationController = require('../controllers/applications.controller');
 const { authenticate } = require('../middleware/auth');
 
 router.get('/', authenticate, applicationController.getAll);
+router.get('/stats/daily', authenticate, applicationController.getDailyStats);
 router.get('/analytics/metrics', authenticate, applicationController.getAnalyticsMetrics);
 router.post('/', authenticate, applicationController.create);
 router.put('/:id', authenticate, applicationController.update);

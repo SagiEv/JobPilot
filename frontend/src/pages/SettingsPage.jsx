@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { authService } from '../services/authService';
 import PageLoader from '../components/PageLoader';
@@ -59,8 +59,6 @@ const PROVIDER_CONFIGS = {
 };
 
 const ProviderIcon = ({ provider }) => {
-    const { addToast } = useToast();
-    const confirm = useConfirm();
     return PROVIDER_CONFIGS[provider]?.icon || null;
 };
 
@@ -159,6 +157,8 @@ const STATUS_COLORS = {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const SettingsPage = () => {
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const {
         settings, loading, saving,
         saveAiToken, saveAiRouting, saveTimezone,
@@ -230,20 +230,20 @@ const SettingsPage = () => {
     };
 
     // Sync SMTP form from loaded settings
-    useEffect(() => {
-        if (!loading && settings) {
-            setSmtpForm(f => ({
-                ...f,
-                smtp_email:            settings.smtp_email || '',
-                smtp_host:             settings.smtp_host  || '',
-                smtp_port:             settings.smtp_port  || 993,
-                smtp_poll_interval_min: settings.smtp_poll_interval_min || 15,
-                smtp_enabled:          settings.smtp_enabled || false,
-            }));
-            // Auto-expand if already configured
-            if (settings.smtp_email) setSmtpExpanded(true);
-        }
-    }, [loading, settings?.smtp_email]);
+    const [prevSettings, setPrevSettings] = useState(null);
+    if (!loading && settings && settings !== prevSettings) {
+        setPrevSettings(settings);
+        setSmtpForm(f => ({
+            ...f,
+            smtp_email:            settings.smtp_email || '',
+            smtp_host:             settings.smtp_host  || '',
+            smtp_port:             settings.smtp_port  || 993,
+            smtp_poll_interval_min: settings.smtp_poll_interval_min || 15,
+            smtp_enabled:          settings.smtp_enabled || false,
+        }));
+        // Auto-expand if already configured
+        if (settings.smtp_email) setSmtpExpanded(true);
+    }
 
     if (loading) return <PageLoader />;
 

@@ -3,15 +3,16 @@ Agent 1.5 — Pool Retriever (RAG)
 Mathematically scores all projects and skills against the job description using Semantic Embeddings.
 Uses: sentence-transformers (all-MiniLM-L6-v2)
 """
-from sentence_transformers import SentenceTransformer, util
-from cv_tailor.state import TailoringState
 import json
+from cv_tailor.state import TailoringState
 
 # Load model globally so it caches in memory across requests
 try:
+    from sentence_transformers import SentenceTransformer, util
     model = SentenceTransformer('all-MiniLM-L6-v2')
 except Exception as e:
     model = None
+    util = None
     print(f"Failed to load sentence-transformers model: {str(e)}")
 
 def pool_retriever_node(state: TailoringState, api_keys: dict, provider: str, model_name: str) -> dict:

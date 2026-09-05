@@ -8,7 +8,6 @@ import 'react-quill/dist/quill.snow.css';
 import PageLoader from '../components/PageLoader';
 
 const EditableCVField = ({ title, value, onChange }) => {
-    const { addToast } = useToast();
     const confirm = useConfirm();
     const [isEditing, setIsEditing] = useState(false);
     const [tempValue, setTempValue] = useState(value || '');
@@ -67,9 +66,8 @@ const EditableCVField = ({ title, value, onChange }) => {
 };
 
 const ProfilePage = () => {
+    const { addToast } = useToast();
     const { profile, loading, error, handleProfileChange, handleMakeCV, handlePreviewCV, handleDownloadJSONResumeCV, isGeneratingCV } = useProfile();
-    const [isGenerating, setIsGenerating] = useState(false);
-
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [previewHtml, setPreviewHtml] = useState('');
     const [selectedTheme, setSelectedTheme] = useState('claude');
@@ -90,7 +88,7 @@ const ProfilePage = () => {
         try {
             const html = await handlePreviewCV(selectedTheme);
             setPreviewHtml(html);
-        } catch (err) {
+        } catch {
             addToast("Failed to load preview", 'error');
         } finally {
             setIsPreviewLoading(false);
@@ -104,7 +102,7 @@ const ProfilePage = () => {
         try {
             const html = await handlePreviewCV(newTheme);
             setPreviewHtml(html);
-        } catch (err) {
+        } catch {
             addToast("Failed to update preview", 'error');
         } finally {
             setIsPreviewLoading(false);
