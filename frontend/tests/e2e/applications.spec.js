@@ -6,7 +6,8 @@ test.describe('Application Management Journeys', () => {
   test.beforeEach(async ({ page }) => {
     appName = `E2E Corp ${Date.now()}`;
     await page.goto('/');
-    // Make sure we're on the applications/dashboard page
+    await page.getByText('Applications', { exact: true }).click();
+    // Make sure we're on the applications page
     await expect(page.getByText('+ New Application')).toBeVisible();
   });
 
@@ -83,7 +84,8 @@ test.describe('Application Management Journeys', () => {
 
   test('can schedule an interview from dashboard', async ({ page }) => {
     // We assume the "Add Interview" button is on the Dashboard
-    await page.goto('/dashboard');
+    await page.goto('/');
+    await page.getByText('Dashboard', { exact: true }).click();
     
     await page.getByRole('button', { name: '+ Add Interview' }).click();
     

@@ -4,7 +4,8 @@ test.describe('CV and Tailoring Journeys', () => {
   
   test.beforeEach(async ({ page }) => {
     // Go to the tailor page
-    await page.goto('/tailor');
+    await page.goto('/');
+    await page.getByText('CV Tailoring', { exact: true }).click();
     // Ensure page loaded
     await expect(page.getByRole('heading', { name: 'Tailor Your CV' })).toBeVisible();
   });

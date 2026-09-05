@@ -23,15 +23,19 @@ test.describe('Authentication and Smoke Test', () => {
 
     // Assuming we are redirected to login, or we need to click a login button.
     // The LoginPage has fields for Email and Password.
-    await expect(page.getByPlaceholder(/email/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('Email Address')).toBeVisible({ timeout: 10000 });
     
-    await page.getByPlaceholder(/email/i).fill(testEmail);
+    await page.getByPlaceholder('Email Address').fill(testEmail);
     await page.getByPlaceholder(/password/i).fill(testPassword);
     
     // There is probably a "Sign In" or "Login" button
     await page.getByRole('button', { name: /log in|sign in/i }).click();
 
     // Verify successful login by checking for Dashboard or Applications elements
+    await expect(page.getByText('Dashboard')).toBeVisible({ timeout: 10000 });
+    
+    // 2. Create an Application
+    await page.getByText('Applications', { exact: true }).click();
     await expect(page.getByText('+ New Application')).toBeVisible({ timeout: 10000 });
 
     // 2. Create an Application

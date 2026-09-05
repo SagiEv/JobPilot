@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Analytics Journeys', () => {
 
-  test.beforeEach(async ({ page }) => {
-    // Go to the analytics page
-    await page.goto('/analytics');
-  });
+
 
   test('can view analytics and charts', async ({ page }) => {
+    await page.goto('/');
+    await page.getByText('Analytics', { exact: true }).click();
+    
     // Wait for the Analytics header to be visible
     await expect(page.getByRole('heading', { name: 'Analytics & Insights' })).toBeVisible();
 
