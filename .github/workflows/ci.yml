@@ -105,18 +105,17 @@ jobs:
         working-directory: ./backend
         run: npm run test:integration
           
-      - name: Start Backend for E2E
-        working-directory: ./backend
+      - name: Run Playwright E2E Tests
+        working-directory: ./frontend
         run: |
           # Start backend in background using development env so it listens on port 5000
-          # We export it so dotenv doesn't override it (dotenv skips existing keys)
+          # We must do this in the same step as Playwright so GitHub Actions doesn't kill the background process!
+          cd ../backend
           export NODE_ENV=development
           npm run start &
           sleep 5
-          
-      - name: Run Playwright E2E Tests
-        working-directory: ./frontend
-        run: npm run e2e
+          cd ../frontend
+          npm run e2e
         
       - name: Upload Playwright Report
         if: always()
