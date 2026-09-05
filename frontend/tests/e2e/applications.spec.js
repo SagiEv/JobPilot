@@ -6,7 +6,7 @@ test.describe('Application Management Journeys', () => {
   test.beforeEach(async ({ page }) => {
     appName = `E2E Corp ${Date.now()}`;
     await page.goto('/');
-    await page.getByText('Applications', { exact: true }).click();
+    await page.getByText('Applications', { exact: true }).first().click();
     // Make sure we're on the applications page
     await expect(page.getByText('+ New Application')).toBeVisible();
   });
@@ -19,7 +19,9 @@ test.describe('Application Management Journeys', () => {
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
     
+    const saveResponse = page.waitForResponse('**/api/applications');
     await page.getByRole('button', { name: 'Save Application' }).click();
+    await saveResponse;
 
     // Verify modal closes
     await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();
@@ -33,7 +35,9 @@ test.describe('Application Management Journeys', () => {
     await page.getByText('+ New Application').click();
     await page.getByPlaceholder('e.g. Google').fill(appName);
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Backend Developer');
+    const updateResponse = page.waitForResponse('**/api/applications');
     await page.getByRole('button', { name: 'Save Application' }).click();
+    await updateResponse;
     await expect(page.getByText(appName).first()).toBeVisible();
 
     // 2. Open Application Details
@@ -64,7 +68,10 @@ test.describe('Application Management Journeys', () => {
     // 1. Create an application
     await page.getByText('+ New Application').click();
     await page.getByPlaceholder('e.g. Google').fill(appName);
+    await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
+    const addResponse = page.waitForResponse('**/api/applications');
     await page.getByRole('button', { name: 'Save Application' }).click();
+    await addResponse;
     await expect(page.getByText(appName).first()).toBeVisible();
 
     // 2. Go to details
@@ -85,7 +92,7 @@ test.describe('Application Management Journeys', () => {
   test('can schedule an interview from dashboard', async ({ page }) => {
     // We assume the "Add Interview" button is on the Dashboard
     await page.goto('/');
-    await page.getByText('Dashboard', { exact: true }).click();
+    await page.getByText('Dashboard', { exact: true }).first().click();
     
     await page.getByRole('button', { name: '+ Add Interview' }).click();
     

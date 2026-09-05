@@ -61,6 +61,8 @@ test.describe('CV and Tailoring Journeys', () => {
     
     // Reload to apply mocked settings
     await page.reload();
+    await page.getByText('CV Tailoring', { exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Tailor Your CV' })).toBeVisible();
     await page.getByPlaceholder('https://jobs...').fill('https://example.com/job');
     await page.locator('textarea').first().fill('Looking for a React developer with Playwright experience.');
     

@@ -9,7 +9,7 @@ test.describe('Analytics Journeys', () => {
     await page.getByText('Analytics', { exact: true }).click();
     
     // Wait for the Analytics header to be visible
-    await expect(page.getByRole('heading', { name: 'Analytics & Insights' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Performance Analytics' })).toBeVisible();
 
     // Verify some of the key analytics sections are present
     // Assuming there is a conversion funnel or key metrics section

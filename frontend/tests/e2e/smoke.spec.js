@@ -32,10 +32,10 @@ test.describe('Authentication and Smoke Test', () => {
     await page.getByRole('button', { name: /log in|sign in/i }).click();
 
     // Verify successful login by checking for Dashboard or Applications elements
-    await expect(page.getByText('Dashboard')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Dashboard').first()).toBeVisible({ timeout: 10000 });
     
     // 2. Create an Application
-    await page.getByText('Applications', { exact: true }).click();
+    await page.getByText('Applications', { exact: true }).first().click();
     await expect(page.getByText('+ New Application')).toBeVisible({ timeout: 10000 });
 
     // 2. Create an Application
@@ -47,7 +47,9 @@ test.describe('Authentication and Smoke Test', () => {
     await page.getByPlaceholder('e.g. Google').fill('Smoke Test Corp');
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Smoke Tester');
 
+    const smokeResponse = page.waitForResponse('**/api/applications');
     await page.getByRole('button', { name: 'Save Application' }).click();
+    await smokeResponse;
 
     // Verify modal closes
     await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();
