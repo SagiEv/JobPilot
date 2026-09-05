@@ -98,7 +98,7 @@ jobs:
           
           # supabase status -o env outputs API_URL, ANON_KEY, and SERVICE_ROLE_KEY
           # We must map these to SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_KEY
-          npx supabase status -o env > supabase.env
+          supabase status -o env > supabase.env
           source supabase.env
           
           # Write backend .env

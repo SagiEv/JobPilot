@@ -21,30 +21,37 @@ test.describe('Authentication and Smoke Test', () => {
     // Navigate to Login (assuming root redirects to login if not authenticated)
     await page.goto('/');
 
-    // Fill login form
-    await page.locator('input[type="email"]').fill(testEmail);
-    await page.locator('input[type="password"]').fill(testPassword);
-    await page.getByRole('button', { name: 'Log in', exact: true }).click();
+    // Fill login form — use getByPlaceholder to avoid strict mode violations.
+    // The page has two email inputs: "Recipient Email" (email composer) and
+    // "Email Address" (login form). We target the login form specifically.
+    await page.getByPlaceholder('Email Address').fill(testEmail);
+    await page.getByPlaceholder('Password').fill(testPassword);
+    
+    // The login button text is "Sign In" (not "Log in")
+    await page.getByRole('button', { name: /sign in|processing/i }).click();
 
     // Verify successful login by checking for Dashboard or Applications elements
     await expect(page.getByText('Dashboard').first()).toBeVisible({ timeout: 10000 });
     
-    // 2. Create an Application
+    // Navigate to Applications
     await page.getByText('Applications', { exact: true }).first().click();
     await expect(page.getByText('+ New Application')).toBeVisible({ timeout: 10000 });
 
-    // 2. Create an Application
-    const newAppButton = page.getByText('+ New Application');
-    await newAppButton.click();
+    // Create an Application
+    await page.getByText('+ New Application').click();
 
     await expect(page.getByRole('heading', { name: 'New Application' })).toBeVisible();
 
     await page.getByPlaceholder('e.g. Google').fill('Smoke Test Corp');
     await page.getByPlaceholder('e.g. Frontend Engineer').fill('Smoke Tester');
 
-    const smokeResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
+    const responsePromise = page.waitForResponse(
+      res => res.url().includes('/api/applications') && res.request().method() === 'POST'
+    );
     await page.getByRole('button', { name: 'Save Application' }).click();
-    await smokeResponse;
+    const response = await responsePromise;
+
+    expect(response.ok(), `POST /api/applications failed with ${response.status()}`).toBeTruthy();
 
     // Verify modal closes
     await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();

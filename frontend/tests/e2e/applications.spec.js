@@ -1,5 +1,39 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * Helper: create an application via the "New Application" modal and wait for the
+ * backend to confirm the save. Returns once the modal has closed and the new
+ * application row is visible in the list.
+ *
+ * IMPORTANT – we intentionally do NOT put `res.ok()` inside the waitForResponse
+ * predicate. If we did, a non-2xx response (e.g. 400 validation error) would
+ * cause the predicate to silently never match, and the test would hang for the
+ * full 30 s timeout with no useful error message. Instead, we capture ANY
+ * matching response and assert on its status separately so failures are clear.
+ */
+async function createApplicationViaModal(page, company, role) {
+  await page.getByText('+ New Application').click();
+  await expect(page.getByRole('heading', { name: 'New Application' })).toBeVisible();
+
+  await page.getByPlaceholder('e.g. Google').fill(company);
+  await page.getByPlaceholder('e.g. Frontend Engineer').fill(role);
+
+  const responsePromise = page.waitForResponse(
+    res => res.url().includes('/api/applications') && res.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Save Application' }).click();
+  const response = await responsePromise;
+
+  // Fail fast with a clear message if the API returned an error
+  expect(response.ok(), `POST /api/applications failed with ${response.status()}`).toBeTruthy();
+
+  // Verify modal closes
+  await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();
+
+  // Verify it appears in the UI
+  await expect(page.getByText(company).first()).toBeVisible();
+}
+
 test.describe('Application Management Journeys', () => {
   let appName;
   
@@ -12,36 +46,14 @@ test.describe('Application Management Journeys', () => {
   });
 
   test('can create an application', async ({ page }) => {
-    // 1. Create Application
-    await page.getByText('+ New Application').click();
-    await expect(page.getByRole('heading', { name: 'New Application' })).toBeVisible();
-
-    await page.getByPlaceholder('e.g. Google').fill(appName);
-    await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
-    
-    const saveResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
-    await page.getByRole('button', { name: 'Save Application' }).click();
-    await saveResponse;
-
-    // Verify modal closes
-    await expect(page.getByRole('heading', { name: 'New Application' })).not.toBeVisible();
-    
-    // Verify it appears in the UI
-    await expect(page.getByText(appName).first()).toBeVisible();
+    await createApplicationViaModal(page, appName, 'Software Engineer');
   });
 
   test('can update application status and open details', async ({ page }) => {
     // 1. Create an application first
-    await page.getByText('+ New Application').click();
-    await page.getByPlaceholder('e.g. Google').fill(appName);
-    await page.getByPlaceholder('e.g. Frontend Engineer').fill('Backend Developer');
-    const updateResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
-    await page.getByRole('button', { name: 'Save Application' }).click();
-    await updateResponse;
-    await expect(page.getByText(appName).first()).toBeVisible();
+    await createApplicationViaModal(page, appName, 'Backend Developer');
 
     // 2. Open Application Details
-    // Depending on the UI, it might be a link or card. We'll click on the text.
     await page.getByText(appName).first().click();
     
     // Ensure we are on the details page by checking for back button or header
@@ -50,7 +62,6 @@ test.describe('Application Management Journeys', () => {
     // 3. Update application status
     await page.getByRole('button', { name: /update/i }).click();
     
-    // The dropdown has role="combobox" or is a standard select element. We find the select with default value 'Applied'
     const statusSelect = page.locator('.adp-select').first();
     await statusSelect.selectOption('Interviewing');
     
@@ -66,13 +77,7 @@ test.describe('Application Management Journeys', () => {
 
   test('can add historical event to application', async ({ page }) => {
     // 1. Create an application
-    await page.getByText('+ New Application').click();
-    await page.getByPlaceholder('e.g. Google').fill(appName);
-    await page.getByPlaceholder('e.g. Frontend Engineer').fill('Software Engineer');
-    const addResponse = page.waitForResponse(res => res.url().includes('/api/applications') && res.request().method() === 'POST' && res.ok());
-    await page.getByRole('button', { name: 'Save Application' }).click();
-    await addResponse;
-    await expect(page.getByText(appName).first()).toBeVisible();
+    await createApplicationViaModal(page, appName, 'Software Engineer');
 
     // 2. Go to details
     await page.getByText(appName).first().click();

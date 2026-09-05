@@ -2,8 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Analytics Journeys', () => {
 
-
-
   test('can view analytics and charts', async ({ page }) => {
     await page.goto('/');
     await page.getByText('Analytics', { exact: true }).click();
@@ -12,16 +10,12 @@ test.describe('Analytics Journeys', () => {
     await expect(page.getByRole('heading', { name: 'Performance Analytics' })).toBeVisible();
 
     // Verify some of the key analytics sections are present
-    // Assuming there is a conversion funnel or key metrics section
     await expect(page.getByText('Conversion Funnel')).toBeVisible();
     await expect(page.getByText('Monthly Volume')).toBeVisible();
 
-    // Verify that D3 charts or at least the containers are rendered without crashing
-    // For example, checking if the SVG elements for the charts exist
-    const svgElements = page.locator('svg');
-    await expect(svgElements.first()).toBeVisible();
-
-    // Add a simple interaction if there are filters, like clicking a time range button
-    // e.g. await page.getByRole('button', { name: '30 Days' }).click();
+    // Verify that the RingMeter SVG charts are rendered within the analytics page content.
+    // We scope to #sec-analytics to avoid matching hidden sidebar icon SVGs.
+    const analyticsSection = page.locator('#sec-analytics');
+    await expect(analyticsSection.locator('svg').first()).toBeVisible();
   });
 });

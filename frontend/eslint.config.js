@@ -61,6 +61,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'vite.config.js', 'playwright.config.js'],
+    ignores: ['dist/**', 'node_modules/**', 'vite.config.js', 'playwright.config.js', 'tests/**'],
   }
 ];
