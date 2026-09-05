@@ -88,8 +88,9 @@ export const JobProvider = ({ children }) => {
     }, [addToast, removeToast]);
 
     useEffect(() => {
+        const intervals = pollingIntervals.current;
         return () => {
-            Object.values(pollingIntervals.current).forEach(clearInterval);
+            Object.values(intervals).forEach(clearInterval);
         };
     }, []);
 

@@ -1,7 +1,7 @@
 // all data-fetching logic here
 import apiClient from './apiClient';
 
-export const uploadCSV = async (file, type) => {
+export const uploadCSV = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
     const response = await apiClient.post('/api/csv/upload', formData, {

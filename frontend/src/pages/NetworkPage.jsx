@@ -1,4 +1,4 @@
-import { useToast } from '../components/ToastProvider';
+
 import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState, useMemo } from 'react';
 import { useContacts } from '../hooks/useContacts';
@@ -7,7 +7,6 @@ import PageLoader from '../components/PageLoader';
 import NetworkGraph from '../components/NetworkGraph';
 
 const NetworkPage = () => {
-    const { addToast } = useToast();
     const confirm = useConfirm();
     // 1. Deconstruct the correct function name 'addContact' from our hook
     const { contacts, loading, uploadStatus, handleCSVUpload, addContact, updateContact, deleteContact } = useContacts();

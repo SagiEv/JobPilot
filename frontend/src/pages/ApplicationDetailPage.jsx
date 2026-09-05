@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useConfirm } from '../components/ConfirmProvider';
 import { useToast } from '../components/ToastProvider';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
@@ -70,16 +69,11 @@ const IconLink = () => (
         <path d="M11 5h4v4M15 5l-6 6M9 6H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-4"/>
     </svg>
 );
-const IconStage = () => (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" width="15" height="15">
-        <path d="M3 6l4 4-4 4M10 14h7" />
-    </svg>
-);
+
 
 // ── Company initial avatar ────────────────────────────────────────────────────
 function CompanyAvatar({ name }) {
-    const { addToast } = useToast();
-    const confirm = useConfirm();
+
     const initials = name
         ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
         : '?';
@@ -164,6 +158,7 @@ function calculateDaysDifference(date1, date2) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {}, dismissGhosting = () => {} }) => {
+    const { addToast } = useToast();
     const { settings } = useSettings();
     const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
     const { events } = useEvents();
