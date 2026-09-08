@@ -19,19 +19,22 @@ const authenticate = async (req, res, next) => {
 
         console.log('[AUTH] Token received (truncated):', token?.slice(0, 10) + '...');
 
-        let decoded;
+        let user;
         try {
-            decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET);
+            const { data, error } = await supabase.auth.getUser(token);
+            if (error || !data?.user) {
+                console.error('[AUTH] Supabase verification error:', error?.message);
+                return res.status(401).json({ error: 'Invalid or expired token' });
+            }
+            user = {
+                id: data.user.id,
+                email: data.user.email,
+                role: data.user.role || 'authenticated'
+            };
         } catch (error) {
-            console.error('[AUTH] JWT verification error:', error.message);
+            console.error('[AUTH] Unexpected verification error:', error.message);
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
-
-        const user = {
-            id: decoded.sub,
-            email: decoded.email,
-            role: decoded.role
-        };
 
         console.log('[AUTH] Auth success for user:', {
             id: user.id,
