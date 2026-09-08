@@ -3,7 +3,7 @@ const searchService = require('../services/searchSettings.service');
 exports.getSettings = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await searchService.getSettings(userId);
+        const data = await searchService.getSettings(userId, req.supabase);
         res.json(data);
     } catch (err) { res.status(400).json({ error: err.message }); }
 };
@@ -11,7 +11,7 @@ exports.getSettings = async (req, res) => {
 exports.putSettings = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await searchService.saveSettings(userId, req.body);
+        const data = await searchService.saveSettings(userId, req.body, req.supabase);
         res.json(data);
     } catch (err) { res.status(400).json({ error: err.message }); }
 };
@@ -19,7 +19,7 @@ exports.putSettings = async (req, res) => {
 exports.getSites = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await searchService.getSites(userId);
+        const data = await searchService.getSites(userId, req.supabase);
         res.json(data);
     } catch (err) { res.status(400).json({ error: err.message }); }
 };
@@ -27,7 +27,7 @@ exports.getSites = async (req, res) => {
 exports.postSite = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await searchService.addSite(userId, req.body);
+        const data = await searchService.addSite(userId, req.body, req.supabase);
         res.json(data);
     } catch (err) { res.status(400).json({ error: err.message }); }
 };
@@ -35,7 +35,7 @@ exports.postSite = async (req, res) => {
 exports.putSite = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await searchService.updateSite(userId, req.params.id, req.body);
+        const data = await searchService.updateSite(userId, req.params.id, req.body, req.supabase);
         res.json(data);
     } catch (err) { res.status(400).json({ error: err.message }); }
 };
@@ -43,7 +43,7 @@ exports.putSite = async (req, res) => {
 exports.deleteSite = async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await searchService.deleteSite(userId, req.params.id);
+        const result = await searchService.deleteSite(userId, req.params.id, req.supabase);
         res.json(result);
     } catch (err) { res.status(400).json({ error: err.message }); }
 };

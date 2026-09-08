@@ -1,12 +1,12 @@
-const supabase = require('../supabaseClient');
+
 const { getEmbedding } = require('../services/embedding.service');
 
 // --- Project Methods ---
-const findAllProjects = async (userId) => {
-    return await supabase.from('projects').select('*').eq('user_id', userId);
+const findAllProjects = async (userId, client) => {
+    return await client.from('projects').select('*').eq('user_id', userId);
 };
 
-const createProject = async (userId, projectData) => {
+const createProject = async (userId, projectData, client) => {
     const textToEmbed = `${projectData.title || ''} ${projectData.description || ''} ${projectData.tech_stack || ''}`;
     const embedding = await getEmbedding(textToEmbed);
 
@@ -17,12 +17,12 @@ const createProject = async (userId, projectData) => {
         .single();
 };
 
-const updateProject = async (userId, id, updateData) => {
+const updateProject = async (userId, id, updateData, client) => {
     let embedding = undefined;
     // Only re-embed if relevant text fields changed
     if (updateData.title !== undefined || updateData.description !== undefined || updateData.tech_stack !== undefined) {
         // Fetch current to merge with updates for accurate embedding
-        const { data: current } = await supabase.from('projects').select('*').eq('id', id).single();
+        const { data: current } = await client.from('projects').select('*').eq('id', id).single();
         if (current) {
             const merged = { ...current, ...updateData };
             const textToEmbed = `${merged.title || ''} ${merged.description || ''} ${merged.tech_stack || ''}`;
@@ -42,7 +42,7 @@ const updateProject = async (userId, id, updateData) => {
         .single();
 };
 
-const removeProject = async (userId, id) => {
+const removeProject = async (userId, id, client) => {
     return await supabase
         .from('projects')
         .delete()
@@ -51,11 +51,11 @@ const removeProject = async (userId, id) => {
 };
 
 // --- Experience Text Methods ---
-const findExperienceText = async (userId) => {
-    return await supabase.from('experience_text').select('*').eq('user_id', userId).single();
+const findExperienceText = async (userId, client) => {
+    return await client.from('experience_text').select('*').eq('user_id', userId).single();
 };
 
-const upsertExperienceText = async (userId, id, text) => {
+const upsertExperienceText = async (userId, id, text, client) => {
     if (id) {
         return await supabase
             .from('experience_text')

@@ -5,7 +5,7 @@ const axios = require('axios');
  * @param {string} text 
  * @returns {Promise<number[] | null>}
  */
-const getEmbedding = async (text) => {
+const getEmbedding = async (text, supabaseClient) => {
     if (!text || text.trim() === '') return null;
     try {
         const response = await axios.post('http://127.0.0.1:8001/embed', {

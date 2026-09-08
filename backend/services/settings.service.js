@@ -4,8 +4,8 @@ const { validateAiToken } = require('../utils/ai_validator');
 
 const MASKED = '••••••••••••••••••••••••••••••••••••••••';
 
-const getSettings = async (userId, token) => {
-    const { data, error } = await settingsRepository.findSettings(userId, token);
+const getSettings = async (userId, supabaseClient) => {
+    const { data, error } = await settingsRepository.findSettings(userId, supabaseClient);
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
 
     const settings = data || {};
@@ -38,10 +38,10 @@ const getSettings = async (userId, token) => {
     };
 };
 
-const saveSettings = async (userId, payload, token) => {
+const saveSettings = async (userId, payload, supabaseClient) => {
     const updateData = {};
 
-    const validateAndSetToken = async (provider, payloadKey, encryptedKey) => {
+    const validateAndSetToken = async (provider, payloadKey, encryptedKey, supabaseClient) => {
         if (payloadKey in payload) {
             const rawToken = payload[payloadKey];
             if (rawToken) {
@@ -81,7 +81,7 @@ const saveSettings = async (userId, payload, token) => {
             : null;
     }
 
-    const { data, error } = await settingsRepository.upsertSettings(userId, updateData, token);
+    const { data, error } = await settingsRepository.upsertSettings(userId, updateData, supabaseClient);
     if (error) throw new Error(error.message);
 
     return {
@@ -102,8 +102,8 @@ const saveSettings = async (userId, payload, token) => {
 };
 
 // Internal use only — never exposed via HTTP
-const getAllAiConfigs = async (userId, token) => {
-    const { data, error } = await settingsRepository.findSettings(userId, token);
+const getAllAiConfigs = async (userId, supabaseClient) => {
+    const { data, error } = await settingsRepository.findSettings(userId, supabaseClient);
     if (error) return null;
     
     return {

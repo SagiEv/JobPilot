@@ -1,14 +1,14 @@
 const interviewRepository = require('../repositories/interviews.repository');
 const applicationHistoryService = require('./applicationHistory.service');
 
-const getAllInterviews = async (userId) => {
-    const { data, error } = await interviewRepository.findAll(userId);
+const getAllInterviews = async (userId, supabaseClient) => {
+    const { data, error } = await interviewRepository.findAll(userId, supabaseClient);
     if (error) throw new Error(error.message);
     return data;
 };
 
-const createInterview = async (userId, data) => {
-    const { data: newInterview, error } = await interviewRepository.create(userId, data);
+const createInterview = async (userId, data, supabaseClient) => {
+    const { data: newInterview, error } = await interviewRepository.create(userId, data, supabaseClient);
     if (error) throw new Error(error.message);
 
     // If linked to an application, log the interview in application history
@@ -29,29 +29,29 @@ const createInterview = async (userId, data) => {
     return newInterview;
 };
 
-const updateInterview = async (userId, id, data) => {
-    const { data: updatedInterview, error } = await interviewRepository.update(userId, id, data);
+const updateInterview = async (userId, id, data, supabaseClient) => {
+    const { data: updatedInterview, error } = await interviewRepository.update(userId, id, data, supabaseClient);
     if (error) throw new Error(error.message);
     return updatedInterview;
 };
 
 const axios = require('axios');
 
-const deleteInterview = async (userId, id) => {
-    const { error } = await interviewRepository.remove(userId, id);
+const deleteInterview = async (userId, id, supabaseClient) => {
+    const { error } = await interviewRepository.remove(userId, id, supabaseClient);
     if (error) throw new Error(error.message);
     return { success: true };
 };
 
-const getAiReports = async (userId) => {
-    const { data, error } = await interviewRepository.getAnalysisReports(userId);
+const getAiReports = async (userId, supabaseClient) => {
+    const { data, error } = await interviewRepository.getAnalysisReports(userId, supabaseClient);
     if (error) throw new Error(error.message);
     return data;
 };
 
-const generateAiReport = async (userId) => {
+const generateAiReport = async (userId, supabaseClient) => {
     // 1. Fetch all interviews
-    const { data: interviews, error } = await interviewRepository.findAll(userId);
+    const { data: interviews, error } = await interviewRepository.findAll(userId, supabaseClient);
     if (error) throw new Error(error.message);
 
     if (!interviews || interviews.length === 0) {
@@ -103,7 +103,7 @@ const generateAiReport = async (userId) => {
         keep_report: report.keep_report,
         improve_report: report.improve_report,
         overall_trends: report.overall_trends
-    });
+    }, supabaseClient);
 
     if (saveError) throw new Error(`Failed to save report: ${saveError.message}`);
 

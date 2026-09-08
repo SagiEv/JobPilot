@@ -3,18 +3,20 @@ import { test as setup, expect } from '@playwright/test';
 const authFile = 'playwright/.auth/user.json';
 
 setup('authenticate', async ({ request, context }) => {
-  const email = `testuser_${Date.now()}@test-jobpilot.com`;
-  const password = 'Password123!';
+  const email = process.env.TEST_EMAIL || `testuser_${Date.now()}@yopmail.com`;
+  const password = process.env.TEST_PASSWORD || 'Password123!';
 
   const apiUrl = 'http://127.0.0.1:5000';
 
-  // 1. Register via API
-  const registerResponse = await request.post(`${apiUrl}/auth/signup`, {
-    data: { email, password }
-  });
-  
-  // Dynamic email means this should always be 200/201
-  expect(registerResponse.ok(), `Signup failed with status ${registerResponse.status()}`).toBeTruthy();
+  if (!process.env.TEST_EMAIL) {
+    // 1. Signup via API (only if not using a pre-existing test account)
+    const registerResponse = await request.post(`${apiUrl}/auth/signup`, {
+      data: { email, password }
+    });
+    
+    // Dynamic email means this should always be 200/201 (unless email confirmation is strictly enforced and blocks login later)
+    expect(registerResponse.ok(), `Signup failed with status ${registerResponse.status()}`).toBeTruthy();
+  }
 
   // 2. Login via API
   const loginResponse = await request.post(`${apiUrl}/auth/login`, {

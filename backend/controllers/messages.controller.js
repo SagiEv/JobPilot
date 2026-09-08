@@ -13,7 +13,7 @@ exports.generateMessage = async (req, res) => {
         const { purpose, jobLink, description, addresseeName, githubPortfolio, recipientEmail, language } = req.body;
         const cvFile = req.file;
 
-        const aiConfigs = await settingsService.getAllAiConfigs(userId, req.token);
+        const aiConfigs = await settingsService.getAllAiConfigs(userId, req.supabase);
         const routingProvider = aiConfigs?.ai_routing?.mailCreator?.provider || 'groq';
         const routingModel = aiConfigs?.ai_routing?.mailCreator?.model || null;
 

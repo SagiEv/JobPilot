@@ -3,7 +3,7 @@ const applicationHistoryService = require('../services/applicationHistory.servic
 const getHistory = async (req, res) => {
     try {
         const { id } = req.params;
-        const data = await applicationHistoryService.getHistoryByApplicationId(id);
+        const data = await applicationHistoryService.getHistoryByApplicationId(id, req.supabase);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -20,7 +20,7 @@ const addNote = async (req, res) => {
             event_type: 'Note',
             notes,
             with_who
-        });
+        }, req.supabase);
         
         res.json(data);
     } catch (error) {

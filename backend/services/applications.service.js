@@ -1,14 +1,13 @@
 const applicationRepository = require('../repositories/applications.repository');
 const applicationHistoryService = require('./applicationHistory.service');
 
-const getAllApplications = async (userId) => {
-    const { data, error } = await applicationRepository.findAll(userId);
+const getAllApplications = async (userId, supabaseClient) => {
+    const { data, error } = await applicationRepository.findAll(userId, supabaseClient);
     if (error) throw new Error(error.message);
 
     const appIds = data.map(a => a.id);
     if (appIds.length > 0) {
-        const supabase = require('../supabaseClient');
-        const { data: history, error: histError } = await supabase
+        const { data: history, error: histError } = await supabaseClient
             .from('application_history')
             .select('application_id, event_date, created_at, event_type')
             .in('application_id', appIds);
@@ -34,8 +33,8 @@ const getAllApplications = async (userId) => {
     return data;
 };
 
-const createApplication = async (userId, data) => {
-    const { data: newApp, error } = await applicationRepository.create(userId, data);
+const createApplication = async (userId, data, supabaseClient) => {
+    const { data: newApp, error } = await applicationRepository.create(userId, data, supabaseClient);
     if (error) throw new Error(error.message);
 
     // Log creation
@@ -46,15 +45,16 @@ const createApplication = async (userId, data) => {
         newApp.status,
         null,
         newApp.stage,
-        'Application created'
+        'Application created',
+        '', null, null, supabaseClient
     );
 
     return newApp;
 };
 
-const updateApplication = async (userId, id, data) => {
+const updateApplication = async (userId, id, data, supabaseClient) => {
     // Fetch existing application
-    const { data: oldApp } = await applicationRepository.findById(userId, id);
+    const { data: oldApp } = await applicationRepository.findById(userId, id, supabaseClient);
     if (!oldApp) throw new Error("Application not found");
     
     // Extract event_date and conflict_resolution so they're not saved directly in applications table
@@ -68,7 +68,7 @@ const updateApplication = async (userId, id, data) => {
     const isStageChange = oldApp.stage !== inputStage;
 
     // 1. Fetch history to detect conflicts
-    const history = await applicationHistoryService.getHistoryByApplicationId(id);
+    const history = await applicationHistoryService.getHistoryByApplicationId(id, supabaseClient);
 
     // 2. Log the change FIRST if status or stage changed
     if (isStatusChange || isStageChange) {
@@ -95,7 +95,7 @@ const updateApplication = async (userId, id, data) => {
                         inputStatus,
                         oldApp.stage,
                         inputStage,
-                        notes || '', with_who || '', null, event_date || null
+                        notes || '', with_who || '', null, event_date || null, supabaseClient
                     );
                 } else if (conflict_resolution === 'overwrite') {
                     await applicationHistoryService.updateHistory(existingEvent.id, {
@@ -104,7 +104,7 @@ const updateApplication = async (userId, id, data) => {
                         new_stage: inputStage,
                         notes: notes !== undefined ? notes : existingEvent.notes,
                         with_who: with_who !== undefined ? with_who : existingEvent.with_who
-                    });
+                    }, supabaseClient);
                 } else {
                     const error = new Error('Conflicting event on this date');
                     error.code = 'CONFLICTING_EVENT';
@@ -120,13 +120,13 @@ const updateApplication = async (userId, id, data) => {
                 inputStatus,
                 oldApp.stage,
                 inputStage,
-                notes || '', with_who || '', null, event_date || null
+                notes || '', with_who || '', null, event_date || null, supabaseClient
             );
         }
     }
     
     // 3. Recalculate latest status and stage from history
-    const updatedHistory = await applicationHistoryService.getHistoryByApplicationId(id);
+    const updatedHistory = await applicationHistoryService.getHistoryByApplicationId(id, supabaseClient);
     const statusEvents = updatedHistory
         .filter(h => h.new_status != null)
         .sort((a, b) => {
@@ -156,20 +156,20 @@ const updateApplication = async (userId, id, data) => {
         updateData.automatic_rejection = false;
     }
 
-    const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData);
+    const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData, supabaseClient);
     if (error) throw new Error(error.message);
 
     return updatedApp;
 };
 
-const deleteApplication = async (userId, id) => {
-    const { error } = await applicationRepository.remove(userId, id);
+const deleteApplication = async (userId, id, supabaseClient) => {
+    const { error } = await applicationRepository.remove(userId, id, supabaseClient);
     if (error) throw new Error(error.message);
     return { success: true };
 };
 
-const bulkCreateApplications = async (userId, applications) => {
-    const { data, error } = await applicationRepository.bulkInsert(userId, applications);
+const bulkCreateApplications = async (userId, applications, supabaseClient) => {
+    const { data, error } = await applicationRepository.bulkInsert(userId, applications, supabaseClient);
     if (error) {
         // Log internal details for debugging, but throw standard message
         console.error("Bulk Insert Error:", error);
@@ -177,8 +177,8 @@ const bulkCreateApplications = async (userId, applications) => {
     }
     return { success: true, count: data ? data.length : 0 };
 };
-const getAnalyticsMetrics = async (userId) => {
-    const { data: apps, error: appError } = await applicationRepository.findAll(userId);
+const getAnalyticsMetrics = async (userId, supabaseClient) => {
+    const { data: apps, error: appError } = await applicationRepository.findAll(userId, supabaseClient);
     if (appError) throw new Error(appError.message);
 
     if (!apps || apps.length === 0) {
@@ -194,8 +194,7 @@ const getAnalyticsMetrics = async (userId) => {
     const appIds = apps.map(a => a.id);
 
     // Fetch all history for user's applications
-    const supabase = require('../supabaseClient');
-    const { data: history, error: histError } = await supabase
+    const { data: history, error: histError } = await supabaseClient
         .from('application_history')
         .select('*')
         .in('application_id', appIds)
@@ -268,8 +267,8 @@ const getAnalyticsMetrics = async (userId) => {
     };
 };
 
-const getDailyStats = async (userId, startIso, endIso) => {
-    const { data: apps, error: appsError } = await applicationRepository.findAll(userId);
+const getDailyStats = async (userId, startIso, endIso, supabaseClient) => {
+    const { data: apps, error: appsError } = await applicationRepository.findAll(userId, supabaseClient);
     if (appsError) throw new Error(appsError.message);
     
     if (!apps || apps.length === 0) {
@@ -277,9 +276,8 @@ const getDailyStats = async (userId, startIso, endIso) => {
     }
     
     const appIds = apps.map(a => a.id);
-    const supabase = require('../supabaseClient');
     
-    const { data: history, error: histError } = await supabase
+    const { data: history, error: histError } = await supabaseClient
         .from('application_history')
         .select('event_type, new_status, event_date')
         .in('application_id', appIds)

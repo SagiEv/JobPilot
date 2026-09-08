@@ -1,33 +1,33 @@
-const supabase = require('../supabaseClient');
+
 
 // Settings
-const findSettings = async () => {
-    return await supabase.from('search_settings').select('*').single();
+const findSettings = async (client) => {
+    return await client.from('search_settings').select('*').single();
 };
 
-const upsertSettings = async (id, updateData) => {
+const upsertSettings = async (id, updateData, client) => {
     if (id) {
-        return await supabase.from('search_settings').update(updateData).eq('id', id).select().single();
+        return await client.from('search_settings').update(updateData).eq('id', id).select().single();
     } else {
-        return await supabase.from('search_settings').insert([updateData]).select().single();
+        return await client.from('search_settings').insert([updateData]).select().single();
     }
 };
 
 // Sites
-const findAllSites = async () => {
-    return await supabase.from('search_sites').select('*');
+const findAllSites = async (client) => {
+    return await client.from('search_sites').select('*');
 };
 
-const createSite = async (siteData) => {
-    return await supabase.from('search_sites').insert([siteData]).select().single();
+const createSite = async (siteData, client) => {
+    return await client.from('search_sites').insert([siteData]).select().single();
 };
 
-const updateSite = async (id, updateData) => {
-    return await supabase.from('search_sites').update(updateData).eq('id', id).select().single();
+const updateSite = async (id, updateData, client) => {
+    return await client.from('search_sites').update(updateData).eq('id', id).select().single();
 };
 
-const removeSite = async (id) => {
-    return await supabase.from('search_sites').delete().eq('id', id);
+const removeSite = async (id, client) => {
+    return await client.from('search_sites').delete().eq('id', id);
 };
 
 module.exports = {

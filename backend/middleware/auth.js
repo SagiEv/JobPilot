@@ -1,4 +1,5 @@
 const supabase = require('../supabaseClient');
+const jwt = require('jsonwebtoken');
 
 const authenticate = async (req, res, next) => {
     try {
@@ -18,24 +19,30 @@ const authenticate = async (req, res, next) => {
 
         console.log('[AUTH] Token received (truncated):', token?.slice(0, 10) + '...');
 
-        const { data, error } = await supabase.auth.getUser(token);
-
-        if (error) {
-            console.error('[AUTH] Supabase error while verifying token:', error.message || error);
-        }
-
-        if (!data?.user) {
-            console.warn('[AUTH] Invalid or expired token');
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET);
+        } catch (error) {
+            console.error('[AUTH] JWT verification error:', error.message);
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
+        const user = {
+            id: decoded.sub,
+            email: decoded.email,
+            role: decoded.role
+        };
+
         console.log('[AUTH] Auth success for user:', {
-            id: data.user.id,
-            email: data.user.email,
+            id: user.id,
+            email: user.email,
         });
 
-        req.user = data.user;
+        req.user = user;
         req.token = token;
+        // Inject dynamic authenticated client for DI
+        req.supabase = supabase.createAuthClient(token);
+        
         next();
 
     } catch (err) {

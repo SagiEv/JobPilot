@@ -1,6 +1,5 @@
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
-const supabase = require('../supabaseClient');
 const { decrypt } = require('../utils/encryption');
 const { classifyEmail } = require('./email-classifier.service');
 const emailLogsRepo = require('../repositories/email-logs.repository');
@@ -161,7 +160,7 @@ async function pollUserInbox(settings) {
                     const messageId = parsed.messageId || `uid-${msg.uid}`;
 
                     // Check if we already processed this message
-                    const { data: existingEmail } = await emailLogsRepo.findByMessageId(userId, messageId);
+                    const { data: existingEmail } = await emailLogsRepo.findByMessageId(userId, messageId, supabaseClient);
                     if (existingEmail) {
                         console.log(`[MAIL POLLER] Skipping already processed message ${messageId}`);
                         if (msg.uid && (!newLastUid || msg.uid > parseInt(newLastUid))) {
@@ -253,7 +252,7 @@ async function pollUserInbox(settings) {
 
             // Bulk insert logs
             if (logsToInsert.length > 0) {
-                const { error: insertError } = await emailLogsRepo.bulkInsert(logsToInsert);
+                const { error: insertError } = await emailLogsRepo.bulkInsert(logsToInsert, supabaseClient);
                 if (insertError) {
                     console.error(`[MAIL POLLER] Failed to insert email logs:`, insertError.message);
                 }

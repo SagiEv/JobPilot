@@ -8,7 +8,7 @@ const axios = require('axios');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
-const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null, pipeline_mode = 'standard') => {
+const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, supabaseClient = null, pipeline_mode = 'standard') => {
 
     // 1. Get AI configs
     const aiConfigs = await settingsService.getAllAiConfigs(userId, token);
@@ -26,7 +26,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     let cvData = {};
 
     if (useProfile) {
-        const result = await profileRepository.findFirstProfile(userId);
+        const result = await profileRepository.findFirstProfile(userId, supabaseClient);
         profile = result?.data;
         baseCvText = profile?.cv || "";
         if (baseCvText.toLowerCase().endsWith('.pdf') || baseCvText.toLowerCase().endsWith('.docx')) {
@@ -46,8 +46,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     }
 
     const { getEmbedding } = require('./embedding.service');
-    const supabase = require('../supabaseClient');
-
+    
     const cleanText = (txt) => txt ? txt.replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim() : "";
     const safeJobDesc = cleanText(jobDescription).substring(0, 15000);
     const safeBaseCv = cleanText(baseCvText).substring(0, 20000);
@@ -61,13 +60,13 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
 
     if (jobEmbedding) {
         // Run vector search via Supabase RPC
-        const { data: matchedProjects } = await supabase.rpc('match_projects', {
+        const { data: matchedProjects } = await supabaseClient.rpc('match_projects', {
             query_embedding: jobEmbedding,
             match_threshold: 0.1,
             match_count: 5,
             p_user_id: userId
         });
-        const { data: matchedSkills } = await supabase.rpc('match_skills', {
+        const { data: matchedSkills } = await supabaseClient.rpc('match_skills', {
             query_embedding: jobEmbedding,
             match_threshold: 0.1,
             match_count: 20,
@@ -138,7 +137,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
 
 const jobService = require('./job.service');
 
-const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, token = null, pipeline_mode = 'standard') => {
+const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, supabaseClient = null, pipeline_mode = 'standard') => {
     try {
         const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token, pipeline_mode);
         await jobService.completeJob(jobId, result);

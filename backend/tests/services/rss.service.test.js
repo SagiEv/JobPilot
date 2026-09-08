@@ -41,7 +41,7 @@ describe('rss.service', () => {
             // Verify updated_at was set
             expect(rssRepo.updateFeed).toHaveBeenCalledWith(1, expect.objectContaining({
                 updated_at: expect.any(String),
-            }));
+            }), undefined);
         });
 
         it('should throw on error', async () => {

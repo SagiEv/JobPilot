@@ -23,6 +23,7 @@ jest.mock('../../supabaseClient', () => {
 const applicationRepository = require('../../repositories/applications.repository');
 const applicationHistoryService = require('../../services/applicationHistory.service');
 const applicationService = require('../../services/applications.service');
+const supabaseClient = require('../../supabaseClient');
 const { buildApplication, buildHistoryEntry } = require('../helpers/factories');
 
 describe('applications.service', () => {
@@ -37,11 +38,11 @@ describe('applications.service', () => {
             applicationRepository.findAll.mockResolvedValue({ data: apps, error: null });
 
             // Act
-            const result = await applicationService.getAllApplications('user-123');
+            const result = await applicationService.getAllApplications('user-123', supabaseClient);
 
             // Assert
             expect(result).toHaveLength(2);
-            expect(applicationRepository.findAll).toHaveBeenCalledWith('user-123');
+            expect(applicationRepository.findAll).toHaveBeenCalledWith('user-123', supabaseClient);
         });
 
         it('should throw on repo error', async () => {
@@ -51,7 +52,7 @@ describe('applications.service', () => {
             });
 
             // Act & Assert
-            await expect(applicationService.getAllApplications('user-123'))
+            await expect(applicationService.getAllApplications('user-123', supabaseClient))
                 .rejects.toThrow('DB failed');
         });
 
@@ -60,7 +61,7 @@ describe('applications.service', () => {
             applicationRepository.findAll.mockResolvedValue({ data: [], error: null });
 
             // Act
-            const result = await applicationService.getAllApplications('user-123');
+            const result = await applicationService.getAllApplications('user-123', supabaseClient);
 
             // Assert
             expect(result).toEqual([]);
@@ -77,12 +78,12 @@ describe('applications.service', () => {
             // Act
             const result = await applicationService.createApplication('user-123', {
                 company: 'TestCorp', position: 'SWE',
-            });
+            }, supabaseClient);
 
             // Assert
             expect(result).toEqual(newApp);
             expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
-                10, 'Application Added', null, 'Applied', null, null, 'Application created'
+                10, 'Application Added', null, 'Applied', null, null, 'Application created', '', null, null, supabaseClient
             );
         });
 
@@ -93,7 +94,7 @@ describe('applications.service', () => {
             });
 
             // Act & Assert
-            await expect(applicationService.createApplication('user-123', {}))
+            await expect(applicationService.createApplication('user-123', {}, supabaseClient))
                 .rejects.toThrow('Insert failed');
         });
     });
@@ -104,7 +105,7 @@ describe('applications.service', () => {
             applicationRepository.remove.mockResolvedValue({ error: null });
 
             // Act
-            const result = await applicationService.deleteApplication('user-123', 1);
+            const result = await applicationService.deleteApplication('user-123', 1, supabaseClient);
 
             // Assert
             expect(result).toEqual({ success: true });
@@ -117,7 +118,7 @@ describe('applications.service', () => {
             });
 
             // Act & Assert
-            await expect(applicationService.deleteApplication('user-123', 1))
+            await expect(applicationService.deleteApplication('user-123', 1, supabaseClient))
                 .rejects.toThrow('Delete failed');
         });
     });
@@ -129,7 +130,7 @@ describe('applications.service', () => {
             applicationRepository.bulkInsert.mockResolvedValue({ data: apps, error: null });
 
             // Act
-            const result = await applicationService.bulkCreateApplications('user-123', apps);
+            const result = await applicationService.bulkCreateApplications('user-123', apps, supabaseClient);
 
             // Assert
             expect(result).toEqual({ success: true, count: 2 });
@@ -141,7 +142,7 @@ describe('applications.service', () => {
             applicationRepository.bulkInsert.mockResolvedValue({ data: null, error: err });
 
             // Act & Assert
-            await expect(applicationService.bulkCreateApplications('user-123', []))
+            await expect(applicationService.bulkCreateApplications('user-123', [], supabaseClient))
                 .rejects.toThrow();
         });
     });
@@ -171,7 +172,7 @@ describe('applications.service', () => {
                 applicationService.updateApplication('user-123', 1, {
                     status: 'Interviewing',
                     stage: null,
-                })
+                }, supabaseClient)
             ).rejects.toThrow('Conflicting event on this date');
         });
     });
@@ -182,7 +183,7 @@ describe('applications.service', () => {
             applicationRepository.findAll.mockResolvedValue({ data: [], error: null });
 
             // Act
-            const result = await applicationService.getAnalyticsMetrics('user-123');
+            const result = await applicationService.getAnalyticsMetrics('user-123', supabaseClient);
 
             // Assert
             expect(result).toEqual({
@@ -201,7 +202,7 @@ describe('applications.service', () => {
             });
 
             // Act & Assert
-            await expect(applicationService.getAnalyticsMetrics('user-123'))
+            await expect(applicationService.getAnalyticsMetrics('user-123', supabaseClient))
                 .rejects.toThrow('Metrics fetch failed');
         });
     });

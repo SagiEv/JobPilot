@@ -1,7 +1,7 @@
 const supabase = require('../supabaseClient');
 
-const findAllByApplicationId = async (applicationId) => {
-    return await supabase
+const findAllByApplicationId = async (applicationId, client) => {
+    return await client
         .from('application_history')
         .select(`
             *,
@@ -17,23 +17,23 @@ const findAllByApplicationId = async (applicationId) => {
         .order('event_date', { ascending: false });
 };
 
-const create = async (historyData) => {
-    return await supabase
+const create = async (historyData, client) => {
+    return await client
         .from('application_history')
         .insert(historyData)
         .select()
         .single();
 };
 
-const remove = async (id) => {
-    return await supabase
+const remove = async (id, client) => {
+    return await client
         .from('application_history')
         .delete()
         .eq('id', id);
 };
 
-const update = async (id, historyData) => {
-    return await supabase
+const update = async (id, historyData, client) => {
+    return await client
         .from('application_history')
         .update(historyData)
         .eq('id', id)

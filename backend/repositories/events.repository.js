@@ -1,4 +1,3 @@
-const supabase = require('../supabaseClient');
 
 // Map frontend camelCase fields → DB snake_case columns
 const toDb = (data) => {
@@ -15,7 +14,7 @@ const fromDb = (row) => {
     return { ...rest, allDay: all_day ?? false };
 };
 
-const findAll = async (userId) => {
+const findAll = async (userId, client) => {
     const result = await supabase
         .from('events')
         .select('*')
@@ -25,7 +24,7 @@ const findAll = async (userId) => {
     return result;
 };
 
-const create = async (userId, eventData) => {
+const create = async (userId, eventData, client) => {
     const payload = toDb(eventData);
     if (userId) payload.user_id = userId;
 
@@ -38,7 +37,7 @@ const create = async (userId, eventData) => {
     return result;
 };
 
-const update = async (userId, id, updateData) => {
+const update = async (userId, id, updateData, client) => {
     const result = await supabase
         .from('events')
         .update(toDb(updateData))
@@ -50,7 +49,7 @@ const update = async (userId, id, updateData) => {
     return result;
 };
 
-const remove = async (userId, id) => {
+const remove = async (userId, id, client) => {
     return await supabase
         .from('events')
         .delete()

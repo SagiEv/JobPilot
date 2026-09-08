@@ -6,6 +6,7 @@ exports.signup = async (req, res) => {
         const result = await userService.registerUser(email, password);
         res.status(201).json(result);
     } catch (err) {
+        console.error("Signup error:", err);
         res.status(400).json({ error: err.message });
     }
 };

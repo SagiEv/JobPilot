@@ -8,7 +8,7 @@ const emailLogsRepo = require('../repositories/email-logs.repository');
 exports.getSettings = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await settingsService.getSettings(userId, req.token);
+        const data = await settingsService.getSettings(userId, req.supabase);
         res.json(data);
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -18,7 +18,7 @@ exports.getSettings = async (req, res) => {
 exports.putSettings = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await settingsService.saveSettings(userId, req.body, req.token);
+        const data = await settingsService.saveSettings(userId, req.body, req.supabase);
         res.json(data);
     } catch (err) {
         res.status(400).json({ error: err.message });

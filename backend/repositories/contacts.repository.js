@@ -1,10 +1,10 @@
-const supabase = require('../supabaseClient');
 
-const findAll = async (userId) => {
-    return await supabase.from('contacts').select('*').eq('user_id', userId);
+
+const findAll = async (userId, client) => {
+    return await client.from('contacts').select('*').eq('user_id', userId);
 };
 
-const create = async (userId, contactData) => {
+const create = async (userId, contactData, client) => {
     return await supabase
         .from('contacts')
         .insert([{ ...contactData, user_id: userId }])
@@ -12,7 +12,7 @@ const create = async (userId, contactData) => {
         .single();
 };
 
-const update = async (userId, id, updateData) => {
+const update = async (userId, id, updateData, client) => {
     return await supabase
         .from('contacts')
         .update(updateData)
@@ -22,7 +22,7 @@ const update = async (userId, id, updateData) => {
         .single();
 };
 
-const remove = async (userId, id) => {
+const remove = async (userId, id, client) => {
     return await supabase
         .from('contacts')
         .delete()
@@ -30,7 +30,7 @@ const remove = async (userId, id) => {
         .eq('user_id', userId);
 };
 
-const bulkInsert = async (userId, contacts) => {
+const bulkInsert = async (userId, contacts, client) => {
     return await supabase
         .from('contacts')
         .insert(contacts.map(contact => ({ ...contact, user_id: userId })))

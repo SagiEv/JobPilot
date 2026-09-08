@@ -22,7 +22,7 @@ describe('applicationHistory.service', () => {
 
             // Assert
             expect(result).toEqual(mockHistory);
-            expect(applicationHistoryRepo.findAllByApplicationId).toHaveBeenCalledWith(1);
+            expect(applicationHistoryRepo.findAllByApplicationId).toHaveBeenCalledWith(1, undefined);
         });
 
         it('should throw on repo error', async () => {
@@ -50,7 +50,7 @@ describe('applicationHistory.service', () => {
 
             // Assert
             expect(result).toEqual(expect.objectContaining({ id: 5 }));
-            expect(applicationHistoryRepo.create).toHaveBeenCalledWith(historyData);
+            expect(applicationHistoryRepo.create).toHaveBeenCalledWith(historyData, undefined);
         });
 
         it('should throw on repo error', async () => {
@@ -78,7 +78,7 @@ describe('applicationHistory.service', () => {
 
             // Assert
             expect(result).toEqual(expect.objectContaining({ notes: 'Updated notes' }));
-            expect(applicationHistoryRepo.update).toHaveBeenCalledWith(1, updateData);
+            expect(applicationHistoryRepo.update).toHaveBeenCalledWith(1, updateData, undefined);
         });
 
         it('should throw on repo error', async () => {
@@ -121,7 +121,7 @@ describe('applicationHistory.service', () => {
 
             // Assert
             expect(applicationHistoryRepo.create).toHaveBeenCalledWith(
-                expect.objectContaining({ event_type: 'Note', notes: 'My note' })
+                expect.objectContaining({ event_type: 'Note', notes: 'My note' }), null
             );
         });
 
@@ -138,7 +138,7 @@ describe('applicationHistory.service', () => {
 
             // Assert
             expect(applicationHistoryRepo.create).toHaveBeenCalledWith(
-                expect.objectContaining({ event_type: 'Interview', interview_id: 42 })
+                expect.objectContaining({ event_type: 'Interview', interview_id: 42 }), null
             );
         });
 
@@ -156,7 +156,7 @@ describe('applicationHistory.service', () => {
 
             // Assert
             expect(applicationHistoryRepo.create).toHaveBeenCalledWith(
-                expect.objectContaining({ event_date: eventDate })
+                expect.objectContaining({ event_date: eventDate }), null
             );
         });
 

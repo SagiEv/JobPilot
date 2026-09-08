@@ -5,7 +5,7 @@ const generateCv = async (req, res) => {
     try {
         const { cvData, personalInfo } = req.body;
 
-        const pdfBuffer = await cvService.generateCvPdf(personalInfo, cvData);
+        const pdfBuffer = await cvService.generateCvPdf(personalInfo, cvData, req.supabase);
 
         // EXACT implementation of your working headers
         res.set({
@@ -25,7 +25,7 @@ const generateCv = async (req, res) => {
 const previewCvJsonResume = async (req, res) => {
     try {
         const { cvData, personalInfo, themeId } = req.body;
-        const html = await jsonresumeService.previewCvJsonResume(personalInfo, cvData, themeId);
+        const html = await jsonresumeService.previewCvJsonResume(personalInfo, cvData, themeId, req.supabase);
         res.status(200).send(html);
     } catch (error) {
         console.error('Error generating JSONResume preview:', error);
@@ -36,7 +36,7 @@ const previewCvJsonResume = async (req, res) => {
 const generateCvJsonResume = async (req, res) => {
     try {
         const { cvData, personalInfo, themeId } = req.body;
-        const pdfBuffer = await jsonresumeService.generateCvJsonResumePdf(personalInfo, cvData, themeId);
+        const pdfBuffer = await jsonresumeService.generateCvJsonResumePdf(personalInfo, cvData, themeId, req.supabase);
         
         res.set({
             'Content-Type': 'application/pdf',

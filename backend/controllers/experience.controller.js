@@ -4,7 +4,7 @@ const experienceService = require('../services/experience.service');
 const getProjects = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await experienceService.getAllProjects(userId);
+        const data = await experienceService.getAllProjects(userId, req.supabase);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -14,7 +14,7 @@ const getProjects = async (req, res) => {
 const postProject = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await experienceService.createProject(userId, req.body);
+        const data = await experienceService.createProject(userId, req.body, req.supabase);
         res.json(data);
     } catch (error) {
         console.error("Experience Project Creation Error:", error);
@@ -25,7 +25,7 @@ const postProject = async (req, res) => {
 const putProject = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await experienceService.updateProject(userId, req.params.id, req.body);
+        const data = await experienceService.updateProject(userId, req.params.id, req.body, req.supabase);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -35,7 +35,7 @@ const putProject = async (req, res) => {
 const deleteProject = async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await experienceService.deleteProject(userId, req.params.id);
+        const result = await experienceService.deleteProject(userId, req.params.id, req.supabase);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -46,7 +46,7 @@ const deleteProject = async (req, res) => {
 const getExpText = async (req, res) => {
     try {
         const userId = req.user.id;
-        const data = await experienceService.getExperienceText(userId);
+        const data = await experienceService.getExperienceText(userId, req.supabase);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -57,7 +57,7 @@ const putExpText = async (req, res) => {
     try {
         const userId = req.user.id;
         const { id, text } = req.body;
-        const data = await experienceService.saveExperienceText(userId, id, text);
+        const data = await experienceService.saveExperienceText(userId, id, text, req.supabase);
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });

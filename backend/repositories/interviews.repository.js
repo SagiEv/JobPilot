@@ -1,13 +1,13 @@
-const supabase = require('../supabaseClient');
 
-const findAll = async (userId) => {
+
+const findAll = async (userId, client) => {
     return await supabase
         .from('interviews')
         .select('*')
         .eq('user_id', userId);
 };
 
-const create = async (userId, interviewData) => {
+const create = async (userId, interviewData, client) => {
     return await supabase
         .from('interviews')
         .insert({ ...interviewData, user_id: userId })
@@ -15,7 +15,7 @@ const create = async (userId, interviewData) => {
         .single();
 };
 
-const update = async (userId, id, updateData) => {
+const update = async (userId, id, updateData, client) => {
     return await supabase
         .from('interviews')
         .update(updateData)
@@ -25,7 +25,7 @@ const update = async (userId, id, updateData) => {
         .single();
 };
 
-const remove = async (userId, id) => {
+const remove = async (userId, id, client) => {
     return await supabase
         .from('interviews')
         .delete()
@@ -33,7 +33,7 @@ const remove = async (userId, id) => {
         .eq('user_id', userId);
 };
 
-const getAnalysisReports = async (userId) => {
+const getAnalysisReports = async (userId, client) => {
     return await supabase
         .from('ai_analysis_reports')
         .select('*')
@@ -41,7 +41,7 @@ const getAnalysisReports = async (userId) => {
         .order('created_at', { ascending: false });
 };
 
-const saveAnalysisReport = async (userId, reportData) => {
+const saveAnalysisReport = async (userId, reportData, client) => {
     return await supabase
         .from('ai_analysis_reports')
         .insert({

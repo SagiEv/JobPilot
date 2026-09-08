@@ -78,7 +78,8 @@ describe('profile.service', () => {
             // Assert
             expect(profileRepository.updateProfile).toHaveBeenCalledWith(
                 'user-123',
-                expect.objectContaining({ cv_data: { summary: 'test' }, website: 'gh.com/me' })
+                expect.objectContaining({ cv_data: { summary: 'test' }, website: 'gh.com/me' }),
+                undefined
             );
         });
 

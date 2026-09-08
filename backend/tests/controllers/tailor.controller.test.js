@@ -28,7 +28,7 @@ describe('tailor.controller', () => {
 
             await controller.tailorCv(req, res);
 
-            expect(jobService.createJob).toHaveBeenCalledWith('user-uuid-123', 'tailor_cv');
+            expect(jobService.createJob).toHaveBeenCalledWith('user-uuid-123', 'tailor_cv', undefined);
             expect(res.status).toHaveBeenCalledWith(202);
             expect(res.json).toHaveBeenCalledWith({ jobId: 'job-uuid', status: 'pending' });
         });

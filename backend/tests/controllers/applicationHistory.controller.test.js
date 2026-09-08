@@ -13,6 +13,7 @@ describe('applicationHistory.controller', () => {
             const { req, res } = buildReqRes({ params: { id: 1 } });
             historyService.getHistoryByApplicationId.mockResolvedValue([{ id: 1 }]);
             await controller.getHistory(req, res);
+            expect(historyService.getHistoryByApplicationId).toHaveBeenCalledWith(1, req.supabase);
             expect(res.json).toHaveBeenCalledWith([{ id: 1 }]);
         });
 
@@ -38,7 +39,8 @@ describe('applicationHistory.controller', () => {
                     event_type: 'Note',
                     notes: 'Great call',
                     with_who: 'Recruiter',
-                })
+                }),
+                req.supabase
             );
             expect(res.json).toHaveBeenCalledWith({ id: 10 });
         });
