@@ -14,13 +14,13 @@ exports.tailorCv = async (req, res) => {
         const useProfile = use_profile_cv === 'true' || use_profile_cv === true;
 
         // 1. Create Job in DB
-        const jobId = await jobService.createJob(userId, 'tailor_cv');
+        const jobId = await jobService.createJob(userId, 'tailor_cv', req.supabase);
 
         // 2. Return Job ID immediately to frontend
         res.status(202).json({ jobId, status: 'pending' });
 
         // 3. Start async execution in background (do not await)
-        tailorService.runTailoringAsync(userId, jobId, job_description, mode, useProfile, cv_file, req.token, pipeline_mode)
+        tailorService.runTailoringAsync(userId, jobId, job_description, mode, useProfile, cv_file, req.supabase, pipeline_mode)
             .catch(err => console.error("Async tailoring background error:", err));
 
     } catch (err) {
@@ -32,7 +32,7 @@ exports.tailorCv = async (req, res) => {
 exports.getJobStatus = async (req, res) => {
     try {
         const jobId = req.params.id;
-        const job = await jobService.getJob(jobId);
+        const job = await jobService.getJob(jobId, req.supabase);
         
         // Ensure user owns job
         if (job.user_id !== req.user.id) {

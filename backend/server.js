@@ -69,10 +69,12 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
-  startMailPolling();
-  startRssPolling();
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
+    startMailPolling();
+    startRssPolling();
+  });
+}
 
 module.exports = app;

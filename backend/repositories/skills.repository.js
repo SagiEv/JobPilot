@@ -1,11 +1,11 @@
-const supabase = require('../supabaseClient');
+
 const { getEmbedding } = require('../services/embedding.service');
 
-const findAll = async (userId) => {
-    return await supabase.from('skills').select('*').eq('user_id', userId);
+const findAll = async (userId, client) => {
+    return await client.from('skills').select('*').eq('user_id', userId);
 };
 
-const create = async (userId, skillData) => {
+const create = async (userId, skillData, client) => {
     const textToEmbed = `${skillData.name || ''} ${skillData.category || ''} ${skillData.level || ''}`;
     const embedding = await getEmbedding(textToEmbed);
 
@@ -16,10 +16,10 @@ const create = async (userId, skillData) => {
         .single();
 };
 
-const update = async (userId, id, updateData) => {
+const update = async (userId, id, updateData, client) => {
     let embedding = undefined;
     if (updateData.name !== undefined || updateData.category !== undefined || updateData.level !== undefined) {
-        const { data: current } = await supabase.from('skills').select('*').eq('id', id).single();
+        const { data: current } = await client.from('skills').select('*').eq('id', id).single();
         if (current) {
             const merged = { ...current, ...updateData };
             const textToEmbed = `${merged.name || ''} ${merged.category || ''} ${merged.level || ''}`;
@@ -39,7 +39,7 @@ const update = async (userId, id, updateData) => {
         .single();
 };
 
-const remove = async (userId, id) => {
+const remove = async (userId, id, client) => {
     return await supabase
         .from('skills')
         .delete()

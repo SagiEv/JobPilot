@@ -16,8 +16,8 @@ const loginUser = async (email, password) => {
     };
 };
 
-const refreshUserSession = async (token) => {
-    const { data, error } = await userRepository.refresh(token);
+const refreshUserSession = async (refresh_token) => {
+    const { data, error } = await userRepository.refresh(refresh_token);
     if (error) throw new Error(error.message);
     return data.session;
 };

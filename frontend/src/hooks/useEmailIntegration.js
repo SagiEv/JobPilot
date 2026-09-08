@@ -44,7 +44,7 @@ export function useEmailIntegration() {
     const disconnectGoogle = async () => {
         try {
             await disconnectMutation.mutateAsync();
-        } catch (err) {
+        } catch {
             throw new Error('Failed to disconnect');
         }
     };
@@ -53,7 +53,7 @@ export function useEmailIntegration() {
         try {
             setSyncing(true);
             await syncMutation.mutateAsync();
-        } catch (err) {
+        } catch {
             throw new Error('Failed to start sync');
         } finally {
             setSyncing(false);

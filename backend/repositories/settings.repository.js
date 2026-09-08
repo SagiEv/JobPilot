@@ -1,15 +1,12 @@
-const supabase = require('../supabaseClient');
 
 const TABLE = 'app_settings';
 
-const findSettings = async (userId, token = null) => {
-    const client = token ? supabase.createAuthClient(token) : supabase;
+const findSettings = async (userId, client) => {
     return await client.from(TABLE).select('*').eq('user_id', userId).limit(1).maybeSingle();
 };
 
-const upsertSettings = async (userId, data, token = null) => {
-    const client = token ? supabase.createAuthClient(token) : supabase;
-    const { data: existing } = await findSettings(userId, token);
+const upsertSettings = async (userId, data, client) => {
+    const { data: existing } = await findSettings(userId, client);
 
     if (existing) {
         return await client

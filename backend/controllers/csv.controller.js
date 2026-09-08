@@ -65,7 +65,7 @@ exports.uploadAndParse = async (req, res) => {
         let userTimezone = 'Asia/Jerusalem';
         if (req.user && req.user.id) {
             try {
-                const settings = await settingsService.getSettings(req.user.id, req.token);
+                const settings = await settingsService.getSettings(req.user.id, req.supabase);
                 if (settings.timezone) {
                     userTimezone = settings.timezone;
                 }

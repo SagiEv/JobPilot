@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/auth');
 
 router.get('/', authenticate, async (req, res) => {
     try {
-        const { data, error } = await notificationsRepo.findByUser(req.user.id);
+        const { data, error } = await notificationsRepo.findByUser(req.user.id, req.supabase);
         if (error) throw new Error(error.message);
         res.json(data || []);
     } catch (err) {
@@ -15,7 +15,7 @@ router.get('/', authenticate, async (req, res) => {
 
 router.get('/unread-count', authenticate, async (req, res) => {
     try {
-        const { count, error } = await notificationsRepo.countUnread(req.user.id);
+        const { count, error } = await notificationsRepo.countUnread(req.user.id, req.supabase);
         if (error) throw new Error(error.message);
         res.json({ count });
     } catch (err) {
@@ -25,7 +25,7 @@ router.get('/unread-count', authenticate, async (req, res) => {
 
 router.put('/:id/read', authenticate, async (req, res) => {
     try {
-        const { error } = await notificationsRepo.markRead(req.user.id, req.params.id);
+        const { error } = await notificationsRepo.markRead(req.user.id, req.params.id, req.supabase);
         if (error) throw new Error(error.message);
         res.json({ success: true });
     } catch (err) {
@@ -35,7 +35,7 @@ router.put('/:id/read', authenticate, async (req, res) => {
 
 router.put('/read-all', authenticate, async (req, res) => {
     try {
-        const { error } = await notificationsRepo.markAllRead(req.user.id);
+        const { error } = await notificationsRepo.markAllRead(req.user.id, req.supabase);
         if (error) throw new Error(error.message);
         res.json({ success: true });
     } catch (err) {

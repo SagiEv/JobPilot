@@ -6,7 +6,7 @@ const getAll = async (req, res) => {
             return res.status(401).json({ error: "Unauthorized: User not found" });
         }
         const userId = req.user.id;
-        const data = await applicationService.getAllApplications(userId);
+        const data = await applicationService.getAllApplications(userId, req.supabase);
 
         console.log("getAllApplications: data", data);
 
@@ -22,9 +22,10 @@ const create = async (req, res) => {
             return res.status(401).json({ error: "Unauthorized: User not found" });
         }
         const userId = req.user.id;
-        const data = await applicationService.createApplication(userId, req.body);
+        const data = await applicationService.createApplication(userId, req.body, req.supabase);
         res.json(data);
     } catch (error) {
+        console.error("POST /api/applications error:", error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -35,7 +36,7 @@ const update = async (req, res) => {
             return res.status(401).json({ error: "Unauthorized: User not found" });
         }
         const userId = req.user.id;
-        const data = await applicationService.updateApplication(userId, req.params.id, req.body);
+        const data = await applicationService.updateApplication(userId, req.params.id, req.body, req.supabase);
         res.json(data);
     } catch (error) {
         if (error.code === 'CONFLICTING_EVENT') {
@@ -48,7 +49,7 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await applicationService.deleteApplication(userId, req.params.id);
+        const result = await applicationService.deleteApplication(userId, req.params.id, req.supabase);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -58,7 +59,7 @@ const remove = async (req, res) => {
 const bulkCreate = async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await applicationService.bulkCreateApplications(userId, req.body.applications);
+        const result = await applicationService.bulkCreateApplications(userId, req.body.applications, req.supabase);
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message, details: error.details });
@@ -68,8 +69,20 @@ const bulkCreate = async (req, res) => {
 const getAnalyticsMetrics = async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await applicationService.getAnalyticsMetrics(userId);
+        const result = await applicationService.getAnalyticsMetrics(userId, req.supabase);
         res.json(result);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const getDailyStats = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { start, end } = req.query;
+        if (!start || !end) return res.status(400).json({ error: "Missing start or end query parameters" });
+        const stats = await applicationService.getDailyStats(userId, start, end, req.supabase);
+        res.json(stats);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -81,5 +94,6 @@ module.exports = {
     update,
     remove,
     bulkCreate,
-    getAnalyticsMetrics
+    getAnalyticsMetrics,
+    getDailyStats
 };

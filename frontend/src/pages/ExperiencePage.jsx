@@ -1,11 +1,10 @@
-import { useToast } from '../components/ToastProvider';
+
 import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState } from 'react';
 import { useExperience } from '../hooks/useExperience';
 import PageLoader from '../components/PageLoader';
 
 const ExperiencePage = () => {
-    const { addToast } = useToast();
     const confirm = useConfirm();
     const { projects, loading, experienceText, setExperienceText, addProject, updateProject, deleteProject } = useExperience();
 

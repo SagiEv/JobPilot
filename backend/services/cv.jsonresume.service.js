@@ -69,7 +69,7 @@ function resolveRender(themeModule) {
 // Preview (HTML) — replaces the old Handlebars approach
 // ---------------------------------------------------------------------------
 
-const previewCvJsonResume = async (personalInfo, cvData, themeId) => {
+const previewCvJsonResume = async (personalInfo, cvData, themeId, supabaseClient) => {
     if (!themeId || !THEME_PACKAGES[themeId]) {
         console.warn(`[cv.jsonresume] Unknown themeId "${themeId}", falling back to "${DEFAULT_THEME}"`);
         themeId = DEFAULT_THEME;
@@ -91,7 +91,7 @@ const previewCvJsonResume = async (personalInfo, cvData, themeId) => {
 // PDF generation — Puppeteer pipeline unchanged from the previous version
 // ---------------------------------------------------------------------------
 
-const generateCvJsonResumePdf = async (personalInfo, cvData, themeId) => {
+const generateCvJsonResumePdf = async (personalInfo, cvData, themeId, supabaseClient) => {
     const html = await previewCvJsonResume(personalInfo, cvData, themeId);
 
     // Launch puppeteer with args for Oracle Cloud server + local Windows dev

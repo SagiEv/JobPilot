@@ -116,7 +116,15 @@ CREATE TABLE IF NOT EXISTS app_settings (
   claude_token_encrypted TEXT,
   gemini_token_encrypted TEXT,
   ai_routing JSONB,
-  timezone TEXT DEFAULT 'Asia/Jerusalem'
+  timezone TEXT DEFAULT 'Asia/Jerusalem',
+  smtp_enabled BOOLEAN DEFAULT false,
+  smtp_email TEXT,
+  smtp_host TEXT,
+  smtp_port INTEGER DEFAULT 993,
+  smtp_password_encrypted TEXT,
+  smtp_last_uid TEXT,
+  smtp_poll_interval_min INTEGER DEFAULT 15,
+  smtp_last_polled_at TIMESTAMP WITH TIME ZONE
 );
 
 

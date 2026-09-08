@@ -20,35 +20,36 @@ function App() {
   })
 
   // Applications state
-  const [applications, setApplications] = useState([])
+  const [applications, setApplications] = useState(() => {
+    const saved = localStorage.getItem('jobpilot_applications')
+    return saved ? JSON.parse(saved) : []
+  })
   const [appUploadStatus, setAppUploadStatus] = useState('')
   const [selectedApp, setSelectedApp] = useState(null)
   const [showAppModal, setShowAppModal] = useState(false)
 
   // Network state
-  const [contacts, setContacts] = useState([
-    { id: 1, name: 'Tom Kessler', company: 'Google', phone: '+972 54 000 1234', relation: 'Colleague' },
-    { id: 2, name: 'Sara Levi', company: 'Meta', phone: '+972 52 555 9090', relation: 'Friend' },
-    { id: 3, name: 'Maya Rosenberg', company: 'Wix', phone: '+972 50 321 8877', relation: 'Recruiter' }
-  ])
+  const [contacts, setContacts] = useState(() => {
+    const saved = localStorage.getItem('jobpilot_contacts')
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'Tom Kessler', company: 'Google', phone: '+972 54 000 1234', relation: 'Colleague' },
+      { id: 2, name: 'Sara Levi', company: 'Meta', phone: '+972 52 555 9090', relation: 'Friend' },
+      { id: 3, name: 'Maya Rosenberg', company: 'Wix', phone: '+972 50 321 8877', relation: 'Recruiter' }
+    ]
+  })
   const [netUploadStatus, setNetUploadStatus] = useState('')
   const [showContactModal, setShowContactModal] = useState(false)
   const [newContact, setNewContact] = useState({ name: '', company: '', phone: '', relation: 'Colleague' })
 
   // Search state
-  const [searchKeywords, setSearchKeywords] = useState(['Backend Engineer', 'Node.js', 'Python'])
-  const [antiKeywords, setAntiKeywords] = useState(['3+ years experience', 'Senior Manager'])
+  const [searchKeywords] = useState(['Backend Engineer', 'Node.js', 'Python'])
+  const [antiKeywords] = useState(['3+ years experience', 'Senior Manager'])
 
   // Tailor state
   const [tailorJobDesc, setTailorJobDesc] = useState('')
-  const [tailorOutput, setTailorOutput] = useState('Tailored CV suggestions will appear here once n8n processes the job description and your CV…')
+  const [tailorOutput] = useState('Tailored CV suggestions will appear here once n8n processes the job description and your CV…')
 
   useEffect(() => {
-    const savedApps = localStorage.getItem('jobpilot_applications')
-    const savedContacts = localStorage.getItem('jobpilot_contacts')
-    if (savedApps) setApplications(JSON.parse(savedApps))
-    if (savedContacts) setContacts(JSON.parse(savedContacts))
-
     checkHealth()
       .then(() => setBackendStatus('connected'))
       .catch(() => setBackendStatus('disconnected'))

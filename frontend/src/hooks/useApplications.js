@@ -1,9 +1,8 @@
-import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
+import { useToast } from '../components/ToastProvider';
 
 // Map between DB schema and frontend state
 const fromDb = (row) => ({
@@ -24,8 +23,6 @@ const fromDb = (row) => ({
 });
 
 const toDb = (app) => {
-    const { addToast } = useToast();
-    const confirm = useConfirm();
     const data = {
         company: app.COMPANY || '',
         role_id: app.ROLE_ID || '',
@@ -46,6 +43,7 @@ const toDb = (app) => {
 
 export function useApplications() {
     const queryClient = useQueryClient();
+    const { addToast } = useToast();
     const [status, setStatus] = useState('');
     const [conflict, setConflict] = useState(null);
     const [dismissedGhostings, setDismissedGhostings] = useState(() => {
@@ -90,6 +88,7 @@ export function useApplications() {
         },
         onMutate: async (newApp) => {
             await queryClient.cancelQueries({ queryKey: ['applications'] });
+            await queryClient.cancelQueries({ queryKey: ['dailyStats'] });
             const previousApps = queryClient.getQueryData(['applications']);
             queryClient.setQueryData(['applications'], (old) => 
                 old?.map(app => app.id === newApp.id ? { 
@@ -145,6 +144,7 @@ export function useApplications() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
         }
     });
 
@@ -154,6 +154,7 @@ export function useApplications() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
         }
     });
 

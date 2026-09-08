@@ -1,5 +1,6 @@
 const supabase = require('../supabaseClient');
 
+
 const authenticate = async (req, res, next) => {
     try {
         console.log('[AUTH] Incoming request:', {
@@ -18,24 +19,33 @@ const authenticate = async (req, res, next) => {
 
         console.log('[AUTH] Token received (truncated):', token?.slice(0, 10) + '...');
 
-        const { data, error } = await supabase.auth.getUser(token);
-
-        if (error) {
-            console.error('[AUTH] Supabase error while verifying token:', error.message || error);
-        }
-
-        if (!data?.user) {
-            console.warn('[AUTH] Invalid or expired token');
+        let user;
+        try {
+            const { data, error } = await supabase.auth.getUser(token);
+            if (error || !data?.user) {
+                console.error('[AUTH] Supabase verification error:', error?.message);
+                return res.status(401).json({ error: 'Invalid or expired token' });
+            }
+            user = {
+                id: data.user.id,
+                email: data.user.email,
+                role: data.user.role || 'authenticated'
+            };
+        } catch (error) {
+            console.error('[AUTH] Unexpected verification error:', error.message);
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
         console.log('[AUTH] Auth success for user:', {
-            id: data.user.id,
-            email: data.user.email,
+            id: user.id,
+            email: user.email,
         });
 
-        req.user = data.user;
+        req.user = user;
         req.token = token;
+        // Inject dynamic authenticated client for DI
+        req.supabase = supabase.createAuthClient(token);
+        
         next();
 
     } catch (err) {

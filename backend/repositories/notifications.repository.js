@@ -1,12 +1,11 @@
-const supabase = require('../supabaseClient');
 
 const TABLE = 'notifications';
 
-const findByUser = async (userId) => {
+const findByUser = async (userId, client) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    return await supabase
+    return await client
         .from(TABLE)
         .select('*')
         .eq('user_id', userId)
@@ -14,8 +13,8 @@ const findByUser = async (userId) => {
         .order('created_at', { ascending: false });
 };
 
-const countUnread = async (userId) => {
-    const { count, error } = await supabase
+const countUnread = async (userId, client) => {
+    const { count, error } = await client
         .from(TABLE)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
@@ -23,24 +22,24 @@ const countUnread = async (userId) => {
     return { count: count || 0, error };
 };
 
-const insert = async (notifData) => {
-    return await supabase
+const insert = async (notifData, client) => {
+    return await client
         .from(TABLE)
         .insert(notifData)
         .select()
         .single();
 };
 
-const markRead = async (userId, id) => {
-    return await supabase
+const markRead = async (userId, id, client) => {
+    return await client
         .from(TABLE)
         .update({ read: true })
         .eq('id', id)
         .eq('user_id', userId);
 };
 
-const markAllRead = async (userId) => {
-    return await supabase
+const markAllRead = async (userId, client) => {
+    return await client
         .from(TABLE)
         .update({ read: true })
         .eq('user_id', userId)

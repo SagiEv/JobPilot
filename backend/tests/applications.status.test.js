@@ -52,7 +52,7 @@ describe('applications.service - updateApplication', () => {
         expect(applicationRepository.update).toHaveBeenCalledWith('user123', 1, expect.objectContaining({
             status: 'Interviewing',
             stage: 'Technical Interview'
-        }));
+        }), undefined);
     });
 
     it('should update status normally for a new forward event', async () => {
@@ -134,7 +134,7 @@ describe('applications.service - updateApplication', () => {
             status: 'Rejected',
             rejection_reason: 'Not a fit',
             automatic_rejection: true
-        }));
+        }), undefined);
     });
 
     it('should clear rejection fields when status moves away from rejected', async () => {
@@ -157,7 +157,7 @@ describe('applications.service - updateApplication', () => {
             status: 'Offer',
             rejection_reason: null,
             automatic_rejection: false
-        }));
+        }), undefined);
     });
 
     it('should pass notes and with_who to logChange', async () => {
@@ -188,7 +188,8 @@ describe('applications.service - updateApplication', () => {
             'Discussed salary and next steps', // notes
             'John HR', // with_who
             null, // interviewId
-            null // event_date
+            null, // event_date
+            undefined // token
         );
     });
 });

@@ -1,5 +1,3 @@
-const supabase = require('../supabaseClient');
-
 // Map frontend camelCase fields → DB snake_case columns
 const toDb = (data) => {
     const { allDay, time, ...rest } = data; // strip 'time' (already merged into date) and map allDay
@@ -15,8 +13,8 @@ const fromDb = (row) => {
     return { ...rest, allDay: all_day ?? false };
 };
 
-const findAll = async (userId) => {
-    const result = await supabase
+const findAll = async (userId, client) => {
+    const result = await client
         .from('events')
         .select('*')
         .eq('user_id', userId)
@@ -25,11 +23,11 @@ const findAll = async (userId) => {
     return result;
 };
 
-const create = async (userId, eventData) => {
+const create = async (userId, eventData, client) => {
     const payload = toDb(eventData);
     if (userId) payload.user_id = userId;
 
-    const result = await supabase
+    const result = await client
         .from('events')
         .insert([payload])
         .select()
@@ -38,8 +36,8 @@ const create = async (userId, eventData) => {
     return result;
 };
 
-const update = async (userId, id, updateData) => {
-    const result = await supabase
+const update = async (userId, id, updateData, client) => {
+    const result = await client
         .from('events')
         .update(toDb(updateData))
         .eq('id', id)
@@ -50,8 +48,8 @@ const update = async (userId, id, updateData) => {
     return result;
 };
 
-const remove = async (userId, id) => {
-    return await supabase
+const remove = async (userId, id, client) => {
+    return await client
         .from('events')
         .delete()
         .eq('id', id)

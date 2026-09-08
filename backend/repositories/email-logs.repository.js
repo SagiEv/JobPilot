@@ -1,9 +1,8 @@
-const supabase = require('../supabaseClient');
 
 const TABLE = 'email_logs';
 
-const findByUser = async (userId, limit = 50) => {
-    return await supabase
+const findByUser = async (userId, limit = 50, client) => {
+    return await client
         .from(TABLE)
         .select('*')
         .eq('user_id', userId)
@@ -11,8 +10,8 @@ const findByUser = async (userId, limit = 50) => {
         .limit(limit);
 };
 
-const findByMessageId = async (userId, messageId) => {
-    return await supabase
+const findByMessageId = async (userId, messageId, client) => {
+    return await client
         .from(TABLE)
         .select('id')
         .eq('user_id', userId)
@@ -20,17 +19,17 @@ const findByMessageId = async (userId, messageId) => {
         .maybeSingle();
 };
 
-const insert = async (logData) => {
-    return await supabase
+const insert = async (logData, client) => {
+    return await client
         .from(TABLE)
         .insert(logData)
         .select()
         .single();
 };
 
-const bulkInsert = async (logs) => {
+const bulkInsert = async (logs, client) => {
     if (!logs.length) return { data: [], error: null };
-    return await supabase
+    return await client
         .from(TABLE)
         .insert(logs)
         .select();

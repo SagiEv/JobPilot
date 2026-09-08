@@ -1,12 +1,10 @@
 import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
 import { useState, useRef, useEffect } from 'react';
 import { runTailor } from '../services/dataService';
 import { useJobs } from '../components/JobProvider';
 
 export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode = 'standard') => {
     const { addToast } = useToast();
-    const confirm = useConfirm();
     const { startJob, lastTailorResult, setLastTailorResult } = useJobs();
     const [jobUrl, setJobUrl] = useState('');
     const [jobDescription, setJobDescription] = useState('');
@@ -22,11 +20,14 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
     const fileInputRef = useRef(null);
 
     // Sync if initial mode changes (e.g., settings loaded)
-    useEffect(() => {
+    const [prevInitialMode, setPrevInitialMode] = useState(initialPipelineMode);
+    if (initialPipelineMode !== prevInitialMode) {
+        setPrevInitialMode(initialPipelineMode);
         setPipelineMode(initialPipelineMode);
-    }, [initialPipelineMode]);
+    }
 
     // Restore state if a job completes while on this page or navigated here via toast
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (lastTailorResult) {
             setOutput(lastTailorResult.tailored_cv || 'CV Tailored Successfully.');
@@ -39,6 +40,7 @@ export const useTailor = (groqReady, activeProvider = 'AI', initialPipelineMode 
             setLastTailorResult(null); // Clear it so it doesn't re-trigger
         }
     }, [lastTailorResult, setLastTailorResult]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];

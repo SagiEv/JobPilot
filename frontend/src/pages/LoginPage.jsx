@@ -1,11 +1,10 @@
 import { useToast } from '../components/ToastProvider';
-import { useConfirm } from '../components/ConfirmProvider';
+
 import React, { useState, useEffect } from 'react';
 import { authService, handleRedirectSession } from '../services/authService';
 
 const LoginPage = () => {
     const { addToast } = useToast();
-    const confirm = useConfirm();
     const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -50,7 +49,7 @@ const LoginPage = () => {
     const handleGoogle = async () => {
         try {
             await authService.loginWithGoogle(window.location.origin);
-        } catch (err) {
+        } catch {
             setError("Google Login failed");
         }
     };

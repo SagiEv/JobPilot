@@ -1,7 +1,7 @@
 const profileRepository = require('../repositories/profile.repository');
 
-const getProfile = async (userId) => {
-    const { data, error } = await profileRepository.findFirstProfile(userId);
+const getProfile = async (userId, supabaseClient) => {
+    const { data, error } = await profileRepository.findFirstProfile(userId, supabaseClient);
 
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
 
@@ -19,7 +19,7 @@ const getProfile = async (userId) => {
     return profile;
 };
 
-const upsertProfile = async (userId, payload) => {
+const upsertProfile = async (userId, payload, supabaseClient) => {
     const { id, ...updateData } = payload;
 
     // Mapping frontend keys to database keys
@@ -33,8 +33,8 @@ const upsertProfile = async (userId, payload) => {
     }
 
     const { data, error } = id
-        ? await profileRepository.updateProfile(userId, updateData)
-        : await profileRepository.createProfile(userId, updateData);
+        ? await profileRepository.updateProfile(userId, updateData, supabaseClient)
+        : await profileRepository.createProfile(userId, updateData, supabaseClient);
 
     if (error) throw new Error(error.message);
     return data;

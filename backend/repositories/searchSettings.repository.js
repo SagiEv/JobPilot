@@ -1,33 +1,33 @@
-const supabase = require('../supabaseClient');
+
 
 // Settings
-const findSettings = async () => {
-    return await supabase.from('search_settings').select('*').single();
+const findSettings = async (userId, client) => {
+    return await client.from('search_settings').select('*').eq('user_id', userId).single();
 };
 
-const upsertSettings = async (id, updateData) => {
+const upsertSettings = async (userId, id, updateData, client) => {
     if (id) {
-        return await supabase.from('search_settings').update(updateData).eq('id', id).select().single();
+        return await client.from('search_settings').update(updateData).eq('id', id).eq('user_id', userId).select().single();
     } else {
-        return await supabase.from('search_settings').insert([updateData]).select().single();
+        return await client.from('search_settings').insert([{ ...updateData, user_id: userId }]).select().single();
     }
 };
 
 // Sites
-const findAllSites = async () => {
-    return await supabase.from('search_sites').select('*');
+const findAllSites = async (userId, client) => {
+    return await client.from('search_sites').select('*').eq('user_id', userId);
 };
 
-const createSite = async (siteData) => {
-    return await supabase.from('search_sites').insert([siteData]).select().single();
+const createSite = async (userId, siteData, client) => {
+    return await client.from('search_sites').insert([{ ...siteData, user_id: userId }]).select().single();
 };
 
-const updateSite = async (id, updateData) => {
-    return await supabase.from('search_sites').update(updateData).eq('id', id).select().single();
+const updateSite = async (userId, id, updateData, client) => {
+    return await client.from('search_sites').update(updateData).eq('id', id).eq('user_id', userId).select().single();
 };
 
-const removeSite = async (id) => {
-    return await supabase.from('search_sites').delete().eq('id', id);
+const removeSite = async (userId, id, client) => {
+    return await client.from('search_sites').delete().eq('id', id).eq('user_id', userId);
 };
 
 module.exports = {
