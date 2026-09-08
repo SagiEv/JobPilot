@@ -1,6 +1,7 @@
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 const { decrypt } = require('../utils/encryption');
+const { adminSupabase: supabase } = require('../supabaseClient');
 const { classifyEmail } = require('./email-classifier.service');
 const emailLogsRepo = require('../repositories/email-logs.repository');
 const applicationRepo = require('../repositories/applications.repository');
@@ -113,7 +114,7 @@ async function pollUserInbox(settings) {
             }
 
             // Fetch user's applications for classification
-            const { data: applications } = await applicationRepo.findAll(userId);
+            const { data: applications } = await applicationRepo.findAll(userId, supabase);
             if (!applications || applications.length === 0) {
                 console.log(`[MAIL POLLER] User ${userId} has no applications, skipping classification`);
                 // Still update polled timestamp
@@ -160,7 +161,7 @@ async function pollUserInbox(settings) {
                     const messageId = parsed.messageId || `uid-${msg.uid}`;
 
                     // Check if we already processed this message
-                    const { data: existingEmail } = await emailLogsRepo.findByMessageId(userId, messageId, supabaseClient);
+                    const { data: existingEmail } = await emailLogsRepo.findByMessageId(userId, messageId, supabase);
                     if (existingEmail) {
                         console.log(`[MAIL POLLER] Skipping already processed message ${messageId}`);
                         if (msg.uid && (!newLastUid || msg.uid > parseInt(newLastUid))) {
@@ -215,7 +216,7 @@ async function pollUserInbox(settings) {
                             await applicationRepo.update(userId, result.applicationId, {
                                 status: result.classifiedStatus,
                                 date: receivedAt.toISOString().split('T')[0]
-                            });
+                            }, supabase);
                             console.log(`[MAIL POLLER] Auto-updated application ${result.applicationId} → ${result.classifiedStatus} (confidence: ${result.confidence.toFixed(2)})`);
 
                             // Create in-app notification
@@ -237,7 +238,7 @@ async function pollUserInbox(settings) {
                                 body: `Status updated to "${result.classifiedStatus}" based on email from ${from}. Subject: "${subject.substring(0, 100)}"`,
                                 read: false,
                                 application_id: result.applicationId,
-                            });
+                            }, supabase);
                         }
                     }
 
@@ -252,7 +253,7 @@ async function pollUserInbox(settings) {
 
             // Bulk insert logs
             if (logsToInsert.length > 0) {
-                const { error: insertError } = await emailLogsRepo.bulkInsert(logsToInsert, supabaseClient);
+                const { error: insertError } = await emailLogsRepo.bulkInsert(logsToInsert, supabase);
                 if (insertError) {
                     console.error(`[MAIL POLLER] Failed to insert email logs:`, insertError.message);
                 }

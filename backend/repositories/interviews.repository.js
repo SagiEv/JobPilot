@@ -1,14 +1,14 @@
 
 
 const findAll = async (userId, client) => {
-    return await supabase
+    return await client
         .from('interviews')
         .select('*')
         .eq('user_id', userId);
 };
 
 const create = async (userId, interviewData, client) => {
-    return await supabase
+    return await client
         .from('interviews')
         .insert({ ...interviewData, user_id: userId })
         .select()
@@ -16,7 +16,7 @@ const create = async (userId, interviewData, client) => {
 };
 
 const update = async (userId, id, updateData, client) => {
-    return await supabase
+    return await client
         .from('interviews')
         .update(updateData)
         .eq('id', id)
@@ -26,7 +26,7 @@ const update = async (userId, id, updateData, client) => {
 };
 
 const remove = async (userId, id, client) => {
-    return await supabase
+    return await client
         .from('interviews')
         .delete()
         .eq('id', id)
@@ -34,7 +34,7 @@ const remove = async (userId, id, client) => {
 };
 
 const getAnalysisReports = async (userId, client) => {
-    return await supabase
+    return await client
         .from('ai_analysis_reports')
         .select('*')
         .eq('user_id', userId)
@@ -42,7 +42,7 @@ const getAnalysisReports = async (userId, client) => {
 };
 
 const saveAnalysisReport = async (userId, reportData, client) => {
-    return await supabase
+    return await client
         .from('ai_analysis_reports')
         .insert({
             user_id: userId,

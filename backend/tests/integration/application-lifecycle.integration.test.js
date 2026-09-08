@@ -34,7 +34,7 @@ describe('Integration: Application Lifecycle (Status Machine)', () => {
         });
         expect(created.status).toBe('Applied');
         expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
-            1, 'Application Added', null, 'Applied', null, null, 'Application created'
+            1, 'Application Added', null, 'Applied', null, null, 'Application created', '', null, null, undefined
         );
 
         // Step 2: Update to Interviewing / HR Screen
@@ -147,7 +147,7 @@ describe('Integration: Application Lifecycle (Status Machine)', () => {
         expect(applicationRepository.update).toHaveBeenCalledWith(userId, 1, expect.objectContaining({
             rejection_reason: null,
             automatic_rejection: false,
-        }));
+        }), undefined);
     });
 
     // ── Scenario 4: Conflict resolution — keep_both ───────────────────────
@@ -224,7 +224,7 @@ describe('Integration: Application Lifecycle (Status Machine)', () => {
         expect(applicationHistoryService.updateHistory).toHaveBeenCalledWith(10, expect.objectContaining({
             new_status: 'Interviewing',
             new_stage: 'HR Screen',
-        }));
+        }), undefined);
     });
 
     // ── Scenario 6: Duplicate event (same status, same stage, same date) ──

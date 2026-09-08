@@ -11,7 +11,7 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, supabaseClient = null, pipeline_mode = 'standard') => {
 
     // 1. Get AI configs
-    const aiConfigs = await settingsService.getAllAiConfigs(userId, token);
+    const aiConfigs = await settingsService.getAllAiConfigs(userId, supabaseClient);
     const routing = aiConfigs?.ai_routing?.cvTailoring || { provider: 'groq', model: null };
     
     // Validate provider token
@@ -139,12 +139,12 @@ const jobService = require('./job.service');
 
 const runTailoringAsync = async (userId, jobId, jobDescription, mode = 'full', useProfile = true, cvFile = null, supabaseClient = null, pipeline_mode = 'standard') => {
     try {
-        const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, token, pipeline_mode);
-        await jobService.completeJob(jobId, result);
+        const result = await runTailoring(userId, jobDescription, mode, useProfile, cvFile, supabaseClient, pipeline_mode);
+        await jobService.completeJob(jobId, result, supabaseClient);
     } catch (error) {
         // Pass the detail object directly if it exists, otherwise pass the string message
         const errorData = error.detail || error.message;
-        await jobService.failJob(jobId, errorData);
+        await jobService.failJob(jobId, errorData, supabaseClient);
     }
 };
 

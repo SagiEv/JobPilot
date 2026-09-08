@@ -5,7 +5,7 @@ const findByUser = async (userId, client) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    return await supabase
+    return await client
         .from(TABLE)
         .select('*')
         .eq('user_id', userId)
@@ -14,7 +14,7 @@ const findByUser = async (userId, client) => {
 };
 
 const countUnread = async (userId, client) => {
-    const { count, error } = await supabase
+    const { count, error } = await client
         .from(TABLE)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
@@ -23,7 +23,7 @@ const countUnread = async (userId, client) => {
 };
 
 const insert = async (notifData, client) => {
-    return await supabase
+    return await client
         .from(TABLE)
         .insert(notifData)
         .select()
@@ -31,7 +31,7 @@ const insert = async (notifData, client) => {
 };
 
 const markRead = async (userId, id, client) => {
-    return await supabase
+    return await client
         .from(TABLE)
         .update({ read: true })
         .eq('id', id)
@@ -39,7 +39,7 @@ const markRead = async (userId, id, client) => {
 };
 
 const markAllRead = async (userId, client) => {
-    return await supabase
+    return await client
         .from(TABLE)
         .update({ read: true })
         .eq('user_id', userId)

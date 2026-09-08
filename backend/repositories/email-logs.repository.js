@@ -2,7 +2,7 @@
 const TABLE = 'email_logs';
 
 const findByUser = async (userId, limit = 50, client) => {
-    return await supabase
+    return await client
         .from(TABLE)
         .select('*')
         .eq('user_id', userId)
@@ -11,7 +11,7 @@ const findByUser = async (userId, limit = 50, client) => {
 };
 
 const findByMessageId = async (userId, messageId, client) => {
-    return await supabase
+    return await client
         .from(TABLE)
         .select('id')
         .eq('user_id', userId)
@@ -20,7 +20,7 @@ const findByMessageId = async (userId, messageId, client) => {
 };
 
 const insert = async (logData, client) => {
-    return await supabase
+    return await client
         .from(TABLE)
         .insert(logData)
         .select()
@@ -29,7 +29,7 @@ const insert = async (logData, client) => {
 
 const bulkInsert = async (logs, client) => {
     if (!logs.length) return { data: [], error: null };
-    return await supabase
+    return await client
         .from(TABLE)
         .insert(logs)
         .select();

@@ -6,8 +6,8 @@ const { adminSupabase } = require('../supabaseClient');
  * @param {string} type - Job type (e.g. 'tailor_cv')
  * @returns {Promise<string>} jobId
  */
-async function createJob(userId, type) {
-    const { data, error } = await adminSupabase
+async function createJob(userId, type, client) {
+    const { data, error } = await client
         .from('ai_jobs')
         .insert([{ user_id: userId, type: type, status: 'pending' }])
         .select('id')
@@ -26,8 +26,8 @@ async function createJob(userId, type) {
  * @param {string} jobId - UUID of the job
  * @param {object} resultData - JSON data to save
  */
-async function completeJob(jobId, resultData) {
-    const { error } = await adminSupabase
+async function completeJob(jobId, resultData, client) {
+    const { error } = await client
         .from('ai_jobs')
         .update({ 
             status: 'completed', 
@@ -46,7 +46,7 @@ async function completeJob(jobId, resultData) {
  * @param {string} jobId - UUID of the job
  * @param {string|object} errorMessage - Error details
  */
-async function failJob(jobId, errorData) {
+async function failJob(jobId, errorData, client) {
     let message = "Unknown error";
     let result_data = null;
     
@@ -61,7 +61,7 @@ async function failJob(jobId, errorData) {
         message = errorData.message;
     }
     
-    const { error } = await adminSupabase
+    const { error } = await client
         .from('ai_jobs')
         .update({ 
             status: 'failed', 
@@ -80,8 +80,8 @@ async function failJob(jobId, errorData) {
  * Retrieves a job by ID
  * @param {string} jobId - UUID of the job
  */
-async function getJob(jobId) {
-    const { data, error } = await adminSupabase
+async function getJob(jobId, client) {
+    const { data, error } = await client
         .from('ai_jobs')
         .select('*')
         .eq('id', jobId)

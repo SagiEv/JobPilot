@@ -163,12 +163,12 @@ describe('Integration: Tailor Proxy (Node.js ↔ FastAPI)', () => {
         });
 
         await tailorService.runTailoringAsync(
-            user.id, 'job-123', 'React Developer at TechCorp', 'full', true, null, 'mock-token'
+            user.id, 'job-123', 'React Developer at TechCorp', 'full', true, null, sandbox
         );
 
         expect(jobService.completeJob).toHaveBeenCalledWith('job-123', expect.objectContaining({
             tailored_cv_markdown: '# Tailored',
-        }));
+        }), sandbox);
         expect(jobService.failJob).not.toHaveBeenCalled();
     });
 
@@ -207,10 +207,10 @@ describe('Integration: Tailor Proxy (Node.js ↔ FastAPI)', () => {
         });
 
         await tailorService.runTailoringAsync(
-            user.id, 'job-456', 'Engineer at Company', 'full', true, null, 'mock-token'
+            user.id, 'job-456', 'Engineer at Company', 'full', true, null, sandbox
         );
 
-        expect(jobService.failJob).toHaveBeenCalledWith('job-456', expect.anything());
+        expect(jobService.failJob).toHaveBeenCalledWith('job-456', expect.anything(), sandbox);
         expect(jobService.completeJob).not.toHaveBeenCalled();
     });
 
@@ -226,7 +226,7 @@ describe('Integration: Tailor Proxy (Node.js ↔ FastAPI)', () => {
         });
 
         await expect(
-            tailorService.runTailoring(user.id, 'Test job description', 'full', true, null, 'mock-token')
+            tailorService.runTailoring(user.id, 'Test job description', 'full', true, null, sandbox)
         ).rejects.toThrow(/groq.*not configured/i);
     });
 
@@ -264,7 +264,7 @@ describe('Integration: Tailor Proxy (Node.js ↔ FastAPI)', () => {
 
         mockAxios.post.mockResolvedValue({ data: { tailored_cv_markdown: '# CV' } });
 
-        await tailorService.runTailoring(user.id, 'React Developer at TechCorp', 'full', true, null, 'mock-token');
+        await tailorService.runTailoring(user.id, 'React Developer at TechCorp', 'full', true, null, sandbox);
 
         expect(mockAxios.post).toHaveBeenCalledWith(
             expect.stringContaining('/tailor'),

@@ -40,6 +40,16 @@ jest.mock('puppeteer', () => ({
     }),
 }));
 
+// Mock jwt to always return the sandbox's default user
+jest.mock('jsonwebtoken', () => ({
+    verify: jest.fn((token) => {
+        if (token === 'mock-integration-token') {
+            return { sub: 'user-uuid-123', email: 'test@example.com', role: 'authenticated' };
+        }
+        throw new Error('jwt malformed');
+    }),
+}));
+
 jest.mock('googleapis', () => ({
     google: {
         auth: { OAuth2: jest.fn().mockImplementation(() => ({

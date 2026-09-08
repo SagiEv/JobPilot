@@ -5,7 +5,7 @@ const findAll = async (userId, client) => {
 };
 
 const create = async (userId, contactData, client) => {
-    return await supabase
+    return await client
         .from('contacts')
         .insert([{ ...contactData, user_id: userId }])
         .select()
@@ -13,7 +13,7 @@ const create = async (userId, contactData, client) => {
 };
 
 const update = async (userId, id, updateData, client) => {
-    return await supabase
+    return await client
         .from('contacts')
         .update(updateData)
         .eq('id', id)
@@ -23,7 +23,7 @@ const update = async (userId, id, updateData, client) => {
 };
 
 const remove = async (userId, id, client) => {
-    return await supabase
+    return await client
         .from('contacts')
         .delete()
         .eq('id', id)
@@ -31,7 +31,7 @@ const remove = async (userId, id, client) => {
 };
 
 const bulkInsert = async (userId, contacts, client) => {
-    return await supabase
+    return await client
         .from('contacts')
         .insert(contacts.map(contact => ({ ...contact, user_id: userId })))
         .select();

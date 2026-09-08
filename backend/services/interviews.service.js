@@ -22,7 +22,9 @@ const createInterview = async (userId, data, supabaseClient) => {
             null,
             `Scheduled interview: ${newInterview.stage}`,
             newInterview.company,
-            newInterview.id
+            newInterview.id,
+            null,
+            supabaseClient
         );
     }
 
