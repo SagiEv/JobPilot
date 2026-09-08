@@ -15,7 +15,7 @@ describe('job.service', () => {
             supabase.__chain.single.mockResolvedValue({ data: { id: 'job-uuid' }, error: null });
 
             // Act
-            const result = await jobService.createJob('user-123', 'tailor_cv');
+            const result = await jobService.createJob('user-123', 'tailor_cv', supabase);
 
             // Assert
             expect(result).toBe('job-uuid');
@@ -27,7 +27,7 @@ describe('job.service', () => {
             supabase.__chain.single.mockResolvedValue({ data: null, error: { message: 'DB fail' } });
 
             // Act & Assert
-            await expect(jobService.createJob('user-123', 'tailor_cv'))
+            await expect(jobService.createJob('user-123', 'tailor_cv', supabase))
                 .rejects.toThrow('Failed to create background job');
         });
     });
@@ -39,7 +39,7 @@ describe('job.service', () => {
             supabase.__chain.then.mockImplementationOnce((resolve) => resolve({ error: null }));
 
             // Act
-            await jobService.completeJob('job-123', { tailored_cv: 'data' });
+            await jobService.completeJob('job-123', { tailored_cv: 'data' }, supabase);
 
             // Assert
             expect(supabase.__chain.update).toHaveBeenCalledWith(
@@ -54,7 +54,7 @@ describe('job.service', () => {
             supabase.__chain.then.mockImplementationOnce((resolve) => resolve({ error: null }));
 
             // Act
-            await jobService.failJob('job-123', 'Something broke');
+            await jobService.failJob('job-123', 'Something broke', supabase);
 
             // Assert
             expect(supabase.__chain.update).toHaveBeenCalledWith(
@@ -67,7 +67,7 @@ describe('job.service', () => {
             supabase.__chain.then.mockImplementationOnce((resolve) => resolve({ error: null }));
 
             // Act
-            await jobService.failJob('job-123', { error: 'Model too large', suggested_model: 'llama-3' });
+            await jobService.failJob('job-123', { error: 'Model too large', suggested_model: 'llama-3' }, supabase);
 
             // Assert
             expect(supabase.__chain.update).toHaveBeenCalledWith(
@@ -83,7 +83,7 @@ describe('job.service', () => {
             supabase.__chain.then.mockImplementationOnce((resolve) => resolve({ error: null }));
 
             // Act
-            await jobService.failJob('job-123', { message: 'Timeout' });
+            await jobService.failJob('job-123', { message: 'Timeout' }, supabase);
 
             // Assert
             expect(supabase.__chain.update).toHaveBeenCalledWith(
@@ -100,7 +100,7 @@ describe('job.service', () => {
             });
 
             // Act
-            const result = await jobService.getJob('job-123');
+            const result = await jobService.getJob('job-123', supabase);
 
             // Assert
             expect(result).toEqual(expect.objectContaining({ id: 'job-123' }));
@@ -111,7 +111,7 @@ describe('job.service', () => {
             supabase.__chain.single.mockResolvedValue({ data: null, error: { message: 'Not found' } });
 
             // Act & Assert
-            await expect(jobService.getJob('bad-id')).rejects.toThrow('Job not found');
+            await expect(jobService.getJob('bad-id', supabase)).rejects.toThrow('Job not found');
         });
     });
 });

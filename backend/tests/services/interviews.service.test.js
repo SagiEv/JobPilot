@@ -37,14 +37,15 @@ describe('interviews.service', () => {
             applicationHistoryService.logChange.mockResolvedValue({});
 
             // Act
-            const result = await interviewService.createInterview('user-123', {});
+            const mockClient = {};
+            const result = await interviewService.createInterview('user-123', {}, mockClient);
 
             // Assert
             expect(result).toEqual(interview);
             expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
                 5, 'Interview', null, null, null, null,
                 expect.stringContaining('Technical'),
-                expect.any(String), 10
+                expect.any(String), 10, null, mockClient
             );
         });
 
