@@ -1,14 +1,14 @@
 const supabase = require('../supabaseClient');
 
 const findFirstProfile = async (userId, client) => {
-    return await client.from('profile').select('*').eq('id', userId).single();
+    return await client.from('profile').select('*').eq('user_id', userId).single();
 };
 
 const updateProfile = async (userId, updateData, client) => {
     return await client
         .from('profile')
         .update(updateData)
-        .eq('id', userId)
+        .eq('user_id', userId)
         .select()
         .single();
 };
@@ -16,7 +16,7 @@ const updateProfile = async (userId, updateData, client) => {
 const createProfile = async (userId, updateData, client) => {
     return await client
         .from('profile')
-        .insert({ id: userId, ...updateData })
+        .insert({ user_id: userId, ...updateData })
         .select()
         .single();
 };
