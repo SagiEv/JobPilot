@@ -8,6 +8,9 @@ ALTER TABLE search_settings ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES aut
 ALTER TABLE search_sites ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE profile ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+-- events already has user_id, but add foreign key constraint if missing
+ALTER TABLE events DROP CONSTRAINT IF EXISTS events_user_id_fkey;
+ALTER TABLE events ADD CONSTRAINT events_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- Drop "Dev Allow All" policies for these tables if they exist
 DROP POLICY IF EXISTS "Dev Allow All" ON applications;
@@ -19,6 +22,8 @@ DROP POLICY IF EXISTS "Dev Allow All" ON search_settings;
 DROP POLICY IF EXISTS "Dev Allow All" ON search_sites;
 DROP POLICY IF EXISTS "Dev Allow All" ON skills;
 DROP POLICY IF EXISTS "Dev Allow All" ON profile;
+DROP POLICY IF EXISTS "Dev Allow All" ON events;
+DROP POLICY IF EXISTS "Dev Allow All" ON application_history;
 
 -- Enable RLS
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
@@ -30,6 +35,8 @@ ALTER TABLE search_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE search_sites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE application_history ENABLE ROW LEVEL SECURITY;
 
 -- Applications RLS
 CREATE POLICY "Users can view their own applications" ON applications FOR SELECT USING (auth.uid() = user_id);
@@ -42,6 +49,42 @@ CREATE POLICY "Users can view their own contacts" ON contacts FOR SELECT USING (
 CREATE POLICY "Users can insert their own contacts" ON contacts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own contacts" ON contacts FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own contacts" ON contacts FOR DELETE USING (auth.uid() = user_id);
+
+-- Events RLS
+CREATE POLICY "Users can view their own events" ON events FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own events" ON events FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own events" ON events FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own events" ON events FOR DELETE USING (auth.uid() = user_id);
+
+-- Application History RLS
+CREATE POLICY "Users can view their own application history" ON application_history FOR SELECT USING (
+    EXISTS (
+        SELECT 1 FROM applications
+        WHERE applications.id = application_history.application_id
+        AND applications.user_id = auth.uid()
+    )
+);
+CREATE POLICY "Users can insert their own application history" ON application_history FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM applications
+        WHERE applications.id = application_history.application_id
+        AND applications.user_id = auth.uid()
+    )
+);
+CREATE POLICY "Users can update their own application history" ON application_history FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM applications
+        WHERE applications.id = application_history.application_id
+        AND applications.user_id = auth.uid()
+    )
+);
+CREATE POLICY "Users can delete their own application history" ON application_history FOR DELETE USING (
+    EXISTS (
+        SELECT 1 FROM applications
+        WHERE applications.id = application_history.application_id
+        AND applications.user_id = auth.uid()
+    )
+);
 
 -- Projects RLS
 CREATE POLICY "Users can view their own projects" ON projects FOR SELECT USING (auth.uid() = user_id);

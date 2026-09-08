@@ -1,4 +1,3 @@
-
 // Map frontend camelCase fields → DB snake_case columns
 const toDb = (data) => {
     const { allDay, time, ...rest } = data; // strip 'time' (already merged into date) and map allDay
@@ -15,7 +14,7 @@ const fromDb = (row) => {
 };
 
 const findAll = async (userId, client) => {
-    const result = await supabase
+    const result = await client
         .from('events')
         .select('*')
         .eq('user_id', userId)
@@ -28,7 +27,7 @@ const create = async (userId, eventData, client) => {
     const payload = toDb(eventData);
     if (userId) payload.user_id = userId;
 
-    const result = await supabase
+    const result = await client
         .from('events')
         .insert([payload])
         .select()
@@ -38,7 +37,7 @@ const create = async (userId, eventData, client) => {
 };
 
 const update = async (userId, id, updateData, client) => {
-    const result = await supabase
+    const result = await client
         .from('events')
         .update(toDb(updateData))
         .eq('id', id)
@@ -50,7 +49,7 @@ const update = async (userId, id, updateData, client) => {
 };
 
 const remove = async (userId, id, client) => {
-    return await supabase
+    return await client
         .from('events')
         .delete()
         .eq('id', id)

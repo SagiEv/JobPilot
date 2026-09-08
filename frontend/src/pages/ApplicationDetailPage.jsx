@@ -427,8 +427,8 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                 
                                                 // Handling interview details state
                                                 const isMostRecentInterview = evt.event_type === 'Interview Scheduled' && idx === combinedHistory.findIndex(e => e.event_type === 'Interview Scheduled');
-                                                const hasInterviewDetails = evt.isEvent || evt.interviews || (evt.interview_id && evt.notes) || evt.with_who;
-                                                const isExpanded = expandedEvents[evt.id] !== undefined ? expandedEvents[evt.id] : isMostRecentInterview;
+                                                const hasDetails = evt.isEvent || evt.interviews || evt.notes || evt.with_who;
+                                                const isExpanded = expandedEvents[evt.id] !== undefined ? expandedEvents[evt.id] : (isMostRecentInterview || evt.event_type === 'Note');
                                                 
                                                 return (
                                                     <div key={evt.id} style={{ display: 'flex', gap: '10px' }}>
@@ -440,11 +440,11 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                                 <div style={{ flex: 1 }}>
                                                                     <div 
-                                                                        style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-main)', cursor: hasInterviewDetails ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                                                        onClick={() => hasInterviewDetails && toggleEvent(evt.id)}
+                                                                        style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-main)', cursor: hasDetails ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                                        onClick={() => hasDetails && toggleEvent(evt.id)}
                                                                     >
                                                                         {evt.event_type} {evt.title ? `- ${evt.title}` : ''} {evt.interviews?.stage ? `- ${evt.interviews.stage}` : ''}
-                                                                        {hasInterviewDetails && (
+                                                                        {hasDetails && (
                                                                             <span style={{ fontSize: '9px', color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
                                                                         )}
                                                                     </div>
