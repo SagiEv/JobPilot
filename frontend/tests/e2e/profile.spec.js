@@ -2,10 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Profile Page - Experience Editor', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to profile page assuming standard routing and auth is set up
-    await page.goto('/profile');
+    // Navigate to root (Dashboard) which uses the globally authenticated state
+    await page.goto('/');
+    
+    // Navigate to profile via UI
+    await page.getByText('Profile', { exact: true }).first().click();
+    
     // Wait for the page to load by waiting for the CV & Preferences card
-    await page.waitForSelector('text=CV & Preferences');
+    await expect(page.getByText('CV & Preferences')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display toast when trying to add empty experience', async ({ page }) => {
@@ -21,6 +25,6 @@ test.describe('Profile Page - Experience Editor', () => {
 
     // Verify toast appears
     const toast = page.locator('text=Please fill out the existing experience before adding a new one.');
-    await expect(toast).toBeVisible();
+    await expect(toast).toBeVisible({ timeout: 5000 });
   });
 });
