@@ -201,19 +201,19 @@ const ProfilePage = () => {
                     <div className="field-label">Target Roles</div>
                     <input className="field-input" value={profile.roles || ''} onChange={(e) => handleProfileChange('roles', e.target.value)} />
                 </div>
+
+                <ExperienceEditor 
+                    experiences={profile.experiences || []} 
+                    onChange={(newExps) => handleProfileChange('experiences', newExps)} 
+                    status="current" 
+                />
+
+                <ExperienceEditor 
+                    experiences={profile.experiences || []} 
+                    onChange={(newExps) => handleProfileChange('experiences', newExps)} 
+                    status="previous" 
+                />
             </div>
-
-            <ExperienceEditor 
-                experiences={profile.experiences || []} 
-                onChange={(newExps) => handleProfileChange('experiences', newExps)} 
-                status="current" 
-            />
-
-            <ExperienceEditor 
-                experiences={profile.experiences || []} 
-                onChange={(newExps) => handleProfileChange('experiences', newExps)} 
-                status="previous" 
-            />
 
             <EditableCVField title="Summary" value={profile.cvData?.summary} onChange={(val) => handleProfileChange('cvData.summary', val)} />
             <EditableCVField title="Technical Skills" value={profile.cvData?.technicalSkills} onChange={(val) => handleProfileChange('cvData.technicalSkills', val)} />

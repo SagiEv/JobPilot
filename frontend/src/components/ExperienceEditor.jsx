@@ -1,11 +1,60 @@
 import React from 'react';
 import { useRolesBank } from '../hooks/useRolesBank';
+import { useToast } from './ToastProvider';
+import { useConfirm } from './ConfirmProvider';
 
 const ExperienceEditor = ({ experiences = [], onChange, status }) => {
     const { data: rolesBank = [], isLoading } = useRolesBank();
+    const { addToast } = useToast();
+    const confirm = useConfirm();
     const localExperiences = experiences.filter(exp => exp.status === status);
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
+        if (localExperiences.length > 0) {
+            const lastExp = localExperiences[localExperiences.length - 1];
+            const isFilled = lastExp.start_date || lastExp.end_date || (lastExp.years !== null && lastExp.years !== undefined && lastExp.years > 0);
+            if (!isFilled) {
+                addToast("Please fill out the existing experience before adding a new one.", "error");
+                return;
+            }
+        }
+
+        if (status === 'current' && localExperiences.length >= 1) {
+            const choice = await confirm(
+                "You already have a current role. What would you like to do?",
+                {
+                    buttons: [
+                        { text: 'Cancel', value: 'cancel', style: 'secondary' },
+                        { text: 'Move to Previous', value: 'move', style: 'secondary' },
+                        { text: 'Overwrite', value: 'overwrite', style: 'primary' }
+                    ]
+                }
+            );
+
+            if (choice === 'cancel' || !choice) return;
+
+            let updated = [...experiences];
+            if (choice === 'move') {
+                const currentExpIndex = updated.findIndex(e => e.status === 'current');
+                if (currentExpIndex > -1) {
+                    updated[currentExpIndex] = { ...updated[currentExpIndex], status: 'previous' };
+                }
+            } else if (choice === 'overwrite') {
+                updated = updated.filter(e => e.status !== 'current');
+            }
+
+            const newExp = {
+                role_id: rolesBank.length > 0 ? rolesBank[0].id : '',
+                status: 'current',
+                years: 0,
+                start_date: '',
+                end_date: ''
+            };
+            updated.push(newExp);
+            onChange(updated);
+            return;
+        }
+
         const newExp = {
             role_id: rolesBank.length > 0 ? rolesBank[0].id : '',
             status,
@@ -63,9 +112,11 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
     if (isLoading) return <div>Loading roles...</div>;
 
     return (
-        <div className="card">
-            <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {status === 'current' ? 'Current Experience' : 'Previous Experience'}
+        <div className="experience-editor" style={{ marginTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <div className="field-label" style={{ margin: 0, fontSize: '1.1em', fontWeight: 600 }}>
+                    {status === 'current' ? 'Current Experience' : 'Previous Experience'}
+                </div>
                 <button className="btn btn-sm btn-primary" onClick={handleAdd}>+ Add Role</button>
             </div>
             

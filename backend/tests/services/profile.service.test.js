@@ -135,6 +135,24 @@ describe('profile.service', () => {
             );
         });
 
+        it('should throw error if multiple current experiences are provided', async () => {
+            // Arrange
+            profileRepository.updateProfile.mockResolvedValue({
+                data: { id: 1 }, error: null,
+            });
+
+            // Act & Assert
+            await expect(profileService.upsertProfile('user-123', {
+                id: 1, 
+                experiences: [
+                    { role_id: 1, status: 'current' },
+                    { role_id: 2, status: 'current' }
+                ]
+            })).rejects.toThrow('Only one current experience is allowed.');
+
+            expect(profileRepository.syncUserExperiences).not.toHaveBeenCalled();
+        });
+
         it('should call createProfile when no id', async () => {
             // Arrange
             profileRepository.createProfile.mockResolvedValue({

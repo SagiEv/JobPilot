@@ -44,6 +44,9 @@ const upsertProfile = async (userId, payload, supabaseClient) => {
     if (error) throw new Error(error.message);
 
     if (experiences !== undefined) {
+        if (experiences.filter(exp => exp.status === 'current').length > 1) {
+            throw new Error("Only one current experience is allowed.");
+        }
         await profileRepository.syncUserExperiences(userId, experiences, supabaseClient);
     }
 
