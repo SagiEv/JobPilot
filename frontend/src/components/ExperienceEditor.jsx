@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRolesBank } from '../hooks/useRolesBank';
 import { useToast } from './ToastProvider';
 import { useConfirm } from './ConfirmProvider';
@@ -8,6 +8,22 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
     const { addToast } = useToast();
     const confirm = useConfirm();
     const localExperiences = experiences.filter(exp => exp.status === status);
+    const [showAll, setShowAll] = useState(false);
+
+    // Calculate the most recent previous experience to display by default
+    const mostRecentIndex = useMemo(() => {
+        if (status !== 'previous' || localExperiences.length === 0) return -1;
+        let latestIdx = 0;
+        let latestDate = 0;
+        localExperiences.forEach((exp, i) => {
+            const dateVal = exp.end_date ? new Date(exp.end_date).getTime() : (exp.start_date ? new Date(exp.start_date).getTime() : 0);
+            if (dateVal > latestDate) {
+                latestDate = dateVal;
+                latestIdx = i;
+            }
+        });
+        return latestIdx;
+    }, [localExperiences, status]);
 
     const handleAdd = async () => {
         if (localExperiences.length > 0) {
@@ -124,9 +140,14 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                 <div style={{ color: 'var(--t2)', padding: '10px 0' }}>No {status} experience added.</div>
             )}
             
-            {localExperiences.map((exp, index) => (
-                <div key={index} className="field-group" style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            {localExperiences.map((exp, index) => {
+                if (status === 'previous' && !showAll && localExperiences.length > 1 && index !== mostRecentIndex) {
+                    return null;
+                }
+                
+                return (
+                    <div key={index} className="field-group" style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                         <div style={{ flex: 1, marginRight: '10px' }}>
                             <div className="field-label">Role</div>
                             <select 
@@ -201,7 +222,21 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                         )}
                     </div>
                 </div>
-            ))}
+                );
+            })}
+
+            {status === 'previous' && localExperiences.length > 1 && (
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                    <button 
+                        type="button"
+                        className="btn btn-sm" 
+                        onClick={() => setShowAll(!showAll)}
+                        style={{ color: 'var(--primary)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '5px 10px' }}
+                    >
+                        {showAll ? '▲ Hide older roles' : `▼ Show all previous roles (${localExperiences.length})`}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
