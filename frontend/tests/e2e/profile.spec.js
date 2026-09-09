@@ -5,6 +5,9 @@ test.describe('Profile Page - Experience Editor', () => {
     // Navigate to root (Dashboard) which uses the globally authenticated state
     await page.goto('/');
     
+    // Ensure Dashboard is fully loaded before trying to click sidebar items
+    await expect(page.getByText('Dashboard', { exact: true }).first()).toBeVisible({ timeout: 10000 });
+    
     // Navigate to profile via UI
     await page.getByText('Profile', { exact: true }).first().click();
     

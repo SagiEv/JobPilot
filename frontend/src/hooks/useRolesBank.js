@@ -8,6 +8,10 @@ export function useRolesBank() {
         queryFn: async () => {
             const response = await apiClient.get('/api/roles-bank');
             return response.data || [];
-        }
+        },
+        staleTime: Infinity,
+        gcTime: 1000 * 60 * 60 * 24, // 24 hours
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
     });
 }
