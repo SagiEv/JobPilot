@@ -14,6 +14,10 @@ describe('profile.service', () => {
                 data: { id: 1, cv_data: { summary: 'My CV' }, website: null },
                 error: null,
             });
+            profileRepository.findUserExperiences.mockResolvedValue({
+                data: [],
+                error: null,
+            });
 
             // Act
             const result = await profileService.getProfile('user-123');
@@ -27,6 +31,10 @@ describe('profile.service', () => {
             // Arrange
             profileRepository.findFirstProfile.mockResolvedValue({
                 data: { id: 1, website: 'github.com/user' },
+                error: null,
+            });
+            profileRepository.findUserExperiences.mockResolvedValue({
+                data: [],
                 error: null,
             });
 
@@ -43,12 +51,16 @@ describe('profile.service', () => {
                 data: null,
                 error: { code: 'PGRST116', message: 'Not found' },
             });
+            profileRepository.findUserExperiences.mockResolvedValue({
+                data: [],
+                error: null,
+            });
 
             // Act
             const result = await profileService.getProfile('user-123');
 
             // Assert
-            expect(result).toEqual({});
+            expect(result).toEqual({ experiences: [] });
         });
 
         it('should throw on non-PGRST116 error', async () => {
@@ -61,6 +73,24 @@ describe('profile.service', () => {
             // Act & Assert
             await expect(profileService.getProfile('user-123')).rejects.toThrow('real error');
         });
+
+        it('should fetch and attach user experiences', async () => {
+            // Arrange
+            profileRepository.findFirstProfile.mockResolvedValue({
+                data: { id: 1 },
+                error: null,
+            });
+            profileRepository.findUserExperiences.mockResolvedValue({
+                data: [{ id: 1, status: 'current', years: 2 }],
+                error: null,
+            });
+
+            // Act
+            const result = await profileService.getProfile('user-123');
+
+            // Assert
+            expect(result.experiences).toEqual([{ id: 1, status: 'current', years: 2 }]);
+        });
     });
 
     describe('upsertProfile', () => {
@@ -69,6 +99,7 @@ describe('profile.service', () => {
             profileRepository.updateProfile.mockResolvedValue({
                 data: { id: 1 }, error: null,
             });
+            profileRepository.syncUserExperiences.mockResolvedValue();
 
             // Act
             await profileService.upsertProfile('user-123', {
@@ -79,6 +110,27 @@ describe('profile.service', () => {
             expect(profileRepository.updateProfile).toHaveBeenCalledWith(
                 'user-123',
                 expect.objectContaining({ cv_data: { summary: 'test' }, website: 'gh.com/me' }),
+                undefined
+            );
+            expect(profileRepository.syncUserExperiences).not.toHaveBeenCalled();
+        });
+
+        it('should call syncUserExperiences when experiences array is provided', async () => {
+            // Arrange
+            profileRepository.updateProfile.mockResolvedValue({
+                data: { id: 1 }, error: null,
+            });
+            profileRepository.syncUserExperiences.mockResolvedValue();
+
+            // Act
+            await profileService.upsertProfile('user-123', {
+                id: 1, experiences: [{ role_id: 1, status: 'current' }],
+            });
+
+            // Assert
+            expect(profileRepository.syncUserExperiences).toHaveBeenCalledWith(
+                'user-123',
+                [{ role_id: 1, status: 'current' }],
                 undefined
             );
         });
