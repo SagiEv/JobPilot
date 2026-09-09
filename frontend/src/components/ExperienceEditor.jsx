@@ -136,8 +136,21 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                 <button className="btn btn-sm btn-primary" onClick={handleAdd}>+ Add Role</button>
             </div>
             
-            {localExperiences.length === 0 && (
-                <div style={{ color: 'var(--t2)', padding: '10px 0' }}>No {status} experience added.</div>
+            {localExperiences.length === 0 && status === 'current' && (
+                <div className="junior-banner" style={{
+                    background: 'linear-gradient(135deg, var(--accent-light, #e8f0fe), rgba(255,255,255,0.5))',
+                    border: '1px dashed var(--accent, #1a6cf5)',
+                    borderRadius: 'var(--r-lg, 12px)',
+                    padding: '20px',
+                    textAlign: 'center',
+                    margin: '10px 0'
+                }}>
+                    <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>🌱</div>
+                    <h3 style={{ margin: '0 0 5px 0', color: 'var(--accent, #1a6cf5)', fontWeight: '600' }}>Starting Fresh!</h3>
+                    <p style={{ margin: 0, color: 'var(--t2)', fontSize: '0.95em', lineHeight: '1.4' }}>
+                        It looks like you're at the beginning of your journey. Add a role to get started, or keep it this way if you're a junior!
+                    </p>
+                </div>
             )}
             
             {localExperiences.map((exp, index) => {
