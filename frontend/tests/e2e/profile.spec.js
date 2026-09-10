@@ -11,8 +11,8 @@ test.describe('Profile Page - Experience Editor', () => {
     // Navigate to profile via UI using robust locator
     await page.locator('.nav-item').filter({ hasText: /^Profile$/ }).click();
     
-    // Wait for the Profile page to load by looking for its main heading
-    await expect(page.getByRole('heading', { name: 'My Profile' })).toBeVisible({ timeout: 10000 });
+    // Wait for the Profile page to load by looking for the Personal Info section
+    await expect(page.locator('text=Personal Info').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should display toast when trying to add empty experience', async ({ page }) => {
