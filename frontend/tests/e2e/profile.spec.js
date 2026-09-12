@@ -8,11 +8,17 @@ test.describe('Profile Page - Experience Editor', () => {
     // Ensure Dashboard is fully loaded by waiting for its specific heading
     await expect(page.getByRole('heading', { name: 'Welcome back, Job Hunter!' })).toBeVisible({ timeout: 10000 });
     
-    // Navigate to profile via UI using robust locator
-    await page.locator('.nav-item').filter({ hasText: /^Profile$/ }).click();
-    
-    // Wait for the Profile page to load by looking for the Personal Info section
-    await expect(page.locator('text=Personal Info').first()).toBeVisible({ timeout: 10000 });
+    // Navigate to profile via sidebar and wait for the profile API to finish
+    const profileResponsePromise = page.waitForResponse(
+      resp => resp.url().includes('/api/profile') && resp.request().method() === 'GET',
+      { timeout: 15000 }
+    );
+    await page.getByText('Profile', { exact: true }).click();
+    await profileResponsePromise;
+
+    // Wait for the Profile page to finish rendering (loader must disappear)
+    await expect(page.locator('.profile-grid')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Personal Info').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should display toast when trying to add empty experience', async ({ page }) => {
