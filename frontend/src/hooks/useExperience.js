@@ -4,19 +4,12 @@ import apiClient, { getAccessToken } from '../services/apiClient';
 export function useExperience() {
     const queryClient = useQueryClient();
 
-    const { data: { projects = [], experienceTextObj = { id: null, text: '' } } = {}, isLoading: loading } = useQuery({
+    const { data: { projects = [] } = {}, isLoading: loading } = useQuery({
         enabled: !!getAccessToken(),
         queryKey: ['experience'],
         queryFn: async () => {
-            const [projRes, textRes] = await Promise.all([
-                apiClient.get('/api/experience/projects'),
-                apiClient.get('/api/experience/text')
-            ]);
-            let textObj = { id: null, text: '' };
-            if (textRes.data && textRes.data.text) {
-                textObj = textRes.data;
-            }
-            return { projects: projRes.data || [], experienceTextObj: textObj };
+            const projRes = await apiClient.get('/api/experience/projects');
+            return { projects: projRes.data || [] };
         }
     });
 
@@ -53,15 +46,6 @@ export function useExperience() {
         }
     });
 
-    const updateTextMutation = useMutation({
-        mutationFn: async ({ id, text }) => {
-            const res = await apiClient.put('/api/experience/text', { id, text });
-            return res.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['experience'] });
-        }
-    });
 
     const addProject = async (data) => {
         return addProjectMutation.mutateAsync(data);
@@ -97,24 +81,10 @@ export function useExperience() {
         return deleteProjectMutation.mutateAsync(id);
     };
 
-    const setExperienceText = async (newText) => {
-        // Optimistic update
-        queryClient.setQueryData(['experience'], (old) => {
-            if (!old) return old;
-            return {
-                ...old,
-                experienceTextObj: { ...old.experienceTextObj, text: newText }
-            };
-        });
-        
-        return updateTextMutation.mutateAsync({ id: experienceTextObj.id, text: newText });
-    };
 
     return {
         projects,
         loading,
-        experienceText: experienceTextObj.text,
-        setExperienceText,
         addProject,
         updateProject,
         deleteProject

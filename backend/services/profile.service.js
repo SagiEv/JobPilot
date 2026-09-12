@@ -7,6 +7,11 @@ const getProfile = async (userId, supabaseClient) => {
 
     let profile = data || {};
 
+    const { data: experiencesData, error: expError } = await profileRepository.findUserExperiences(userId, supabaseClient);
+    if (expError) throw new Error(expError.message);
+
+    profile.experiences = experiencesData || [];
+
     // Transformation logic
     if (profile.cv_data) {
         profile.cvData = profile.cv_data;
@@ -20,7 +25,7 @@ const getProfile = async (userId, supabaseClient) => {
 };
 
 const upsertProfile = async (userId, payload, supabaseClient) => {
-    const { id, ...updateData } = payload;
+    const { id, experiences, ...updateData } = payload;
 
     // Mapping frontend keys to database keys
     if ('cvData' in updateData) {
@@ -37,6 +42,14 @@ const upsertProfile = async (userId, payload, supabaseClient) => {
         : await profileRepository.createProfile(userId, updateData, supabaseClient);
 
     if (error) throw new Error(error.message);
+
+    if (experiences !== undefined) {
+        if (experiences.filter(exp => exp.status === 'current').length > 1) {
+            throw new Error("Only one current experience is allowed.");
+        }
+        await profileRepository.syncUserExperiences(userId, experiences, supabaseClient);
+    }
+
     return data;
 };
 

@@ -30,6 +30,7 @@ const { startMailPolling } = require('./cron/mail-poll-cron');
 const notificationsRoutes = require('./routes/notifications.routes');
 const rssRoutes = require('./routes/rss.routes');
 const { startRssPolling } = require('./cron/rss-poll-cron');
+const rolesRoutes = require('./routes/roles.routes');
 
 // --- Mount Routes ---
 app.use('/auth', userRoutes);
@@ -49,6 +50,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/rss-feeds', rssRoutes);
+app.use('/api/roles-bank', rolesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

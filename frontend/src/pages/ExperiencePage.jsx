@@ -6,13 +6,11 @@ import PageLoader from '../components/PageLoader';
 
 const ExperiencePage = () => {
     const confirm = useConfirm();
-    const { projects, loading, experienceText, setExperienceText, addProject, updateProject, deleteProject } = useExperience();
+    const { projects, loading, addProject, updateProject, deleteProject } = useExperience();
 
     // Modals/Forms State
     const [projectModal, setProjectModal] = useState({ show: false, mode: 'add', id: null });
-    const [showExpForm, setShowExpForm] = useState(false);
     const [formData, setFormData] = useState({ name: '', tech: '', summary: '', link: '' });
-    const [tempExp, setTempExp] = useState(experienceText);
 
     const handleProjectSubmit = (e) => {
         e.preventDefault();
@@ -43,37 +41,10 @@ const ExperiencePage = () => {
                     <h2 className="section-title">Portfolio</h2>
                 </div>
                 <div className="page-header__actions" style={{ marginLeft: 'auto' }}>
-                    {!experienceText && !showExpForm && (
-                        <button className="btn btn-sm" onClick={() => { setTempExp(''); setShowExpForm(true); }}>+ Add Experience</button>
-                    )}
                     <button className="btn btn-primary btn-sm" onClick={() => setProjectModal({ show: true, mode: 'add', id: null })}>+ Add Project</button>
                 </div>
             </div>
 
-            {/* 1. Experience Section: Conditional Rendering */}
-            {showExpForm ? (
-                <div className="card experience-summary-card">
-                    <div className="card-title">Edit Professional Experience</div>
-                    <textarea
-                        className="textarea"
-                        value={tempExp}
-                        onChange={(e) => setTempExp(e.target.value)}
-                        style={{ minHeight: '150px', marginBottom: '15px' }}
-                    />
-                    <div className="btn-group">
-                        <button className="btn btn-primary btn-sm" onClick={() => { setExperienceText(tempExp); setShowExpForm(false); }}>Save</button>
-                        <button className="btn btn-sm" onClick={() => setShowExpForm(false)}>Cancel</button>
-                    </div>
-                </div>
-            ) : experienceText ? (
-                <div className="card experience-summary-card view-mode">
-                    <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        Professional Experience
-                        <button className="btn-edit-text" onClick={() => { setTempExp(experienceText); setShowExpForm(true); }}>Edit</button>
-                    </div>
-                    <p className="experience-display-text">{experienceText}</p>
-                </div>
-            ) : null}
 
             {/* 2. Projects Grid with Hover Actions */}
             <div className="projects-section">
