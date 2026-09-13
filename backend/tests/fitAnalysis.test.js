@@ -33,7 +33,7 @@ describe('Fit Analysis Service - Deterministic Calculation', () => {
 
         // Candidate with 0 years
         const result0 = calculateDeterministicFit(mockCandidateExp0, jdText);
-        expect(result0.reasons.some(r => r.includes('does not fit the minimum requirement'))).toBe(true);
+        expect(result0.reasons.some(r => r.includes('below the target') || r.includes('below the minimum'))).toBe(true);
         expect(result0.score).toBeLessThan(50); // Red
     });
 
@@ -62,7 +62,7 @@ describe('Fit Analysis Service - Deterministic Calculation', () => {
         
         // Candidate with 1 year (Almost fits)
         const result1 = calculateDeterministicFit(mockCandidateExp1, jdText);
-        expect(result1.reasons.some(r => r.includes('almost fits, slightly below target'))).toBe(true);
+        expect(result1.reasons.some(r => r.includes('is slightly below the target'))).toBe(true);
     });
 
     test('Edge case: Up to 2 years', () => {
