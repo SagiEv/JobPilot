@@ -1,4 +1,4 @@
-const applicationsService = require('../services/applications.service');
+const applicationService = require('../services/applications.service');
 const rssService = require('../services/rss.service');
 const fitAnalysisService = require('../services/fitAnalysis.service');
 const settingsService = require('../services/settings.service');
