@@ -1,6 +1,6 @@
+require('dotenv').config({ path: '../.env' });
 const { createClient } = require('@supabase/supabase-js');
 const fitAnalysisService = require('../services/fitAnalysis.service');
-require('dotenv').config({ path: '../.env' });
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -192,10 +192,10 @@ const ApplicationsPage = () => {
                         <tr>
                             <th>Company</th>
                             <th>Role ID</th>
-                            <th>Fit</th>
                             <th>Date</th>
                             <th>Status</th>
                             {filterType !== 'archived' && <th>Stage</th>}
+                            <th style={{ textAlign: 'center' }}>Fit</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -213,20 +213,6 @@ const ApplicationsPage = () => {
                             >
                                 <td style={{ fontWeight: '600' }}>{app.COMPANY}</td>
                                 <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{app.ROLE_ID}</td>
-                                <td>
-                                    {app.fit_score_deterministic != null ? (
-                                        <div 
-                                            title={`Fit Score: ${app.fit_score_deterministic}`}
-                                            style={{
-                                                width: '12px', height: '12px', borderRadius: '50%',
-                                                backgroundColor: app.fit_score_deterministic >= 80 ? 'var(--success-c)' : (app.fit_score_deterministic >= 50 ? 'var(--warning-c)' : 'var(--danger-c)'),
-                                                display: 'inline-block'
-                                            }} 
-                                        />
-                                    ) : (
-                                        <span style={{ color: 'var(--text-muted)' }}>-</span>
-                                    )}
-                                </td>
                                 <td style={{ fontSize: '11px' }}>{formatDate(app.DATE, settings?.timezone) || '—'}</td>
                                 <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <select
@@ -343,6 +329,20 @@ const ApplicationsPage = () => {
                                         )}
                                     </td>
                                 )}
+                                <td style={{ textAlign: 'center' }}>
+                                    {app.fit_score_deterministic != null ? (
+                                        <div 
+                                            title={`Fit Score: ${app.fit_score_deterministic}`}
+                                            style={{
+                                                width: '12px', height: '12px', borderRadius: '50%',
+                                                backgroundColor: app.fit_score_deterministic >= 80 ? 'var(--success-c)' : (app.fit_score_deterministic >= 50 ? 'var(--warning-c)' : 'var(--danger-c)'),
+                                                display: 'inline-block'
+                                            }} 
+                                        />
+                                    ) : (
+                                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                                    )}
+                                </td>
                             </tr>
                             );
                         })}
