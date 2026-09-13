@@ -569,8 +569,8 @@ const SettingsPage = () => {
                         <div>
                             <div className="settings-section-label">AI Feature Routing</div>
                             <div className="card settings-card">
-                                {['cvTailoring', 'mailCreator', 'interviewInsights'].map(feature => {
-                                    const routing = settings.ai_routing?.[feature] || { provider: 'groq', model: '' };
+                                {['cvTailoring', 'mailCreator', 'interviewInsights', 'jobFitAnalysis'].map(feature => {
+                                    const routing = settings.ai_routing?.[feature] || { provider: 'groq', model: '', enabled: true };
                                     const availableProviders = Object.keys(PROVIDER_CONFIGS).filter(p => settings[`${p}_token_set`]);
                                     
                                     const customOptions = availableProviders.map(p => ({
@@ -607,6 +607,23 @@ const SettingsPage = () => {
                                                         />
                                                     )}
                                                 </div>
+                                                {feature === 'jobFitAnalysis' && (
+                                                    <div style={{ marginLeft: 16 }}>
+                                                        <label className="smtp-toggle" style={{ transform: 'scale(0.8)' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={routing.enabled !== false}
+                                                                onChange={async (e) => {
+                                                                    const newRouting = { ...settings.ai_routing, [feature]: { ...routing, enabled: e.target.checked } };
+                                                                    try { await saveAiRouting(newRouting); flash('success', 'Routing updated.'); }
+                                                                    catch { flash('error', 'Failed to update routing.'); }
+                                                                }}
+                                                                disabled={saving}
+                                                            />
+                                                            <span className="smtp-toggle-track" />
+                                                        </label>
+                                                    </div>
+                                                )}
                                             </div>
 
                                         </div>

@@ -6,6 +6,7 @@ from job_search.router import router as search_router
 from message_creator.router import router as message_router
 from interview_analyzer.router import router as interview_router
 from embed_router import router as embed_router
+from role_fit.router import router as fit_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ app.include_router(search_router, tags=["Job Search"])
 app.include_router(message_router, tags=["Networking Message Creator"])
 app.include_router(interview_router, tags=["Interview Analyzer"])
 app.include_router(embed_router, tags=["Embeddings"])
+app.include_router(fit_router, tags=["Role Fit Analysis"])
 
 @app.get("/health")
 def health_check():
