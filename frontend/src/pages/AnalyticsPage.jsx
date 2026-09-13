@@ -93,6 +93,42 @@ const AnalyticsPage = () => {
         // bar chart: scale relative to max
         const maxMonth = Math.max(...Object.values(monthlyGroups), 1);
 
+        // --- job fit stats ---
+        let totalFitScore = 0;
+        let fitCount = 0;
+        let interviewFitScore = 0;
+        let interviewFitCount = 0;
+        let rejectedFitScore = 0;
+        let rejectedFitCount = 0;
+        let goodFitCount = 0;
+        let partialFitCount = 0;
+        let poorFitCount = 0;
+
+        applications.forEach(a => {
+            const score = a.fit_analysis_ai?.overall_score ?? a.fit_score_deterministic;
+            if (score != null) {
+                totalFitScore += score;
+                fitCount++;
+                const s = (a.STATUS || '').toLowerCase();
+                
+                if (s.includes('interview') || s.includes('offer') || s.includes('hired')) {
+                    interviewFitScore += score;
+                    interviewFitCount++;
+                } else if (s.includes('reject')) {
+                    rejectedFitScore += score;
+                    rejectedFitCount++;
+                }
+
+                if (score >= 80) goodFitCount++;
+                else if (score >= 50) partialFitCount++;
+                else poorFitCount++;
+            }
+        });
+
+        const avgFitScore = fitCount > 0 ? Math.round(totalFitScore / fitCount) : 0;
+        const avgInterviewFitScore = interviewFitCount > 0 ? Math.round(interviewFitScore / interviewFitCount) : 0;
+        const avgRejectedFitScore = rejectedFitCount > 0 ? Math.round(rejectedFitScore / rejectedFitCount) : 0;
+
         return {
             total,
             thisWeek,
@@ -109,6 +145,16 @@ const AnalyticsPage = () => {
                 pending:   +((pending   / safeTotal) * 100).toFixed(1),
             },
             counts: { rejected, interviews, offers, pending },
+            fitStats: {
+                hasFitData: fitCount > 0,
+                avgFitScore,
+                avgInterviewFitScore,
+                avgRejectedFitScore,
+                goodFitCount,
+                partialFitCount,
+                poorFitCount,
+                totalFitCount: fitCount
+            }
         };
     }, [applications]);
 
@@ -298,6 +344,60 @@ const AnalyticsPage = () => {
                                     </div>
                                 );
                             })}
+                    </div>
+                </>
+            )}
+
+            {/* ── Job Fit Insights ──────────────────────────────────── */}
+            {an.fitStats.hasFitData && (
+                <>
+                    <h3 className="subsection-title">Job Fit Insights</h3>
+                    <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>🎯</span>}
+                            label="Avg. Fit Score"
+                            value={`${an.fitStats.avgFitScore}%`}
+                            sub={`Based on ${an.fitStats.totalFitCount} applications`}
+                            accent="#3b82f6"
+                        />
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>📈</span>}
+                            label="Interviews Avg. Fit"
+                            value={an.fitStats.avgInterviewFitScore > 0 ? `${an.fitStats.avgInterviewFitScore}%` : 'N/A'}
+                            sub="Average score of applications that reached interviews"
+                            accent="#10b981"
+                        />
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>📉</span>}
+                            label="Rejections Avg. Fit"
+                            value={an.fitStats.avgRejectedFitScore > 0 ? `${an.fitStats.avgRejectedFitScore}%` : 'N/A'}
+                            sub="Average score of applications that were rejected"
+                            accent="#ef4444"
+                        />
+                    </div>
+                    
+                    <div className="card an-status-card" style={{ marginTop: '20px' }}>
+                        <div className="an-status-row">
+                            <span className="an-status-name" style={{ color: 'var(--success-c)', fontWeight: 600 }}>Good Fit (≥80%)</span>
+                            <div className="an-status-bar-bg">
+                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.goodFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--success-c)' }} />
+                            </div>
+                            <span className="an-status-meta">{an.fitStats.goodFitCount}</span>
+                        </div>
+                        <div className="an-status-row">
+                            <span className="an-status-name" style={{ color: 'var(--warning-c)', fontWeight: 600 }}>Partial Fit (50-79%)</span>
+                            <div className="an-status-bar-bg">
+                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.partialFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--warning-c)' }} />
+                            </div>
+                            <span className="an-status-meta">{an.fitStats.partialFitCount}</span>
+                        </div>
+                        <div className="an-status-row">
+                            <span className="an-status-name" style={{ color: 'var(--danger-c)', fontWeight: 600 }}>Poor Fit (&lt;50%)</span>
+                            <div className="an-status-bar-bg">
+                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.poorFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--danger-c)' }} />
+                            </div>
+                            <span className="an-status-meta">{an.fitStats.poorFitCount}</span>
+                        </div>
                     </div>
                 </>
             )}

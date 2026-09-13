@@ -1,4 +1,6 @@
 const applicationService = require('../services/applications.service');
+const fitAnalysisService = require('../services/fitAnalysis.service');
+const axios = require('axios');
 
 const getAll = async (req, res) => {
     try {
@@ -22,7 +24,56 @@ const create = async (req, res) => {
             return res.status(401).json({ error: "Unauthorized: User not found" });
         }
         const userId = req.user.id;
-        const data = await applicationService.createApplication(userId, req.body, req.supabase);
+        
+        let applicationData = { ...req.body };
+
+        // 1. Calculate deterministic fit synchronously if JD is provided
+        if (applicationData.info) {
+            try {
+                const { candidateData } = await fitAnalysisService.getFitContext(userId, req.supabase);
+                const scoreData = fitAnalysisService.calculateDeterministicFit(candidateData, applicationData.info);
+                applicationData.fit_score_deterministic = scoreData.score;
+            } catch (err) {
+                console.error("Error calculating deterministic fit:", err);
+            }
+        }
+
+        const data = await applicationService.createApplication(userId, applicationData, req.supabase);
+        
+        // Trigger AI correctly now that we have the app ID
+        if (applicationData.info && applicationData.fit_score_deterministic !== undefined) {
+             fitAnalysisService.getFitContext(userId, req.supabase)
+             .then(({ candidateData, fitConfig }) => {
+                 if (fitConfig.enabled !== false && fitConfig.provider) {
+                     const aiProvider = fitConfig.provider;
+                     
+                     // Ensure we have an API key for the chosen provider before firing
+                     const envKey = `${aiProvider.toUpperCase()}_API_KEY`;
+                     if (!process.env[envKey]) {
+                         console.warn(`Skipping AI Fit Analysis: No API key found in backend for provider '${aiProvider}'.`);
+                         return;
+                     }
+
+                     // We don't await this, let it run in the background
+                     axios.post(`${process.env.AI_SERVICE_URL}/role-fit/analyze`, {
+                         job_description: applicationData.info,
+                         candidate_data: candidateData,
+                         api_keys: {
+                             groq: process.env.GROQ_API_KEY,
+                             openai: process.env.OPENAI_API_KEY,
+                             anthropic: process.env.ANTHROPIC_API_KEY,
+                             gemini: process.env.GEMINI_API_KEY
+                         },
+                         provider: aiProvider
+                     }).then(async (response) => {
+                         if (response.data) {
+                             await req.supabase.from('applications').update({ fit_analysis_ai: response.data }).eq('id', data.id).eq('user_id', userId);
+                         }
+                     }).catch(err => console.error('AI Fit Analysis failed:', err.message));
+                 }
+             }).catch(err => console.error("Error triggering AI:", err));
+        }
+
         res.json(data);
     } catch (error) {
         console.error("POST /api/applications error:", error);
