@@ -6,7 +6,7 @@ const RoleFitAnalysis = ({ app }) => {
     }
 
     const aiData = app.fit_analysis_ai;
-    const score = aiData?.overall_score || app.fit_score_deterministic;
+    const score = aiData?.ai_score ?? app.fit_score_deterministic;
     const isGoodFit = score >= 80;
     const isPartialFit = score >= 50 && score < 80;
 
@@ -33,11 +33,19 @@ const RoleFitAnalysis = ({ app }) => {
                 </div>
             </div>
             <div className="adp-notes-body">
-                {aiData?.analysis ? (
+                {aiData?.short_summary ? (
                     <div style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: '1.5' }}>
-                        {aiData.analysis.split('\n').map((paragraph, index) => (
-                            <p key={index} style={{ marginBottom: '8px' }}>{paragraph}</p>
-                        ))}
+                        <p style={{ marginBottom: '12px' }}>{aiData.short_summary}</p>
+                        {aiData.percentage_matches && Object.keys(aiData.percentage_matches).length > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                                {Object.entries(aiData.percentage_matches).map(([key, value]) => (
+                                    <div key={key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{key}</span>
+                                        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>

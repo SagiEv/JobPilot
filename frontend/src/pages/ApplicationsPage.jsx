@@ -203,7 +203,7 @@ const ApplicationsPage = () => {
                             const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
                             const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
                             const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
-                            const fitScore = app.fit_analysis_ai?.overall_score ?? app.fit_score_deterministic;
+                            const fitScore = app.fit_analysis_ai?.ai_score ?? app.fit_score_deterministic;
 
                             return (
                             <tr 
