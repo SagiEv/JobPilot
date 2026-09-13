@@ -203,6 +203,7 @@ const ApplicationsPage = () => {
                             const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
                             const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
                             const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
+                            const fitScore = app.fit_analysis_ai?.overall_score ?? app.fit_score_deterministic;
 
                             return (
                             <tr 
@@ -329,16 +330,16 @@ const ApplicationsPage = () => {
                                         )}
                                     </td>
                                 )}
-                                <td style={{ textAlign: 'center' }}>
-                                    {app.fit_score_deterministic != null ? (
-                                        <div 
-                                            title={`Fit Score: ${app.fit_score_deterministic}`}
+                                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                                    {fitScore != null ? (
+                                        <span 
+                                            title={`Fit Score: ${fitScore}`}
                                             style={{
-                                                width: '12px', height: '12px', borderRadius: '50%',
-                                                backgroundColor: app.fit_score_deterministic >= 80 ? 'var(--success-c)' : (app.fit_score_deterministic >= 50 ? 'var(--warning-c)' : 'var(--danger-c)'),
-                                                display: 'inline-block'
-                                            }} 
-                                        />
+                                                color: fitScore >= 80 ? 'var(--success-c)' : (fitScore >= 50 ? 'var(--warning-c)' : 'var(--danger-c)')
+                                            }}
+                                        >
+                                            {fitScore}%
+                                        </span>
                                     ) : (
                                         <span style={{ color: 'var(--text-muted)' }}>-</span>
                                     )}
