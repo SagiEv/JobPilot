@@ -125,31 +125,46 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
         return monthStr;
     };
 
-    if (isLoading) return <div>Loading roles...</div>;
-
     return (
         <div className="experience-editor" style={{ marginTop: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <div className="field-label" style={{ margin: 0, fontSize: '1.1em', fontWeight: 600 }}>
+                <div className="field-label" style={{ margin: 0 }}>
                     {status === 'current' ? 'Current Experience' : 'Previous Experience'}
                 </div>
                 <button className="btn btn-sm btn-primary" onClick={handleAdd}>+ Add Role</button>
             </div>
             
             {localExperiences.length === 0 && status === 'current' && (
-                <div className="junior-banner" style={{
-                    background: 'linear-gradient(135deg, var(--accent-light, #e8f0fe), rgba(255,255,255,0.5))',
-                    border: '1px dashed var(--accent, #1a6cf5)',
-                    borderRadius: 'var(--r-lg, 12px)',
-                    padding: '20px',
-                    textAlign: 'center',
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'var(--accent-light, #e8f0fe)',
+                    color: 'var(--accent, #1a6cf5)',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.9em',
+                    fontWeight: '500',
                     margin: '10px 0'
                 }}>
-                    <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>🌱</div>
-                    <h3 style={{ margin: '0 0 5px 0', color: 'var(--accent, #1a6cf5)', fontWeight: '600' }}>Starting Fresh!</h3>
-                    <p style={{ margin: 0, color: 'var(--t2)', fontSize: '0.95em', lineHeight: '1.4' }}>
-                        It looks like you're at the beginning of your journey. Add a role to get started, or keep it this way if you're a junior!
-                    </p>
+                    Junior
+                    <span 
+                        title="It looks like you're at the beginning of your journey. Add a role to get started, or keep it this way if you're a junior!"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            border: '1px solid currentColor',
+                            fontSize: '11px',
+                            cursor: 'help',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        i
+                    </span>
                 </div>
             )}
             
@@ -169,9 +184,13 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                                 onChange={(e) => handleUpdate(index, 'role_id', parseInt(e.target.value, 10))}
                             >
                                 <option value="" disabled>Select a role...</option>
-                                {rolesBank.map(role => (
-                                    <option key={role.id} value={role.id}>{role.name}</option>
-                                ))}
+                                {isLoading ? (
+                                    <option value="" disabled>Loading roles...</option>
+                                ) : (
+                                    rolesBank.map(role => (
+                                        <option key={role.id} value={role.id}>{role.name}</option>
+                                    ))
+                                )}
                             </select>
                         </div>
                         <button className="action-btn delete" onClick={() => handleRemove(index)} style={{ alignSelf: 'flex-end', marginBottom: '4px' }}>✕</button>
