@@ -21,12 +21,17 @@ Evaluate the candidate based on:
 3. Role seniority alignment.
 4. General tech stack similarity.
 
+CRITICAL SCORING RULES:
+- Isolate Experience from Skills: "Experience Match" MUST be scored purely on tenure (years) and MUST NOT be inflated by a good skill match.
+- Mathematical Penalty: If the JD requires X years, and the candidate has Y years (where Y < X), aggressively penalize the Experience Match. If the gap is > 2 years, Experience Match should be 0-15%.
+- Overall Score Guardrails: If a candidate is severely underqualified in tenure (e.g. 0 years for a Mid/Senior role requiring 4+ years), the `ai_score` MUST NOT exceed 65, even if their skills match perfectly.
+
 Provide a short, concise summary of the fit. Do not invent experience or skills.
 
 Return the result matching this JSON structure:
 - ai_score: Integer from 0 to 100.
 - short_summary: A 1-2 sentence explanation.
-- percentage_matches: A dictionary showing percentage fits like {{"Skills Match": "80%", "Experience Match": "60%"}}.
+- percentage_matches: A dictionary showing percentage fits like {{"Skills Match": "80%", "Experience Match": "10%"}}.
 """
 
 @router.post("/analyze", response_model=FitAnalysisResponse)

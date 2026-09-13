@@ -81,15 +81,21 @@ exports.calculateDeterministicFit = (candidate, jdText) => {
     if (totalExp >= targetRange[0] && totalExp <= targetRange[1]) {
         expScore = 100;
         reasons.push(`✅ Candidate experience (${totalExp} years) fits the target range.`);
-    } else if (totalExp >= targetRange[0] - 1 && totalExp < targetRange[0]) {
-        expScore = 75;
-        reasons.push(`⚠️ Candidate experience (${totalExp} years) almost fits, slightly below target.`);
     } else if (totalExp > targetRange[1]) {
         expScore = 80;
         reasons.push(`⚠️ Candidate experience (${totalExp} years) is above the target range (potentially overqualified).`);
     } else {
-        expScore = 20;
-        reasons.push(`❌ Candidate experience (${totalExp} years) does not fit the minimum requirement.`);
+        const gap = targetRange[0] - totalExp;
+        if (gap <= 1) {
+            expScore = 50;
+            reasons.push(`⚠️ Candidate experience (${totalExp} years) is slightly below the target of ${targetRange[0]} years.`);
+        } else if (gap <= 2) {
+            expScore = 20;
+            reasons.push(`❌ Candidate experience (${totalExp} years) is notably below the target of ${targetRange[0]} years.`);
+        } else {
+            expScore = 0;
+            reasons.push(`❌ Candidate experience (${totalExp} years) is significantly below the minimum requirement of ${targetRange[0]} years.`);
+        }
     }
 
     // 3. Evaluate Skills
@@ -129,6 +135,12 @@ exports.calculateDeterministicFit = (candidate, jdText) => {
     // 4. Final Scoring (Weighted)
     // Experience: 40%, Skills: 60%
     score = Math.round((expScore * 0.4) + (skillScore * 0.6));
+
+    // Hard Cap: If candidate experience is strictly less than target minimum, do not allow score > 65
+    if (totalExp < targetRange[0] && score > 65) {
+        score = 65;
+        reasons.push(`⚠️ Final score capped at 65% because candidate lacks the minimum required experience.`);
+    }
 
     // Map to Classification
     let classification = 'Red';
