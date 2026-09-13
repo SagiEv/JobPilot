@@ -42,33 +42,9 @@ const deleteProject = async (req, res) => {
     }
 };
 
-// Experience Text
-const getExpText = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await experienceService.getExperienceText(userId, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-};
-
-const putExpText = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { id, text } = req.body;
-        const data = await experienceService.saveExperienceText(userId, id, text, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-};
-
 module.exports = {
     getProjects,
     postProject,
     putProject,
-    deleteProject,
-    getExpText,
-    putExpText
+    deleteProject
 };

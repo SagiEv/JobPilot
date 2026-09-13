@@ -11,25 +11,28 @@ export const ConfirmProvider = ({ children }) => {
         resolve: null,
     });
 
-    const confirm = useCallback((message) => {
+    const confirm = useCallback((message, options = {}) => {
         return new Promise((resolve) => {
             setConfirmState({
                 isOpen: true,
                 message,
                 resolve,
+                options
             });
         });
     }, []);
 
-    const handleConfirm = useCallback(() => {
-        if (confirmState.resolve) confirmState.resolve(true);
-        setConfirmState({ isOpen: false, message: '', resolve: null });
+    const handleAction = useCallback((value) => {
+        if (confirmState.resolve) confirmState.resolve(value);
+        setConfirmState({ isOpen: false, message: '', resolve: null, options: {} });
     }, [confirmState]);
 
-    const handleCancel = useCallback(() => {
-        if (confirmState.resolve) confirmState.resolve(false);
-        setConfirmState({ isOpen: false, message: '', resolve: null });
-    }, [confirmState]);
+    const defaultButtons = [
+        { text: 'Cancel', value: false, style: 'secondary' },
+        { text: 'Confirm', value: true, style: 'primary' }
+    ];
+
+    const buttons = confirmState.options?.buttons || defaultButtons;
 
     return (
         <ConfirmContext.Provider value={confirm}>
@@ -69,34 +72,31 @@ export const ConfirmProvider = ({ children }) => {
                             {confirmState.message}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button 
-                                onClick={handleCancel}
-                                style={{
-                                    padding: '8px 16px',
-                                    border: '1px solid var(--border2, #ccc)',
-                                    background: 'transparent',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontWeight: '500',
-                                    color: 'var(--t2, #5a6073)'
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={handleConfirm}
-                                style={{
-                                    padding: '8px 16px',
-                                    border: 'none',
-                                    background: 'var(--accent, #1a6cf5)',
-                                    color: '#fff',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                Confirm
-                            </button>
+                            {buttons.map((btn, index) => (
+                                <button 
+                                    key={index}
+                                    onClick={() => handleAction(btn.value)}
+                                    style={btn.style === 'primary' ? {
+                                        padding: '8px 16px',
+                                        border: 'none',
+                                        background: 'var(--accent, #1a6cf5)',
+                                        color: '#fff',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontWeight: '500'
+                                    } : {
+                                        padding: '8px 16px',
+                                        border: '1px solid var(--border2, #ccc)',
+                                        background: 'transparent',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontWeight: '500',
+                                        color: 'var(--t2, #5a6073)'
+                                    }}
+                                >
+                                    {btn.text}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 // import api from '../api';
 import PageLoader from '../components/PageLoader';
+import ExperienceEditor from '../components/ExperienceEditor';
 
 const EditableCVField = ({ title, value, onChange }) => {
     const confirm = useConfirm();
@@ -200,6 +201,18 @@ const ProfilePage = () => {
                     <div className="field-label">Target Roles</div>
                     <input className="field-input" value={profile.roles || ''} onChange={(e) => handleProfileChange('roles', e.target.value)} />
                 </div>
+
+                <ExperienceEditor 
+                    experiences={profile.experiences || []} 
+                    onChange={(newExps) => handleProfileChange('experiences', newExps)} 
+                    status="current" 
+                />
+
+                <ExperienceEditor 
+                    experiences={profile.experiences || []} 
+                    onChange={(newExps) => handleProfileChange('experiences', newExps)} 
+                    status="previous" 
+                />
             </div>
 
             <EditableCVField title="Summary" value={profile.cvData?.summary} onChange={(val) => handleProfileChange('cvData.summary', val)} />

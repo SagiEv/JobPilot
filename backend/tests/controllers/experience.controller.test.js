@@ -51,21 +51,4 @@ describe('experience.controller', () => {
         });
     });
 
-    describe('getExpText', () => {
-        it('should return data', async () => {
-            const { req, res } = buildReqRes();
-            experienceService.getExperienceText.mockResolvedValue({ text: 'exp' });
-            await controller.getExpText(req, res);
-            expect(res.json).toHaveBeenCalledWith({ text: 'exp' });
-        });
-    });
-
-    describe('putExpText', () => {
-        it('should return data', async () => {
-            const { req, res } = buildReqRes({ body: { id: 1, text: 'updated' } });
-            experienceService.saveExperienceText.mockResolvedValue({ text: 'updated' });
-            await controller.putExpText(req, res);
-            expect(res.json).toHaveBeenCalledWith({ text: 'updated' });
-        });
-    });
 });
