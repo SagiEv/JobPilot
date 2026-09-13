@@ -69,10 +69,10 @@ const create = async (req, res) => {
                          job_description: applicationData.info,
                          candidate_data: candidateData,
                          api_keys: {
-                             groq: aiConfigs?.groq_token,
-                             openai: aiConfigs?.openai_token,
-                             anthropic: aiConfigs?.claude_token,
-                             gemini: aiConfigs?.gemini_token
+                             groq_token: aiConfigs?.groq_token,
+                             openai_token: aiConfigs?.openai_token,
+                             claude_token: aiConfigs?.claude_token,
+                             gemini_token: aiConfigs?.gemini_token
                          },
                          provider: aiProvider
                      }).then(async (response) => {
