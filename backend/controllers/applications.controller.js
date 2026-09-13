@@ -1,5 +1,7 @@
-const applicationService = require('../services/applications.service');
+const applicationsService = require('../services/applications.service');
+const rssService = require('../services/rss.service');
 const fitAnalysisService = require('../services/fitAnalysis.service');
+const settingsService = require('../services/settings.service');
 const axios = require('axios');
 
 const getAll = async (req, res) => {
@@ -43,14 +45,22 @@ const create = async (req, res) => {
         // Trigger AI correctly now that we have the app ID
         if (applicationData.info && applicationData.fit_score_deterministic !== undefined) {
              fitAnalysisService.getFitContext(userId, req.supabase)
-             .then(({ candidateData, fitConfig }) => {
+             .then(async ({ candidateData, fitConfig }) => {
                  if (fitConfig.enabled !== false && fitConfig.provider) {
                      const aiProvider = fitConfig.provider;
                      
+                     // Fetch user's decrypted API keys from DB
+                     const aiConfigs = await settingsService.getAllAiConfigs(userId, req.supabase);
+                     
                      // Ensure we have an API key for the chosen provider before firing
-                     const envKey = `${aiProvider.toUpperCase()}_API_KEY`;
-                     if (!process.env[envKey]) {
-                         console.warn(`Skipping AI Fit Analysis: No API key found in backend for provider '${aiProvider}'.`);
+                     let token = null;
+                     if (aiProvider === 'groq') token = aiConfigs?.groq_token;
+                     else if (aiProvider === 'openai') token = aiConfigs?.openai_token;
+                     else if (aiProvider === 'anthropic' || aiProvider === 'claude') token = aiConfigs?.claude_token;
+                     else if (aiProvider === 'gemini') token = aiConfigs?.gemini_token;
+
+                     if (!token) {
+                         console.warn(`Skipping AI Fit Analysis: No API key configured by user for provider '${aiProvider}'.`);
                          return;
                      }
 
@@ -59,10 +69,10 @@ const create = async (req, res) => {
                          job_description: applicationData.info,
                          candidate_data: candidateData,
                          api_keys: {
-                             groq: process.env.GROQ_API_KEY,
-                             openai: process.env.OPENAI_API_KEY,
-                             anthropic: process.env.ANTHROPIC_API_KEY,
-                             gemini: process.env.GEMINI_API_KEY
+                             groq: aiConfigs?.groq_token,
+                             openai: aiConfigs?.openai_token,
+                             anthropic: aiConfigs?.claude_token,
+                             gemini: aiConfigs?.gemini_token
                          },
                          provider: aiProvider
                      }).then(async (response) => {
