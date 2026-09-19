@@ -1,6 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import NetworkGraph from '../NetworkGraph';
+
+vi.mock('../ToastProvider', () => ({
+    useToast: () => ({ addToast: vi.fn() })
+}));
 
 describe('NetworkGraph', () => {
     beforeEach(() => {

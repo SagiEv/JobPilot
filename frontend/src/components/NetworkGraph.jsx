@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
+import { useToast } from './ToastProvider';
 
-const NetworkGraph = ({ contacts }) => {
+const NetworkGraph = ({ contacts, onContactClick }) => {
+    const { addToast } = useToast();
     const svgRef = useRef();
     const wrapperRef = useRef();
     const [viewMode, setViewMode] = useState('contacts');
@@ -94,9 +96,12 @@ const NetworkGraph = ({ contacts }) => {
                         id: companyId, 
                         name: companyName, // preserve original casing for display
                         group: 'Company', 
-                        radius: getCompanyRadius(companyConnections[cKey]) 
+                        radius: getCompanyRadius(companyConnections[cKey]),
+                        link: contact.link
                     });
                     links.push({ source: 'Me', target: companyId });
+                } else if (contact.link && !nodesMap.get(companyId).link) {
+                    nodesMap.get(companyId).link = contact.link;
                 }
 
                 // Add Contact Node
@@ -122,6 +127,7 @@ const NetworkGraph = ({ contacts }) => {
 
         const zoom = d3.zoom()
             .scaleExtent([0.1, 4])
+            .extent([[0, 0], [width, height]])
             .on("zoom", (event) => {
                 g.attr("transform", event.transform);
             });
@@ -131,10 +137,38 @@ const NetworkGraph = ({ contacts }) => {
         const g = svg.append("g");
 
         const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(150))
-            .force("charge", d3.forceManyBody().strength(-400))
+            .force("link", d3.forceLink(links).id(d => d.id).distance(viewMode === 'companies' ? 120 : 80))
+            .force("charge", d3.forceManyBody().strength(-250))
             .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collide", d3.forceCollide().radius(d => d.radius + 15));
+
+        // Fast-forward simulation to pre-calculate layout
+        simulation.stop();
+        for (let i = 0; i < 300; ++i) simulation.tick();
+
+        // Calculate graph bounds
+        const minX = d3.min(nodes, d => d.x - d.radius) || 0;
+        const maxX = d3.max(nodes, d => d.x + d.radius) || width;
+        const minY = d3.min(nodes, d => d.y - d.radius) || 0;
+        const maxY = d3.max(nodes, d => d.y + d.radius) || height;
+
+        const graphWidth = maxX - minX;
+        const graphHeight = maxY - minY;
+        const midX = minX + graphWidth / 2;
+        const midY = minY + graphHeight / 2;
+
+        // Auto-scale to fit within screen with padding
+        const padding = 80;
+        const scale = Math.max(0.05, Math.min(1.5, Math.min(
+            (width - padding) / (graphWidth || 1), 
+            (height - padding) / (graphHeight || 1)
+        )));
+
+        // Apply the calculated zoom to the SVG
+        svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2 - midX * scale, height / 2 - midY * scale).scale(scale));
+        
+        // Restart with low alpha to allow drag interactions and organic settling
+        simulation.alpha(0.15).restart();
 
         // Create gradient definitions
         const defs = svg.append("defs");
@@ -186,7 +220,22 @@ const NetworkGraph = ({ contacts }) => {
             .call(drag(simulation))
             .style("cursor", "pointer")
             .on("mouseover", function() { d3.select(this).select("circle").attr("stroke", "#1890ff").attr("stroke-width", 3); })
-            .on("mouseout", function() { d3.select(this).select("circle").attr("stroke", "#fff").attr("stroke-width", 2); });
+            .on("mouseout", function() { d3.select(this).select("circle").attr("stroke", "#fff").attr("stroke-width", 2); })
+            .on("click", (event, d) => {
+                if (event.defaultPrevented) return; // Prevent triggering on drag
+                if (d.group === 'Company') {
+                    if (d.link) {
+                        window.open(d.link, '_blank', 'noopener,noreferrer');
+                    } else {
+                        addToast(`No careers link available for ${d.name}`, 'info');
+                    }
+                } else if (d.group !== 'me' && d.group !== 'Connector' && onContactClick) {
+                    const fullContact = contacts.find(c => getContactId(c) === d.id);
+                    if (fullContact) {
+                        onContactClick(fullContact);
+                    }
+                }
+            });
 
         node.append("circle")
             .attr("r", d => d.radius)
@@ -236,7 +285,7 @@ const NetworkGraph = ({ contacts }) => {
                 .on("end", dragended);
         }
 
-    }, [contacts, viewMode]);
+    }, [contacts, viewMode, addToast, onContactClick]);
 
     return (
         <div ref={wrapperRef} style={{ width: '100%', height: '600px', position: 'relative', marginTop: '20px' }}>

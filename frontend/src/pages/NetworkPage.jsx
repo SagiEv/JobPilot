@@ -15,6 +15,7 @@ const NetworkPage = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [showMap, setShowMap] = useState(false);
+    const [selectedContact, setSelectedContact] = useState(null);
 
     // 3. Local state for the form inputs
     const [newContact, setNewContact] = useState({
@@ -89,6 +90,50 @@ const NetworkPage = () => {
             deleteContact(id);
         }
     };
+
+    const renderContactCard = (contact) => (
+        <div key={contact.id} className="contact-card" style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <button className="btn" onClick={() => {
+                    setSelectedContact(null);
+                    handleEdit(contact);
+                }} title="Edit" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: 'var(--t2)', border: '1px solid var(--border)', borderRadius: '6px' }}>Edit</button>
+                <button className="btn" onClick={() => {
+                    setSelectedContact(null);
+                    handleDelete(contact.id);
+                }} title="Delete" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.5)', borderRadius: '6px' }}>Delete</button>
+            </div>
+            <div className="contact-avatar" style={{ margin: '0 auto 10px' }}>{getInitials(contact.name)}</div>
+            <div style={{ textAlign: 'center' }}>
+                <div className="contact-name">{contact.name}</div>
+                <div className="contact-co">
+                    {contact.link ? (
+                        <a href={contact.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: '#007bff' }}>{contact.company}</a>
+                    ) : (
+                        contact.company
+                    )}
+                </div>
+                <div className="contact-rel">{contact.relation}</div>
+            </div>
+            {contact.email && (
+                <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
+                    Email: <a href={`mailto:${contact.email}`} style={{ color: '#007bff', textDecoration: 'none' }}>{contact.email}</a>
+                </div>
+            )}
+            {contact.phone && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>Phone: {contact.phone}</div>}
+            {contact.linkedin && (
+                <div className="contact-detail" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                    <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', color: '#0a66c2' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                        </svg>
+                        LinkedIn
+                    </a>
+                </div>
+            )}
+            {contact.connected_by && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#888', marginTop: '4px', fontStyle: 'italic' }}>Connected by: {contact.connected_by}</div>}
+        </div>
+    );
 
     if (loading) return <PageLoader label="Loading network…" />;
 
@@ -176,46 +221,10 @@ const NetworkPage = () => {
             )}
 
             {showMap ? (
-                <NetworkGraph contacts={contacts} />
+                <NetworkGraph contacts={contacts} onContactClick={setSelectedContact} />
             ) : (
                 <div className="network-grid">
-                    {displayedContacts.map(contact => (
-                        <div key={contact.id} className="contact-card" style={{ position: 'relative' }}>
-                            <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <button className="btn" onClick={() => handleEdit(contact)} title="Edit" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: 'var(--t2)', border: '1px solid var(--border)', borderRadius: '6px' }}>Edit</button>
-                                <button className="btn" onClick={() => handleDelete(contact.id)} title="Delete" style={{ padding: '4px 8px', fontSize: '11px', background: 'transparent', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.5)', borderRadius: '6px' }}>Delete</button>
-                            </div>
-                            <div className="contact-avatar" style={{ margin: '0 auto 10px' }}>{getInitials(contact.name)}</div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div className="contact-name">{contact.name}</div>
-                                <div className="contact-co">
-                                    {contact.link ? (
-                                        <a href={contact.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: '#007bff' }}>{contact.company}</a>
-                                    ) : (
-                                        contact.company
-                                    )}
-                                </div>
-                                <div className="contact-rel">{contact.relation}</div>
-                            </div>
-                            {contact.email && (
-                                <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
-                                    Email: <a href={`mailto:${contact.email}`} style={{ color: '#007bff', textDecoration: 'none' }}>{contact.email}</a>
-                                </div>
-                            )}
-                            {contact.phone && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>Phone: {contact.phone}</div>}
-                            {contact.linkedin && (
-                                <div className="contact-detail" style={{ fontSize: '0.85rem', marginTop: '4px' }}>
-                                    <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', color: '#0a66c2' }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                                        </svg>
-                                        LinkedIn
-                                    </a>
-                                </div>
-                            )}
-                            {contact.connected_by && <div className="contact-detail" style={{ fontSize: '0.85rem', color: '#888', marginTop: '4px', fontStyle: 'italic' }}>Connected by: {contact.connected_by}</div>}
-                        </div>
-                    ))}
+                    {displayedContacts.map(contact => renderContactCard(contact))}
                 </div>
             )}
 
@@ -311,6 +320,18 @@ const NetworkPage = () => {
                         <div className="modal-footer">
                             <button className="btn" onClick={() => setShowModal(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleSave}>{editingId ? 'Update Contact' : 'Add Contact'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Contact Details Modal (for graph clicks) */}
+            {selectedContact && (
+                <div className="modal-overlay" onClick={() => setSelectedContact(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', boxShadow: 'none' }}>
+                        <div style={{ position: 'relative' }}>
+                            <button className="modal-close" onClick={() => setSelectedContact(null)} style={{ position: 'absolute', top: '-15px', right: '-15px', zIndex: 10, background: '#fff', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>✕</button>
+                            {renderContactCard(selectedContact)}
                         </div>
                     </div>
                 </div>
