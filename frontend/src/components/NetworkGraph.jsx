@@ -21,10 +21,12 @@ const NetworkGraph = ({ contacts }) => {
 
         const links = [];
 
+        const getContactId = (c) => `contact-${c.id || c.name}`;
+
         if (viewMode === 'contacts') {
             // Pass 1: Add all known contacts
             contacts.forEach(contact => {
-                const contactId = contact.id || contact.name;
+                const contactId = getContactId(contact);
                 if (!nodesMap.has(contactId)) {
                     nodesMap.set(contactId, { id: contactId, name: contact.name, group: contact.relation, radius: 25 });
                 }
@@ -32,16 +34,16 @@ const NetworkGraph = ({ contacts }) => {
 
             // Pass 2: Establish links and identify existing connectors
             contacts.forEach(contact => {
-                const contactId = contact.id || contact.name;
+                const contactId = getContactId(contact);
 
                 if (contact.connected_by) {
                     const connectorName = contact.connected_by.trim();
-                    let connectorId = connectorName;
+                    let connectorId = `connector-${connectorName.toLowerCase()}`;
 
                     // Match existing contact by name (case-insensitive) to avoid duplicates
                     const existingContact = contacts.find(c => c.name && c.name.toLowerCase() === connectorName.toLowerCase());
                     if (existingContact) {
-                        connectorId = existingContact.id || existingContact.name;
+                        connectorId = getContactId(existingContact);
                     }
 
                     if (!nodesMap.has(connectorId)) {
@@ -49,21 +51,51 @@ const NetworkGraph = ({ contacts }) => {
                         nodesMap.set(connectorId, { id: connectorId, name: connectorName, group: 'Connector', radius: 20 });
                         links.push({ source: 'Me', target: connectorId });
                     }
-                    links.push({ source: connectorId, target: contactId });
+                    
+                    if (connectorId !== contactId) {
+                        links.push({ source: connectorId, target: contactId });
+                    }
                 } else {
                     links.push({ source: 'Me', target: contactId });
                 }
             });
         } else {
             // viewMode === 'companies'
+            
+            // First count company connections to scale size
+            const companyConnections = {};
             contacts.forEach(contact => {
-                const contactId = contact.id || contact.name;
                 const companyName = contact.company ? contact.company.trim() : 'Independent';
-                const companyId = `company-${companyName}`;
+                const cKey = companyName.toLowerCase();
+                companyConnections[cKey] = (companyConnections[cKey] || 0) + 1;
+            });
+            
+            const counts = Object.values(companyConnections);
+            const minConn = counts.length > 0 ? Math.min(...counts) : 0;
+            const maxConn = counts.length > 0 ? Math.max(...counts) : 0;
+            
+            const MIN_RADIUS = 32;
+            const MAX_RADIUS = 80;
+            
+            const getCompanyRadius = (count) => {
+                if (maxConn === minConn) return MIN_RADIUS;
+                return MIN_RADIUS + (Math.sqrt(count - minConn) / Math.sqrt(maxConn - minConn)) * (MAX_RADIUS - MIN_RADIUS);
+            };
+
+            contacts.forEach(contact => {
+                const contactId = getContactId(contact);
+                const companyName = contact.company ? contact.company.trim() : 'Independent';
+                const cKey = companyName.toLowerCase();
+                const companyId = `company-${cKey}`;
 
                 // Add Company Node if not exists
                 if (!nodesMap.has(companyId)) {
-                    nodesMap.set(companyId, { id: companyId, name: companyName, group: 'Company', radius: 32 });
+                    nodesMap.set(companyId, { 
+                        id: companyId, 
+                        name: companyName, // preserve original casing for display
+                        group: 'Company', 
+                        radius: getCompanyRadius(companyConnections[cKey]) 
+                    });
                     links.push({ source: 'Me', target: companyId });
                 }
 

@@ -114,64 +114,66 @@ const NetworkPage = () => {
 
             {uploadStatus && <div className="status-msg">{uploadStatus}</div>}
 
-            <div className="filters-bar" style={{ 
-                display: 'flex', 
-                gap: '15px', 
-                marginBottom: '30px', 
-                alignItems: 'center', 
-                flexWrap: 'wrap',
-                background: 'var(--bg-elevated, #ffffff)',
-                padding: '20px',
-                borderRadius: '16px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-                border: '1px solid var(--border, #eaeaea)'
-            }}>
-                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                        </svg>
-                    </span>
-                    <input
-                        type="text"
-                        placeholder="Search by name or company..."
-                        className="field-input"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ width: '100%', margin: 0, paddingLeft: '40px', paddingRight: '15px', borderRadius: '10px', border: '1px solid var(--border, #eaeaea)', height: '44px', outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s', fontSize: '0.95rem' }}
-                        onFocus={(e) => { e.target.style.borderColor = '#007bff'; e.target.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.1)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--border, #eaeaea)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                </div>
-                
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <select
-                        className="field-input"
-                        value={filterRelation}
-                        onChange={(e) => setFilterRelation(e.target.value)}
-                        style={{ width: '160px', margin: 0, borderRadius: '10px', cursor: 'pointer', border: '1px solid var(--border, #eaeaea)', height: '44px', backgroundColor: 'var(--bg, #f9f9f9)', outline: 'none' }}
-                    >
-                        <option value="">All Relations</option>
-                        <option value="Colleague">Colleague</option>
-                        <option value="Friend">Friend</option>
-                        <option value="Recruiter">Recruiter</option>
-                        <option value="Friend of a friend">Friend of a friend</option>
-                        <option value="Friend of family">Friend of family</option>
-                    </select>
+            {!showMap && (
+                <div className="filters-bar" style={{ 
+                    display: 'flex', 
+                    gap: '15px', 
+                    marginBottom: '30px', 
+                    alignItems: 'center', 
+                    flexWrap: 'wrap',
+                    background: 'var(--bg-elevated, #ffffff)',
+                    padding: '20px',
+                    borderRadius: '16px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+                    border: '1px solid var(--border, #eaeaea)'
+                }}>
+                    <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Search by name or company..."
+                            className="field-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '100%', margin: 0, paddingLeft: '40px', paddingRight: '15px', borderRadius: '10px', border: '1px solid var(--border, #eaeaea)', height: '44px', outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s', fontSize: '0.95rem' }}
+                            onFocus={(e) => { e.target.style.borderColor = '#007bff'; e.target.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.1)'; }}
+                            onBlur={(e) => { e.target.style.borderColor = 'var(--border, #eaeaea)'; e.target.style.boxShadow = 'none'; }}
+                        />
+                    </div>
                     
-                    <select
-                        className="field-input"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        style={{ width: '160px', margin: 0, borderRadius: '10px', cursor: 'pointer', border: '1px solid var(--border, #eaeaea)', height: '44px', backgroundColor: 'var(--bg, #f9f9f9)', outline: 'none' }}
-                    >
-                        <option value="">Sort by...</option>
-                        <option value="relation">Relation (A-Z)</option>
-                        <option value="name">Name (A-Z)</option>
-                        <option value="company">Company (A-Z)</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <select
+                            className="field-input"
+                            value={filterRelation}
+                            onChange={(e) => setFilterRelation(e.target.value)}
+                            style={{ width: '160px', margin: 0, borderRadius: '10px', cursor: 'pointer', border: '1px solid var(--border, #eaeaea)', height: '44px', backgroundColor: 'var(--bg, #f9f9f9)', outline: 'none' }}
+                        >
+                            <option value="">All Relations</option>
+                            <option value="Colleague">Colleague</option>
+                            <option value="Friend">Friend</option>
+                            <option value="Recruiter">Recruiter</option>
+                            <option value="Friend of a friend">Friend of a friend</option>
+                            <option value="Friend of family">Friend of family</option>
+                        </select>
+                        
+                        <select
+                            className="field-input"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            style={{ width: '160px', margin: 0, borderRadius: '10px', cursor: 'pointer', border: '1px solid var(--border, #eaeaea)', height: '44px', backgroundColor: 'var(--bg, #f9f9f9)', outline: 'none' }}
+                        >
+                            <option value="">Sort by...</option>
+                            <option value="relation">Relation (A-Z)</option>
+                            <option value="name">Name (A-Z)</option>
+                            <option value="company">Company (A-Z)</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {showMap ? (
                 <NetworkGraph contacts={contacts} />
