@@ -5,6 +5,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useApplicationHistory } from '../hooks/useApplicationHistory';
 import { useEvents } from '../hooks/useEvents';
 import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
+import RoleFitAnalysis from '../components/RoleFitAnalysis';
 
 // ── Status pipeline order ─────────────────────────────────────────────────────
 const STATUS_PIPELINE = [
@@ -516,6 +517,8 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginTop: '20px' }}>
+                {/* ── Role Fit Analysis ── */}
+                <RoleFitAnalysis app={app} />
                 {/* ── Notes card ── */}
                 <div className="adp-notes-card" style={{ margin: 0 }}>
                     <div className="adp-notes-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

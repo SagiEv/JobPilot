@@ -19,7 +19,9 @@ const fromDb = (row) => ({
     CV_FILE: row.cv_file || '',
     LAST_ACTIVITY_DATE: row.last_activity_date || row.date || '',
     REJECTION_REASON: row.rejection_reason || '',
-    AUTOMATIC_REJECTION: row.automatic_rejection || false
+    AUTOMATIC_REJECTION: row.automatic_rejection || false,
+    fit_score_deterministic: row.fit_score_deterministic,
+    fit_analysis_ai: row.fit_analysis_ai
 });
 
 const toDb = (app) => {
