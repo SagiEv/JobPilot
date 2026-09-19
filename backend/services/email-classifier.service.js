@@ -2,33 +2,33 @@ const stringSimilarity = require('string-similarity');
 
 // ── Status keyword dictionaries ──────────────────────────────────────────────
 const STATUS_KEYWORDS = {
-    interview: [
+    Interviewing: [
         'interview', 'schedule', 'call with', 'meet with', 'zoom link',
         'teams meeting', 'phone screen', 'on-site', 'onsite', 'virtual interview',
         'calendar invite', 'interview slot', 'book a time', 'availability'
     ],
-    rejected: [
+    Rejected: [
         'unfortunately', 'not moving forward', 'other candidates',
         'regret to inform', 'not selected', 'decided not to proceed',
         'will not be advancing', 'position has been filled', 'not a fit',
         'after careful consideration', 'we have decided'
     ],
-    offer: [
+    Offer: [
         'offer letter', 'congratulations', 'we\'d like to offer',
         'we would like to offer', 'compensation', 'start date',
         'employment agreement', 'welcome aboard', 'pleased to offer'
     ],
-    assessment: [
+    Assessment: [
         'assessment', 'coding challenge', 'take-home', 'technical test',
         'online test', 'hackerrank', 'codility', 'leetcode', 'assignment'
     ],
-    follow_up: [
-        'following up', 'checking in', 'next steps', 'update on your application',
-        'status update', 'where we are', 'wanted to let you know', 'keep you posted'
+    Screening: [
+        'fill in more details', 'additional details needed', 'screening', 
+        'quick chat', 'hr screen', 'recruiter screen', 'more information required'
     ],
     // Informational only — application received/confirmation. Never triggers a status
     // update or notification; used purely for conflict resolution inside detectStatus().
-    applied: [
+    Applied: [
         'application was sent', 'application has been submitted',
         'we received your application', 'thank you for applying',
         'thank you for your application', 'application received',
@@ -407,24 +407,24 @@ function classifyEmail(email, applications) {
 /**
  * Detect status category from email text using keyword dictionaries.
  *
- * Priority order: offer > rejected > interview > assessment > follow_up > applied
+ * Priority order: Offer > Rejected > Interviewing > Assessment > Screening > Applied
  *
  * Conflict resolution rules:
- *  1. If strong CONFIRMATION_SUPPRESSORS are present, 'rejected' is suppressed
+ *  1. If strong CONFIRMATION_SUPPRESSORS are present, 'Rejected' is suppressed
  *     regardless of which rejection keywords were also matched.
- *  2. If both 'applied' and 'rejected' fire, the one with more keyword hits wins;
- *     on a tie, 'applied' wins (safer — avoids false rejections).
- *  3. 'applied' is never returned as the winner if any higher-priority status
+ *  2. If both 'Applied' and 'Rejected' fire, the one with more keyword hits wins;
+ *     on a tie, 'Applied' wins (safer — avoids false rejections).
+ *  3. 'Applied' is never returned as the winner if any higher-priority status
  *     also fired, since confirmations sometimes mention interviews/offers.
  */
 function detectStatus(text) {
     const STATUS_PRIORITY = {
-        offer: 100,
-        rejected: 80,
-        interview: 60,
-        assessment: 40,
-        follow_up: 20,
-        applied: 10,
+        Offer: 100,
+        Rejected: 80,
+        Interviewing: 60,
+        Assessment: 40,
+        Screening: 30,
+        Applied: 10,
     };
 
     // Tally hits per status
@@ -433,19 +433,19 @@ function detectStatus(text) {
         hitCounts[status] = keywords.filter(kw => text.includes(kw)).length;
     }
 
-    // Rule 1: Confirmation suppression — strong confirmation phrase overrides 'rejected'
+    // Rule 1: Confirmation suppression — strong confirmation phrase overrides 'Rejected'
     const hasConfirmationSignal = CONFIRMATION_SUPPRESSORS.some(phrase => text.includes(phrase));
-    if (hasConfirmationSignal && hitCounts.rejected > 0) {
+    if (hasConfirmationSignal && hitCounts.Rejected > 0) {
         // Zero out rejected hits so it cannot win
-        hitCounts.rejected = 0;
+        hitCounts.Rejected = 0;
     }
 
-    // Rule 2: applied vs rejected conflict — more hits wins; tie goes to 'applied'
-    if (hitCounts.applied > 0 && hitCounts.rejected > 0) {
-        if (hitCounts.applied >= hitCounts.rejected) {
-            hitCounts.rejected = 0;
+    // Rule 2: Applied vs Rejected conflict — more hits wins; tie goes to 'Applied'
+    if (hitCounts.Applied > 0 && hitCounts.Rejected > 0) {
+        if (hitCounts.Applied >= hitCounts.Rejected) {
+            hitCounts.Rejected = 0;
         } else {
-            hitCounts.applied = 0;
+            hitCounts.Applied = 0;
         }
     }
 

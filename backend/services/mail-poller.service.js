@@ -5,6 +5,7 @@ const { adminSupabase: supabase } = require('../supabaseClient');
 const { classifyEmail } = require('./email-classifier.service');
 const emailLogsRepo = require('../repositories/email-logs.repository');
 const applicationRepo = require('../repositories/applications.repository');
+const applicationsService = require('./applications.service');
 const notificationsRepo = require('../repositories/notifications.repository');
 
 const AUTO_UPDATE_THRESHOLD = 0.7;
@@ -12,21 +13,21 @@ const MAX_BODY_SNIPPET = 3000;
 
 // Statuses that must never be overwritten by automated email classification.
 // Once an application reaches one of these states, only the user can change it.
-const TERMINAL_STATUSES = new Set(['rejected', 'offer', 'accepted', 'declined']);
+const TERMINAL_STATUSES = new Set(['Rejected', 'Offer', 'Hired', 'Withdrawn', 'Ignored']);
 
 // Statuses that are purely informational — they are logged but must not
 // trigger a DB status update or an in-app notification.
-const SILENT_STATUSES = new Set(['applied', 'unknown']);
+const SILENT_STATUSES = new Set(['Applied', 'Unknown', 'unknown']);
 
 // Allowed status progressions. An auto-update is only applied when the
 // classified status is a valid next step from the current application status.
 // Anything not listed here (or where current status is TERMINAL) is blocked.
 const STATUS_TRANSITIONS = {
-    applied:    new Set(['assessment', 'interview', 'follow_up', 'rejected', 'offer']),
-    follow_up:  new Set(['assessment', 'interview', 'rejected', 'offer']),
-    assessment: new Set(['interview', 'rejected', 'offer']),
-    interview:  new Set(['rejected', 'offer']),
-    // 'offer', 'rejected', 'accepted', 'declined' are terminal — no transitions allowed.
+    'Applied':    new Set(['Assessment', 'Screening', 'Interviewing', 'Rejected', 'Offer']),
+    'Screening':  new Set(['Assessment', 'Interviewing', 'Rejected', 'Offer']),
+    'Assessment': new Set(['Interviewing', 'Rejected', 'Offer']),
+    'Interviewing': new Set(['Rejected', 'Offer']),
+    // 'Offer', 'Rejected', 'Hired', 'Withdrawn', 'Ignored' are terminal — no transitions allowed.
 };
 
 /**
@@ -114,13 +115,16 @@ async function pollUserInbox(settings) {
             }
 
             // Fetch user's applications for classification
-            const { data: applications } = await applicationRepo.findAll(userId, supabase);
-            if (!applications || applications.length === 0) {
+            const { data: allApplications } = await applicationRepo.findAll(userId, supabase);
+            if (!allApplications || allApplications.length === 0) {
                 console.log(`[MAIL POLLER] User ${userId} has no applications, skipping classification`);
                 // Still update polled timestamp
                 await updatePolledTimestamp(userId, newLastUid);
                 return;
             }
+
+            // Only pass active applications to the classifier so it won't match old rejected ones
+            const applications = allApplications.filter(app => !TERMINAL_STATUSES.has(app.status));
 
             // Fetch messages
             const messages = [];
@@ -203,8 +207,8 @@ async function pollUserInbox(settings) {
                         result.confidence >= AUTO_UPDATE_THRESHOLD &&
                         !SILENT_STATUSES.has(result.classifiedStatus)
                     ) {
-                        const currentApp = applications.find(a => a.id === result.applicationId);
-                        const currentStatus = currentApp?.status || 'applied';
+                        const currentApp = allApplications.find(a => a.id === result.applicationId);
+                        const currentStatus = currentApp?.status || 'Applied';
 
                         // Guard 1: Never overwrite a terminal status
                         if (TERMINAL_STATUSES.has(currentStatus)) {
@@ -213,19 +217,20 @@ async function pollUserInbox(settings) {
                         } else if (STATUS_TRANSITIONS[currentStatus] && !STATUS_TRANSITIONS[currentStatus].has(result.classifiedStatus)) {
                             console.log(`[MAIL POLLER] Skipping auto-update for app ${result.applicationId}: transition "${currentStatus}" → "${result.classifiedStatus}" is not allowed`);
                         } else {
-                            await applicationRepo.update(userId, result.applicationId, {
+                            await applicationsService.updateApplication(userId, result.applicationId, {
                                 status: result.classifiedStatus,
-                                date: receivedAt.toISOString().split('T')[0]
+                                event_date: receivedAt.toISOString().split('T')[0],
+                                notes: `Status auto-updated based on email from ${from}.`
                             }, supabase);
                             console.log(`[MAIL POLLER] Auto-updated application ${result.applicationId} → ${result.classifiedStatus} (confidence: ${result.confidence.toFixed(2)})`);
 
                             // Create in-app notification
                             const statusLabels = {
-                                interview: 'Interview Scheduled',
-                                rejected: 'Application Rejected',
-                                offer: 'Offer Received',
-                                assessment: 'Assessment Requested',
-                                follow_up: 'Follow-up Received',
+                                Interviewing: 'Interview Scheduled',
+                                Rejected: 'Application Rejected',
+                                Offer: 'Offer Received',
+                                Assessment: 'Assessment Requested',
+                                Screening: 'Screening Scheduled',
                             };
                             const label = statusLabels[result.classifiedStatus] || result.classifiedStatus;
                             const company = result.matchedCompany || 'Unknown Company';

@@ -46,7 +46,7 @@ const createApplication = async (userId, data, supabaseClient) => {
         null,
         newApp.stage,
         'Application created',
-        '', null, null, supabaseClient
+        '', null, newApp.date || null, supabaseClient
     );
 
     return newApp;
@@ -175,6 +175,22 @@ const bulkCreateApplications = async (userId, applications, supabaseClient) => {
         console.error("Bulk Insert Error:", error);
         throw error;
     }
+
+    if (data && data.length > 0) {
+        for (const app of data) {
+            await applicationHistoryService.logChange(
+                app.id,
+                'Application Added',
+                null,
+                app.status,
+                null,
+                app.stage,
+                'Application imported',
+                '', null, app.date || null, supabaseClient
+            );
+        }
+    }
+
     return { success: true, count: data ? data.length : 0 };
 };
 const getAnalyticsMetrics = async (userId, supabaseClient) => {
