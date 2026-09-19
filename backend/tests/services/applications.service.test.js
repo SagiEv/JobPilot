@@ -83,7 +83,7 @@ describe('applications.service', () => {
             // Assert
             expect(result).toEqual(newApp);
             expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
-                10, 'Application Added', null, 'Applied', null, null, 'Application created', '', null, null, supabaseClient
+                10, 'Application Added', null, 'Applied', null, null, 'Application created', '', null, newApp.date || null, supabaseClient
             );
         });
 

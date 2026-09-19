@@ -85,10 +85,10 @@ const baseSettings = {
 };
 
 const testApplications = [
-    { id: 1, company: 'TestCorp', position: 'Software Engineer', status: 'applied', role_id: '' },
-    { id: 2, company: 'AcmeTech', position: 'Frontend Developer', status: 'applied', role_id: 'REQ-456' },
-    { id: 3, company: 'BigBank', position: 'Data Engineer', status: 'rejected', role_id: '' },
-    { id: 4, company: 'StartupXYZ', position: 'Fullstack Dev', status: 'interview', role_id: '' },
+    { id: 1, company: 'TestCorp', position: 'Software Engineer', status: 'Applied', role_id: '' },
+    { id: 2, company: 'AcmeTech', position: 'Frontend Developer', status: 'Applied', role_id: 'REQ-456' },
+    { id: 3, company: 'BigBank', position: 'Data Engineer', status: 'Rejected', role_id: '' },
+    { id: 4, company: 'StartupXYZ', position: 'Fullstack Dev', status: 'Interviewing', role_id: '' },
 ];
 
 describe('Integration: Email Processing Pipeline', () => {
@@ -115,8 +115,16 @@ describe('Integration: Email Processing Pipeline', () => {
         // email_logs.findByMessageId → no existing log
         sandbox.onTable('email_logs').forSelect({ data: null, error: null });
 
+        // applicationRepo.findById
+        sandbox.onTable('applications').forSelect({ data: { id: 1, status: 'Applied', stage: null }, error: null });
+
+        // application_history (for conflicts detection and history recalculation)
+        sandbox.onTable('application_history').forSelect({ data: [], error: null });
+        sandbox.onTable('application_history').forInsert({ data: [{ id: 10 }], error: null });
+        sandbox.onTable('application_history').forSelect({ data: [{ id: 10, new_status: 'Rejected', new_stage: null }], error: null });
+
         // applicationRepo.update (auto-update)
-        sandbox.onTable('applications').forUpdate({ data: { id: 1, status: 'rejected' }, error: null });
+        sandbox.onTable('applications').forUpdate({ data: { id: 1, status: 'Rejected' }, error: null });
 
         // notifications.insert
         sandbox.onTable('notifications').forInsert({ data: { id: 1 }, error: null });
@@ -208,7 +216,7 @@ describe('Integration: Email Processing Pipeline', () => {
 
         await pollUserInbox(baseSettings);
 
-        // StartupXYZ app (id: 4) is at "Interviewing" — cannot go back to "assessment"
+        // StartupXYZ app (id: 4) is at "Interviewing" — cannot go back to "Assessment"
         const appUpdateCalls = sandbox.getCallsTo('applications', 'update');
         expect(appUpdateCalls.length).toBe(0);
     });
@@ -294,7 +302,16 @@ describe('Integration: Email Processing Pipeline', () => {
         });
 
         sandbox.onTable('email_logs').forSelect({ data: null, error: null });
-        sandbox.onTable('applications').forUpdate({ data: { id: 1, status: 'interview' }, error: null });
+
+        // applicationRepo.findById
+        sandbox.onTable('applications').forSelect({ data: { id: 1, status: 'Applied', stage: null }, error: null });
+
+        // application_history
+        sandbox.onTable('application_history').forSelect({ data: [], error: null });
+        sandbox.onTable('application_history').forInsert({ data: [{ id: 11 }], error: null });
+        sandbox.onTable('application_history').forSelect({ data: [{ id: 11, new_status: 'Interviewing', new_stage: null }], error: null });
+
+        sandbox.onTable('applications').forUpdate({ data: { id: 1, status: 'Interviewing' }, error: null });
 
         let capturedNotification = null;
         const origFrom = sandbox.from;

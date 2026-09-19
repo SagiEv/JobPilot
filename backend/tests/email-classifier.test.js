@@ -142,41 +142,41 @@ describe('extractCompanyFromSubject()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('detectStatus()', () => {
-    test('Application confirmation email → "applied" (not "rejected")', () => {
+    test('Application confirmation email → "Applied" (not "Rejected")', () => {
         const text = 'thank you for your application we received your application confirmation';
-        expect(detectStatus(text)).toBe('applied');
+        expect(detectStatus(text)).toBe('Applied');
     });
 
     test('"Thank you for your application" suppresses rejection keywords', () => {
         // Even if a rejection keyword sneaks in, confirmation suppressor wins
         const text = 'thank you for your application after careful consideration we have decided';
-        expect(detectStatus(text)).toBe('applied');
+        expect(detectStatus(text)).toBe('Applied');
     });
 
-    test('Clear rejection without confirmation signal → "rejected"', () => {
+    test('Clear rejection without confirmation signal → "Rejected"', () => {
         const text = 'unfortunately we will not be moving forward with other candidates at this time';
-        expect(detectStatus(text)).toBe('rejected');
+        expect(detectStatus(text)).toBe('Rejected');
     });
 
-    test('Salesforce rejection body → "rejected"', () => {
+    test('Salesforce rejection body → "Rejected"', () => {
         const text = `the software engineer new graduate full-stack position has been filled and is now closed`;
         // "position has been filled" is a rejection keyword
-        expect(detectStatus(text)).toBe('rejected');
+        expect(detectStatus(text)).toBe('Rejected');
     });
 
-    test('Interview invite → "interview"', () => {
+    test('Interview invite → "Interviewing"', () => {
         const text = "we'd like to schedule an interview with you for a phone screen next week";
-        expect(detectStatus(text)).toBe('interview');
+        expect(detectStatus(text)).toBe('Interviewing');
     });
 
-    test('Offer letter → "offer" (highest priority)', () => {
+    test('Offer letter → "Offer" (highest priority)', () => {
         const text = 'we are pleased to offer you employment agreement welcome aboard start date monday';
-        expect(detectStatus(text)).toBe('offer');
+        expect(detectStatus(text)).toBe('Offer');
     });
 
-    test('Assessment request → "assessment"', () => {
+    test('Assessment request → "Assessment"', () => {
         const text = 'please complete the following coding challenge on hackerrank by friday';
-        expect(detectStatus(text)).toBe('assessment');
+        expect(detectStatus(text)).toBe('Assessment');
     });
 
     test('No keywords → "unknown"', () => {
@@ -185,7 +185,7 @@ describe('detectStatus()', () => {
 
     test('Offer beats rejected even if both fire', () => {
         const text = 'unfortunately we are pleased to offer you employment agreement';
-        expect(detectStatus(text)).toBe('offer');
+        expect(detectStatus(text)).toBe('Offer');
     });
 });
 
@@ -268,8 +268,8 @@ describe('classifyEmail()', () => {
 
         expect(result.applicationId).toBe(1);
         expect(result.matchedCompany).toBe('Red Hat');
-        // Confirmation email → status should be 'applied', not 'rejected'
-        expect(result.classifiedStatus).toBe('applied');
+        // Confirmation email → status should be 'Applied', not 'Rejected'
+        expect(result.classifiedStatus).toBe('Applied');
     });
 
     test('[Workday] hpe@myworkday.com — job ID in subject → matches HPE app', () => {
@@ -330,7 +330,7 @@ describe('classifyEmail()', () => {
 
         expect(result.applicationId).toBe(1);
         expect(result.matchedCompany).toBe('Jeen.ai');
-        expect(result.classifiedStatus).toBe('applied');
+        expect(result.classifiedStatus).toBe('Applied');
     });
 
     // ── Direct company email path ─────────────────────────────────────────────
@@ -366,7 +366,7 @@ describe('classifyEmail()', () => {
         expect(result.applicationId).toBe(2);
         expect(result.matchedCompany).toBe('Microsoft');
         // Application confirmation should NOT be classified as rejected
-        expect(result.classifiedStatus).not.toBe('rejected');
+        expect(result.classifiedStatus).not.toBe('Rejected');
     });
 
     // ── Salesforce Workday rejection ──────────────────────────────────────────
@@ -392,7 +392,7 @@ The Salesforce Recruiting Team`;
 
         expect(result.applicationId).toBe(1);
         expect(result.matchedCompany).toBe('Salesforce');
-        expect(result.classifiedStatus).toBe('rejected');
+        expect(result.classifiedStatus).toBe('Rejected');
     });
 
     // ── Multi-application same company disambiguation ─────────────────────────

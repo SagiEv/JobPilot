@@ -34,7 +34,7 @@ describe('Integration: Application Lifecycle (Status Machine)', () => {
         });
         expect(created.status).toBe('Applied');
         expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
-            1, 'Application Added', null, 'Applied', null, null, 'Application created', '', null, null, undefined
+            1, 'Application Added', null, 'Applied', null, null, 'Application created', '', null, '2025-01-01', undefined
         );
 
         // Step 2: Update to Interviewing / HR Screen
