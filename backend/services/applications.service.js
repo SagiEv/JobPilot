@@ -144,6 +144,7 @@ const updateApplication = async (userId, id, data, supabaseClient) => {
         if (latestEvent.new_stage !== undefined) {
             updateData.stage = latestEvent.new_stage;
         }
+        updateData.date = new Date(latestEvent.event_date || latestEvent.created_at || 0).toISOString().split('T')[0];
     } else {
         // Fallback to input if no history exists (e.g. legacy apps)
         updateData.status = inputStatus;

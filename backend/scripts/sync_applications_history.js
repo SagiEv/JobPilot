@@ -22,7 +22,8 @@ async function syncApplications() {
 
     const { data: history, error: histError } = await adminSupabase
         .from('application_history')
-        .select('*');
+        .select('*')
+        .limit(10000);
 
     if (histError) {
         console.error("Error fetching application history:", histError);
