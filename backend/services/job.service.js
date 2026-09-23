@@ -1,4 +1,4 @@
-const { adminSupabase } = require('../supabaseClient');
+// supabaseClient required lazily inside functions to avoid circular dependency issues
 
 /**
  * Creates a new async job record
@@ -27,7 +27,8 @@ async function createJob(userId, type, client) {
  * @param {object} resultData - JSON data to save
  */
 async function completeJob(jobId, resultData, client) {
-    const { error } = await client
+    const { adminSupabase } = require('../supabaseClient');
+    const { error } = await adminSupabase
         .from('ai_jobs')
         .update({ 
             status: 'completed', 
@@ -61,7 +62,8 @@ async function failJob(jobId, errorData, client) {
         message = errorData.message;
     }
     
-    const { error } = await client
+    const { adminSupabase } = require('../supabaseClient');
+    const { error } = await adminSupabase
         .from('ai_jobs')
         .update({ 
             status: 'failed', 

@@ -6,7 +6,7 @@ const pdfParse = require('pdf-parse');
 
 const axios = require('axios');
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8001';
 
 const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = true, cvFile = null, supabaseClient = null, pipeline_mode = 'standard') => {
 
@@ -50,7 +50,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     const cleanText = (txt) => txt ? txt.replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim() : "";
     const safeJobDesc = cleanText(jobDescription).substring(0, 15000);
     const safeBaseCv = cleanText(baseCvText).substring(0, 20000);
-    const { data: experienceText } = await experienceRepository.findExperienceText(userId);
+    const { data: experienceText } = await experienceRepository.findExperienceText(userId, supabaseClient);
     const safeExpText = cleanText(experienceText?.text).substring(0, 10000);
 
     // ── Vector Search (RAG) ──
@@ -76,8 +76,8 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         skills = matchedSkills || [];
     } else {
         // Fallback to all if embedding failed
-        const { data: allProjects } = await experienceRepository.findAllProjects(userId);
-        const { data: allSkills } = await skillsRepository.findAll(userId);
+        const { data: allProjects } = await experienceRepository.findAllProjects(userId, supabaseClient);
+        const { data: allSkills } = await skillsRepository.findAll(userId, supabaseClient);
         projects = allProjects || [];
         skills = allSkills || [];
     }

@@ -1,0 +1,61 @@
+name: Validate AI Model Registry
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Every Monday at 8 AM UTC
+  workflow_dispatch:       # Manual trigger from GitHub UI
+
+jobs:
+  validate-models:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install Dependencies
+        run: pip install requests
+        
+      - name: Run Model Validation
+        working-directory: ./backend/ai_service
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/validate_models.py --ci
+
+      - name: Create Issue on Stale Models
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'ai-model-stale',
+              state: 'open'
+            });
+            if (existing.data.length > 0) {
+              console.log('Stale model issue already exists, skipping creation.');
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '⚠️ AI Model Registry has stale/deprecated models',
+              body: [
+                'The weekly model validation check found deprecated or unavailable models in `providers/model_registry.py`.',
+                '',
+                '### How to fix',
+                '1. Run `python backend/ai_service/scripts/validate_models.py` locally to see which models are stale.',
+                '2. Update `backend/ai_service/providers/model_registry.py` with current model IDs.',
+                '3. Test the AI service to ensure the new defaults work.',
+                '',
+                '*This issue was auto-created by the `validate-models` workflow.*'
+              ].join('\n'),
+              labels: ['bug', 'ai-service', 'ai-model-stale']
+            });

@@ -129,7 +129,7 @@ def jobs_url_finder_node(state: SearchState, groq_api_key: str) -> dict:
         logger.info(f"No career links found on {url}, using as-is")
         return {"careers_url": url}
 
-    llm = get_fast_llm(groq_api_key)
+    llm = get_fast_llm({"groq_token": groq_api_key})
     prompt = PROMPT_TEMPLATE.format(
         url=url,
         links="\n".join(links),

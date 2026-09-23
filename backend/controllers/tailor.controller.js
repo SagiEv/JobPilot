@@ -39,8 +39,10 @@ exports.getJobStatus = async (req, res) => {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
+        console.log(`[DEBUG] getJobStatus for ${jobId}: returning status ${job?.status}`);
         res.json(job);
     } catch (err) {
+        console.error(`[DEBUG] getJobStatus for ${req.params.id} failed:`, err.message);
         res.status(404).json({ error: 'Job not found' });
     }
 };

@@ -138,6 +138,7 @@ const DashboardPage = () => {
         }
         setIsComposing(true);
         setComposedMessage('');
+        addToast("Generating your message, this might take a moment...", 'info');
         try {
             const formData = new FormData();
             formData.append('purpose', emailComposer.purpose);
@@ -155,7 +156,8 @@ const DashboardPage = () => {
             setComposedMessage(res.data.message);
         } catch(err) {
             console.error(err);
-            addToast("Failed to generate message. Ensure you have configured your API Key in Settings.", 'error');
+            const serverError = err.response?.data?.detail || err.response?.data?.error || err.message;
+            addToast(`Failed to generate message: ${serverError}`, 'error');
         } finally {
             setIsComposing(false);
         }

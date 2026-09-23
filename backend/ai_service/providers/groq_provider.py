@@ -2,11 +2,12 @@ from typing import List, Dict, Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_groq import ChatGroq
 from interfaces.llm_provider import LLMProvider
+from providers.model_registry import get_default_model, get_available_models as registry_models
 
 class GroqProvider(LLMProvider):
     def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096, max_retries: int = 3) -> BaseChatModel:
         if not model_name:
-            model_name = "openai/gpt-oss-120b"
+            model_name = get_default_model("groq")
             
         return ChatGroq(
             model=model_name,
@@ -17,8 +18,5 @@ class GroqProvider(LLMProvider):
         )
 
     def get_available_models(self) -> List[Dict[str, Any]]:
-        return [
-            {"id": "openai/gpt-oss-120b", "name": "GPT OSS 120B"},
-            {"id": "openai/gpt-oss-20b", "name": "GPT OSS 20B"},
-            {"id": "qwen/qwen3.6-27b", "name": "Qwen 3.6 27B"}
-        ]
+        return registry_models("groq")
+

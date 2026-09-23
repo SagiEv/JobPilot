@@ -28,10 +28,10 @@ exports.generateMessage = async (req, res) => {
             cvText = pdfData.text;
         }
 
-        const profileResult = await profileRepository.findFirstProfile(userId);
-        const { data: skills } = await skillsRepository.findAll(userId);
-        const { data: projects } = await experienceRepository.findAllProjects(userId);
-        const { data: experienceText } = await experienceRepository.findExperienceText(userId);
+        const profileResult = await profileRepository.findFirstProfile(userId, req.supabase);
+        const { data: skills } = await skillsRepository.findAll(userId, req.supabase);
+        const { data: projects } = await experienceRepository.findAllProjects(userId, req.supabase);
+        const { data: experienceText } = await experienceRepository.findExperienceText(userId, req.supabase);
 
         // Call Python service
         const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8001';
@@ -64,7 +64,18 @@ exports.generateMessage = async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Error generating message:', err.response?.data || err.message);
-        res.status(500).json({ error: 'Failed to generate message' });
+        const errorDetail = err.response?.data || err.message;
+        console.error('Error generating message:', errorDetail);
+        
+        let clientMessage = 'Failed to generate message';
+        const errorStr = JSON.stringify(errorDetail).toLowerCase();
+        
+        if (errorStr.includes('503') || errorStr.includes('unavailable') || errorStr.includes('high demand')) {
+            clientMessage = 'AI Provider is currently experiencing high demand. Please try again later.';
+        } else if (errorStr.includes('429') || errorStr.includes('rate limit') || errorStr.includes('quota') || errorStr.includes('token')) {
+            clientMessage = 'AI Provider rate limit or token quota exceeded. Please try again later or update your API key.';
+        }
+        
+        res.status(500).json({ error: clientMessage });
     }
 };

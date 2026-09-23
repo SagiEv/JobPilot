@@ -88,7 +88,7 @@ def _extract_relevant_html(html: str) -> str:
 
 
 def selector_extractor_node(state: SearchState, groq_api_key: str) -> dict:
-    llm = get_fast_llm(groq_api_key)
+    llm = get_fast_llm({"groq_token": groq_api_key})
 
     html = state.get("page_html", "")
     url = state["careers_url"]

@@ -25,6 +25,20 @@ app.include_router(fit_router, tags=["Role Fit Analysis"])
 def health_check():
     return {"status": "ok", "service": "jobpilot-ai"}
 
+@app.on_event("startup")
+async def validate_model_registry():
+    """Log the current model registry config on startup for visibility."""
+    from providers.model_registry import MODEL_REGISTRY
+    
+    logger.info("=" * 50)
+    logger.info("AI Model Registry — Current Configuration:")
+    for provider, config in MODEL_REGISTRY.items():
+        default = config.get("default", "N/A")
+        fallbacks = ", ".join(config.get("fallbacks", []))
+        available_count = len(config.get("available", []))
+        logger.info(f"  [{provider}] default={default} | fallbacks=[{fallbacks}] | {available_count} models listed")
+    logger.info("=" * 50)
+
 if __name__ == "__main__":
     import uvicorn
     # Run the fast api service on port 8001
