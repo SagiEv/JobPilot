@@ -129,9 +129,9 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
         <div className="experience-editor" style={{ marginTop: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <div className="field-label" style={{ margin: 0 }}>
-                    {status === 'current' ? 'Current Experience' : 'Previous Experience'}
+                    {status === 'current' ? 'Current Position' : 'Past Positions'}
                 </div>
-                <button className="btn btn-sm btn-primary" onClick={handleAdd}>+ Add Role</button>
+                <button className="btn btn-sm btn-primary" onClick={handleAdd}>+ Add Position</button>
             </div>
             
             {localExperiences.length === 0 && status === 'current' && (
@@ -149,7 +149,7 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                 }}>
                     Junior
                     <span 
-                        title="It looks like you're at the beginning of your journey. Add a role to get started, or keep it this way if you're a junior!"
+                        title="It looks like you're at the beginning of your journey. Add a position to get started, or keep it this way if you're a junior!"
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -174,18 +174,18 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                 }
                 
                 return (
-                    <div key={index} className="field-group" style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '10px' }}>
+                    <div key={index} className="field-group animate-slide-down" style={{ padding: '15px', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                         <div style={{ flex: 1, marginRight: '10px' }}>
-                            <div className="field-label">Role</div>
+                            <div className="field-label">Position</div>
                             <select 
                                 className="field-input" 
                                 value={exp.role_id || ''}
                                 onChange={(e) => handleUpdate(index, 'role_id', parseInt(e.target.value, 10))}
                             >
-                                <option value="" disabled>Select a role...</option>
+                                <option value="" disabled>Select a position...</option>
                                 {isLoading ? (
-                                    <option value="" disabled>Loading roles...</option>
+                                    <option value="" disabled>Loading positions...</option>
                                 ) : (
                                     rolesBank.map(role => (
                                         <option key={role.id} value={role.id}>{role.name}</option>
@@ -265,7 +265,7 @@ const ExperienceEditor = ({ experiences = [], onChange, status }) => {
                         onClick={() => setShowAll(!showAll)}
                         style={{ color: 'var(--primary)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '5px 10px' }}
                     >
-                        {showAll ? '▲ Hide older roles' : `▼ Show all previous roles (${localExperiences.length})`}
+                        {showAll ? '▲ Hide older positions' : `▼ Show all previous positions (${localExperiences.length})`}
                     </button>
                 </div>
             )}

@@ -2,6 +2,7 @@ import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState } from 'react';
 import { useProfile } from '../hooks/useProfile';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 // import api from '../api';
@@ -73,6 +74,9 @@ const ProfilePage = () => {
     const [previewHtml, setPreviewHtml] = useState('');
     const [selectedTheme, setSelectedTheme] = useState('claude');
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+    const [isPersonalMin, setIsPersonalMin] = useLocalStorage('profile_personal_minimized', false);
+    const [isCvMin, setIsCvMin] = useLocalStorage('profile_cv_minimized', false);
 
     const themes = [
         { id: 'claude',                name: 'Claude',               desc: 'Clean & minimal',     accent: '#6c8ebf' },
@@ -168,51 +172,77 @@ const ProfilePage = () => {
             </div>
 
             <div className="card">
-                <div className="card-title">Personal Info</div>
-                <div className="field-group">
-                    <div className="field-label">Full Name</div>
-                    <input className="field-input" value={profile.name || ''} onChange={(e) => handleProfileChange('name', e.target.value)} />
+                <div 
+                    className="card-title collapsible-header" 
+                    onClick={() => setIsPersonalMin(!isPersonalMin)}
+                    style={{ marginBottom: isPersonalMin ? 0 : '14px', transition: 'margin 0.3s ease' }}
+                >
+                    Personal Info
+                    <svg className={`collapsible-icon ${isPersonalMin ? 'collapsed' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
                 </div>
-                <div className="field-group">
-                    <div className="field-label">Email Address</div>
-                    <input className="field-input" type="email" value={profile.email || ''} onChange={(e) => handleProfileChange('email', e.target.value)} />
-                </div>
-                <div className="field-group">
-                    <div className="field-label">Phone</div>
-                    <input className="field-input" value={profile.phone || ''} onChange={(e) => handleProfileChange('phone', e.target.value)} />
-                </div>
-                <div className="field-group">
-                    <div className="field-label">LinkedIn URL</div>
-                    <input className="field-input" value={profile.linkedin || ''} onChange={(e) => handleProfileChange('linkedin', e.target.value)} />
-                </div>
-                <div className="field-group">
-                    <div className="field-label">GitHub URL</div>
-                    <input className="field-input" value={profile.github || profile.website || ''} onChange={(e) => handleProfileChange('github', e.target.value)} />
+                <div className={`collapsible-content ${isPersonalMin ? 'collapsed' : ''}`}>
+                    <div className="collapsible-content-inner">
+                        <div className="field-group">
+                            <div className="field-label">Full Name</div>
+                            <input className="field-input" value={profile.name || ''} onChange={(e) => handleProfileChange('name', e.target.value)} />
+                        </div>
+                        <div className="field-group">
+                            <div className="field-label">Email Address</div>
+                            <input className="field-input" type="email" value={profile.email || ''} onChange={(e) => handleProfileChange('email', e.target.value)} />
+                        </div>
+                        <div className="field-group">
+                            <div className="field-label">Phone</div>
+                            <input className="field-input" value={profile.phone || ''} onChange={(e) => handleProfileChange('phone', e.target.value)} />
+                        </div>
+                        <div className="field-group">
+                            <div className="field-label">LinkedIn URL</div>
+                            <input className="field-input" value={profile.linkedin || ''} onChange={(e) => handleProfileChange('linkedin', e.target.value)} />
+                        </div>
+                        <div className="field-group" style={{ marginBottom: 0 }}>
+                            <div className="field-label">GitHub URL</div>
+                            <input className="field-input" value={profile.github || profile.website || ''} onChange={(e) => handleProfileChange('github', e.target.value)} />
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div className="card">
-                <div className="card-title">CV & Preferences</div>
-                <div className="field-group">
-                    <div className="field-label">Active CV</div>
-                    <div className="cv-badge">{profile.cv || 'None'}</div>
+                <div 
+                    className="card-title collapsible-header" 
+                    onClick={() => setIsCvMin(!isCvMin)}
+                    style={{ marginBottom: isCvMin ? 0 : '14px', transition: 'margin 0.3s ease' }}
+                >
+                    Career & Goals
+                    <svg className={`collapsible-icon ${isCvMin ? 'collapsed' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
                 </div>
-                <div className="field-group">
-                    <div className="field-label">Target Roles</div>
-                    <input className="field-input" value={profile.roles || ''} onChange={(e) => handleProfileChange('roles', e.target.value)} />
+                <div className={`collapsible-content ${isCvMin ? 'collapsed' : ''}`}>
+                    <div className="collapsible-content-inner">
+                        <div className="field-group">
+                            <div className="field-label">Active CV</div>
+                            <div className="cv-badge">{profile.cv || 'None'}</div>
+                        </div>
+                        <div className="field-group">
+                            <div className="field-label">Target Roles</div>
+                            <input className="field-input" value={profile.roles || ''} onChange={(e) => handleProfileChange('roles', e.target.value)} />
+                        </div>
+
+                        <ExperienceEditor 
+                            experiences={profile.experiences || []} 
+                            onChange={(newExps) => handleProfileChange('experiences', newExps)} 
+                            status="current" 
+                        />
+
+                        <ExperienceEditor 
+                            experiences={profile.experiences || []} 
+                            onChange={(newExps) => handleProfileChange('experiences', newExps)} 
+                            status="previous" 
+                        />
+                    </div>
                 </div>
-
-                <ExperienceEditor 
-                    experiences={profile.experiences || []} 
-                    onChange={(newExps) => handleProfileChange('experiences', newExps)} 
-                    status="current" 
-                />
-
-                <ExperienceEditor 
-                    experiences={profile.experiences || []} 
-                    onChange={(newExps) => handleProfileChange('experiences', newExps)} 
-                    status="previous" 
-                />
             </div>
 
             <EditableCVField title="Summary" value={profile.cvData?.summary} onChange={(val) => handleProfileChange('cvData.summary', val)} />
