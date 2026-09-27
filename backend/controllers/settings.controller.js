@@ -37,7 +37,7 @@ exports.testSmtpConnection = async (req, res) => {
 
         // If no password provided in payload, use saved credentials
         if (!password) {
-            const { data: settings } = await settingsRepository.findSettings(userId, req.token);
+            const { data: settings } = await settingsRepository.findSettings(userId, req.supabase);
             if (!settings?.smtp_password_encrypted) {
                 return res.status(400).json({ success: false, error: 'No password provided and none saved.' });
             }
@@ -78,7 +78,7 @@ exports.testAiToken = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Provider is required.' });
         }
         
-        const { data: settings } = await settingsRepository.findSettings(userId, req.token);
+        const { data: settings } = await settingsRepository.findSettings(userId, req.supabase);
         const encryptedKey = settings?.[`${provider}_token_encrypted`];
         const unencryptedKey = settings?.[`${provider}_token`];
         
