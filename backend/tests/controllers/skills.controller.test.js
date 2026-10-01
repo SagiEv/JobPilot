@@ -43,11 +43,10 @@ describe('skills.controller', () => {
             expect(res.json).toHaveBeenCalledWith({ success: true });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes({ params: { id: 1 } });
             skillService.deleteSkill.mockRejectedValue(new Error('fail'));
-            await controller.remove(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.remove(req, res)).rejects.toThrow();
         });
     });
 });

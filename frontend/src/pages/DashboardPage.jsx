@@ -5,11 +5,17 @@ import { useDailyStats } from '../hooks/useDailyStats';
 import { useEvents } from '../hooks/useEvents';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRss } from '../hooks/useRss';
+import { useScrapedJobs } from '../hooks/useScrapedJobs';
 import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
 import ProviderBadge from '../components/ProviderBadge';
 import { useSettings } from '../hooks/useSettings';
 import { formatDate } from '../utils/helpers';
+
+const stripEmojis = (str) => {
+    if (!str) return str;
+    return str.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+};
 
 const DashboardPage = () => {
     const { addToast } = useToast();
@@ -18,6 +24,17 @@ const DashboardPage = () => {
     const { data: dailyStats } = useDailyStats();
     const { events, loading: eventsLoading, addEvent } = useEvents();
     const { jobs: rssJobs, jobsLoading: rssLoading } = useRss();
+    const { scrapedJobs, loading: scrapedJobsLoading, toggleBookmark, markAsSeen, removeJob } = useScrapedJobs();
+
+    const mergedJobs = useMemo(() => {
+        const rss = (rssJobs || []).map(job => ({ ...job, source: 'rss' }));
+        const scraped = (scrapedJobs || []).filter(job => !job.seen).map(job => ({ ...job, source: 'scraper' }));
+        return [...rss, ...scraped].sort((a, b) => {
+            const dateA = new Date(a.published_at || a.created_at).getTime();
+            const dateB = new Date(b.published_at || b.created_at).getTime();
+            return dateB - dateA;
+        });
+    }, [rssJobs, scrapedJobs]);
 
     // Returns 'YYYY-MM-DD' in the USER'S local timezone (no UTC shift)
     const localDateStr = (date) => {
@@ -47,6 +64,46 @@ const DashboardPage = () => {
     // Modals state
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+
+    // Job Selection state
+    const [selectedJobs, setSelectedJobs] = useState([]);
+
+    const toggleJobSelection = (e, jobKey) => {
+        e.stopPropagation();
+        setSelectedJobs(prev => prev.includes(jobKey) ? prev.filter(id => id !== jobKey) : [...prev, jobKey]);
+    };
+
+    const handleSelectAllScraped = (e) => {
+        if (e.target.checked) {
+            const scrapedKeys = mergedJobs.filter(j => j.source === 'scraper').map(j => j.source + '-' + j.id);
+            setSelectedJobs(scrapedKeys);
+        } else {
+            setSelectedJobs([]);
+        }
+    };
+
+    const handleBulkRemove = () => {
+        const scrapedIds = selectedJobs.filter(key => key.startsWith('scraper-')).map(key => parseInt(key.replace('scraper-', '')));
+        scrapedIds.forEach(id => removeJob(id));
+        setSelectedJobs([]);
+    };
+
+    const handleBulkSeen = () => {
+        const scrapedIds = selectedJobs.filter(key => key.startsWith('scraper-')).map(key => parseInt(key.replace('scraper-', '')));
+        scrapedIds.forEach(id => markAsSeen(id));
+        setSelectedJobs([]);
+    };
+
+    const handleBulkStar = () => {
+        const scrapedIds = selectedJobs.filter(key => key.startsWith('scraper-')).map(key => parseInt(key.replace('scraper-', '')));
+        scrapedIds.forEach(id => {
+            const job = scrapedJobs.find(j => j.id === id);
+            if (job && !job.bookmarked) {
+                toggleBookmark(id, false);
+            }
+        });
+        setSelectedJobs([]);
+    };
 
     // Event Form
     const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', allDay: false, type: 'generic', details: '' });
@@ -246,6 +303,8 @@ const DashboardPage = () => {
                                 // Build dateStr in LOCAL timezone to avoid UTC-shift
                                 const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
                                 const dateStr = localDateStr(cellDate);
+                                const todayStr = localDateStr(new Date());
+                                const isToday = dateStr === todayStr;
                                 const dayEvents = events.filter(e => {
                                     if (!e.date) return false;
                                     return localDateStr(e.date) === dateStr;
@@ -261,13 +320,21 @@ const DashboardPage = () => {
                                     >
                                         <div style={{
                                             padding: '0.25rem',
-                                            borderRadius: '4px',
+                                            borderRadius: isToday ? '50%' : '4px',
                                             backgroundColor: hasEvent ? '#0f6e56' : 'transparent',
-                                            color: hasEvent ? '#fff' : '#333',
-                                            fontWeight: hasEvent ? 'bold' : 'normal',
+                                            color: hasEvent ? '#fff' : (isToday ? '#0f6e56' : '#333'),
+                                            fontWeight: hasEvent || isToday ? 'bold' : 'normal',
+                                            border: isToday ? (hasEvent ? '2px solid #fff' : '2px solid #0f6e56') : '2px solid transparent',
                                             cursor: hasEvent ? 'pointer' : 'default',
                                             transition: 'transform 0.1s ease',
-                                            transform: isHovered ? 'scale(1.15)' : 'scale(1)'
+                                            transform: isHovered ? 'scale(1.15)' : 'scale(1)',
+                                            width: '32px',
+                                            height: '32px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            margin: '0 auto',
+                                            boxSizing: 'border-box'
                                         }}>
                                             {day}
                                         </div>
@@ -383,53 +450,129 @@ const DashboardPage = () => {
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f6e56" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                             Role Suggestions
                         </h2>
-                        {rssJobs && rssJobs.length > 0 && (
+                        {mergedJobs.length > 0 && (
                             <span className="count-badge" style={{ backgroundColor: '#e6f4f1', color: '#0f6e56' }}>
-                                {rssJobs.length} New
+                                {mergedJobs.length} New
                             </span>
                         )}
                     </div>
-                    
-                    <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                        Fresh opportunities discovered via Google Alerts and matched for Junior Software roles.
-                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <p style={{ color: '#888', fontSize: '0.9rem', margin: 0 }}>
+                            Fresh opportunities discovered via Google Alerts and Career Site Scraping.
+                        </p>
+                        
+                        {mergedJobs.filter(j => j.source === 'scraper').length > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                {selectedJobs.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.85rem', color: '#0f6e56', fontWeight: 500, marginRight: '0.5rem' }}>{selectedJobs.length} selected</span>
+                                        <button className="btn btn-sm" onClick={handleBulkStar} style={{ color: '#0f6e56', padding: '0.2rem 0.5rem' }}>⭐ Star selected</button>
+                                        <button className="btn btn-sm" onClick={handleBulkSeen} style={{ color: '#0f6e56', padding: '0.2rem 0.5rem' }}>👁 Mark seen</button>
+                                        <button className="btn btn-sm" onClick={handleBulkRemove} style={{ color: 'var(--danger-c)', padding: '0.2rem 0.5rem' }}>✕ Remove selected</button>
+                                    </div>
+                                )}
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: '#555' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        onChange={handleSelectAllScraped}
+                                        checked={selectedJobs.length > 0 && selectedJobs.length === mergedJobs.filter(j => j.source === 'scraper').length}
+                                    />
+                                    Select All Scraped
+                                </label>
+                            </div>
+                        )}
+                    </div>
 
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
-                        {rssLoading ? (
+                        {rssLoading || scrapedJobsLoading ? (
                             <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888' }}>Loading suggestions...</div>
-                        ) : !rssJobs || rssJobs.length === 0 ? (
+                        ) : mergedJobs.length === 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px', padding: '2rem 1rem', height: '100%', textAlign: 'center' }}>
                                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" style={{ marginBottom: '1rem' }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                                 <span style={{ color: '#aaa', fontSize: '0.9rem' }}>No new jobs found right now.</span>
-                                <span style={{ color: '#aaa', fontSize: '0.8rem', marginTop: '0.25rem' }}>Make sure your RSS feeds are active in the Search tab.</span>
+                                <span style={{ color: '#aaa', fontSize: '0.8rem', marginTop: '0.25rem' }}>Make sure your RSS feeds and Scraper sites are active in the Search tab.</span>
                             </div>
                         ) : (
-                            rssJobs.map(job => (
-                                <div key={job.id} style={{
-                                    display: 'flex', flexDirection: 'column', padding: '1rem', backgroundColor: '#fcfcfc', border: '1px solid #eaeaea', borderRadius: '8px', transition: 'all 0.2s ease', cursor: 'pointer'
+                            mergedJobs.map(job => (
+                                <div key={job.source + '-' + job.id} style={{
+                                    display: 'flex', flexDirection: 'column', padding: '1rem', backgroundColor: selectedJobs.includes(job.source + '-' + job.id) ? '#f4fbf9' : '#fcfcfc', border: `1px solid ${selectedJobs.includes(job.source + '-' + job.id) ? '#0f6e56' : '#eaeaea'}`, borderRadius: '8px', transition: 'all 0.2s ease', cursor: 'pointer'
                                 }}
                                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#0f6e56'; e.currentTarget.style.backgroundColor = '#f4fbf9'; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#eaeaea'; e.currentTarget.style.backgroundColor = '#fcfcfc'; }}
+                                onMouseLeave={e => { 
+                                    if (!selectedJobs.includes(job.source + '-' + job.id)) {
+                                        e.currentTarget.style.borderColor = '#eaeaea'; 
+                                        e.currentTarget.style.backgroundColor = '#fcfcfc'; 
+                                    }
+                                }}
                                 onClick={() => window.open(job.url, '_blank')}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                        <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '0.95rem', lineHeight: '1.3' }}>{job.title}</div>
-                                        {job.category && (
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                                            {job.source === 'scraper' && (
+                                                <div 
+                                                    onClick={(e) => { e.stopPropagation(); toggleJobSelection(e, job.source + '-' + job.id); }} 
+                                                    style={{ padding: '0 8px 8px 0', cursor: 'pointer', display: 'flex', alignItems: 'flex-start' }}
+                                                >
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedJobs.includes(job.source + '-' + job.id)}
+                                                        onChange={() => {}} 
+                                                        style={{ marginTop: '0.2rem', cursor: 'pointer', pointerEvents: 'none' }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '0.95rem', lineHeight: '1.3' }}>{job.title}</div>
+                                        </div>
+                                        {job.source === 'scraper' ? (
+                                            <span style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: '#e6f4f1', color: '#0f6e56', borderRadius: '4px', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
+                                                Scraped
+                                            </span>
+                                        ) : job.category ? (
                                             <span style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: '#e2e8f0', color: '#4a5568', borderRadius: '4px', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
                                                 {job.category}
                                             </span>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        {job.company && <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>🏢 {job.company}</span>}
+                                        {job.company && <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>🏢 {stripEmojis(job.company)}</span>}
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed #eaeaea' }}>
                                         <div style={{ fontSize: '0.75rem', color: '#888' }}>
                                             {timeAgo(job.published_at || job.created_at)}
                                         </div>
-                                        <a href={job.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#0f6e56', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
-                                            Apply <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                                        </a>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            {job.source === 'scraper' && (
+                                                <>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id, job.bookmarked); }} 
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                                                        title="Bookmark"
+                                                    >
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill={job.bookmarked ? '#eab308' : 'none'} stroke={job.bookmarked ? '#eab308' : '#888'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                                        </svg>
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); markAsSeen(job.id); }} 
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1rem', opacity: 0.6 }}
+                                                        title="Mark as Seen"
+                                                    >
+                                                        👁
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); removeJob(job.id); }} 
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1rem', opacity: 0.6, color: 'var(--danger-c)' }}
+                                                        title="Dismiss"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </>
+                                            )}
+                                            <a href={job.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#0f6e56', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                                                Apply <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             ))

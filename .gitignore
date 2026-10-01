@@ -22,3 +22,6 @@ test-results/
 # Linting
 .eslintcache
 lint-results.txt
+
+# Local one-off refactoring scripts
+scripts/

@@ -1,15 +1,16 @@
 const interviewRepository = require('../repositories/interviews.repository');
+const AppError = require('../utils/AppError');
 const applicationHistoryService = require('./applicationHistory.service');
 
 const getAllInterviews = async (userId, supabaseClient) => {
     const { data, error } = await interviewRepository.findAll(userId, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const createInterview = async (userId, data, supabaseClient) => {
     const { data: newInterview, error } = await interviewRepository.create(userId, data, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     // If linked to an application, log the interview in application history
     if (newInterview.application_id) {
@@ -33,7 +34,7 @@ const createInterview = async (userId, data, supabaseClient) => {
 
 const updateInterview = async (userId, id, data, supabaseClient) => {
     const { data: updatedInterview, error } = await interviewRepository.update(userId, id, data, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return updatedInterview;
 };
 
@@ -41,23 +42,23 @@ const axios = require('axios');
 
 const deleteInterview = async (userId, id, supabaseClient) => {
     const { error } = await interviewRepository.remove(userId, id, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return { success: true };
 };
 
 const getAiReports = async (userId, supabaseClient) => {
     const { data, error } = await interviewRepository.getAnalysisReports(userId, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const generateAiReport = async (userId, supabaseClient) => {
     // 1. Fetch all interviews
     const { data: interviews, error } = await interviewRepository.findAll(userId, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     if (!interviews || interviews.length === 0) {
-        throw new Error('No interview data available to analyze.');
+        throw new AppError('No interview data available to analyze.', 400);
     }
 
     // Extract relevant data
@@ -76,7 +77,7 @@ const generateAiReport = async (userId, supabaseClient) => {
 
     const tokenKey = `${routingProvider}_token`;
     if (!aiConfigs || !aiConfigs[tokenKey]) {
-        throw new Error(`API key for ${routingProvider} is not configured. Please add it in Settings.`);
+        throw new AppError(`API key for ${routingProvider} is not configured. Please add it in Settings.`, 400);
     }
 
     // 3. Call AI Service
@@ -95,7 +96,7 @@ const generateAiReport = async (userId, supabaseClient) => {
         });
     } catch (err) {
         const msg = err.response?.data?.detail || err.message;
-        throw new Error(`AI Service error: ${msg}`);
+        throw new AppError(`AI Service error: ${msg}`, 400);
     }
 
     const report = aiResponse.data.report;
@@ -107,7 +108,7 @@ const generateAiReport = async (userId, supabaseClient) => {
         overall_trends: report.overall_trends
     }, supabaseClient);
 
-    if (saveError) throw new Error(`Failed to save report: ${saveError.message}`);
+    if (saveError) throw new AppError(`Failed to save report: ${saveError.message}`, 400);
 
     return savedReport;
 };

@@ -61,11 +61,10 @@ describe('interviews.controller', () => {
             expect(res.json).toHaveBeenCalledWith({ id: 1 });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes();
             interviewService.generateAiReport.mockRejectedValue(new Error('No data'));
-            await controller.generateAiReport(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.generateAiReport(req, res)).rejects.toThrow();
         });
     });
 });

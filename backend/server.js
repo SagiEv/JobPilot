@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const { errorHandler } = require('./middleware/error');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,7 +12,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- Import Routes ---
-const userRoutes = require('./routes/user.route.js');
+const userRoutes = require('./routes/user.routes.js');
 const profileRoutes = require('./routes/profile.routes');
 const applicationRoutes = require('./routes/applications.routes');
 const contactRoutes = require('./routes/contacts.routes');
@@ -26,10 +27,11 @@ const tailorRoutes = require('./routes/tailor.routes');
 const emailRoutes = require('./routes/email.routes');
 const messagesRoutes = require('./routes/messages.routes');
 const eventsRoutes = require('./routes/events.routes');
-const { startMailPolling } = require('./cron/mail-poll-cron');
+const { startMailPolling } = require('./cron/mailPollCron');
 const notificationsRoutes = require('./routes/notifications.routes');
 const rssRoutes = require('./routes/rss.routes');
 const { startRssPolling } = require('./cron/rss-poll-cron');
+const { startSearchScrapeCron } = require('./cron/search-scrape-cron');
 const rolesRoutes = require('./routes/roles.routes');
 
 // --- Mount Routes ---
@@ -57,25 +59,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// Centralized error handling
+app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 JobPilot API running on http://localhost:${PORT}`);
     startMailPolling();
     startRssPolling();
+    startSearchScrapeCron();
   });
 }
 

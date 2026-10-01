@@ -182,3 +182,62 @@ exports.getFitContext = async (userId, supabaseClient) => {
         };
     }
 };
+
+/**
+ * Fire-and-forget: Trigger AI-powered fit analysis for an application.
+ * Runs in the background — does not block the request.
+ */
+exports.triggerAsyncAiAnalysis = (userId, applicationId, jobDescription, supabaseClient) => {
+    // This is intentionally not awaited — it runs as a background task
+    (async () => {
+        try {
+            const { candidateData, fitConfig } = await exports.getFitContext(userId, supabaseClient);
+            
+            if (fitConfig.enabled === false || !fitConfig.provider) return;
+            
+            const aiProvider = fitConfig.provider;
+            
+            // Fetch user's decrypted API keys from DB
+            const settingsService = require('./settings.service');
+            const aiConfigs = await settingsService.getAllAiConfigs(userId, supabaseClient);
+            
+            // Resolve the correct token for the chosen provider
+            const providerTokenMap = {
+                groq: aiConfigs?.groq_token,
+                openai: aiConfigs?.openai_token,
+                anthropic: aiConfigs?.claude_token,
+                claude: aiConfigs?.claude_token,
+                gemini: aiConfigs?.gemini_token
+            };
+            const token = providerTokenMap[aiProvider];
+            
+            if (!token) {
+                console.warn(`Skipping AI Fit Analysis: No API key configured by user for provider '${aiProvider}'.`);
+                return;
+            }
+            
+            const axios = require('axios');
+            const response = await axios.post(`${process.env.AI_SERVICE_URL}/role-fit/analyze`, {
+                job_description: jobDescription,
+                candidate_data: candidateData,
+                api_keys: {
+                    groq_token: aiConfigs?.groq_token,
+                    openai_token: aiConfigs?.openai_token,
+                    claude_token: aiConfigs?.claude_token,
+                    gemini_token: aiConfigs?.gemini_token
+                },
+                provider: aiProvider
+            });
+            
+            if (response.data) {
+                await supabaseClient
+                    .from('applications')
+                    .update({ fit_analysis_ai: response.data })
+                    .eq('id', applicationId)
+                    .eq('user_id', userId);
+            }
+        } catch (err) {
+            console.error('AI Fit Analysis failed:', err.message);
+        }
+    })();
+};

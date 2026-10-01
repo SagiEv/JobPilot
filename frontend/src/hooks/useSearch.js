@@ -10,7 +10,7 @@ export function useSearch() {
         excludeKeywords: [],
         targetSites: [],
         email: '',
-        schedule: 'Manual only',
+        scheduleFrequency: 'Manual only',
         lastResults: []
     }, isLoading: loading } = useQuery({
         enabled: !!getAccessToken(),
@@ -27,14 +27,14 @@ export function useSearch() {
                     keywords: settingsRes.data.keywords || [],
                     excludeKeywords: settingsRes.data.exclude_keywords || [],
                     email: settingsRes.data.email || '',
-                    schedule: settingsRes.data.schedule || 'Manual only',
+                    scheduleFrequency: settingsRes.data.schedule_frequency || 'Manual only',
                     lastResults: settingsRes.data.last_results || []
                 } : {
                     id: null,
                     keywords: [],
                     excludeKeywords: [],
                     email: '',
-                    schedule: 'Manual only',
+                    scheduleFrequency: 'Manual only',
                     lastResults: []
                 }),
                 targetSites: sitesRes.data || []
@@ -49,7 +49,7 @@ export function useSearch() {
                 keywords: snapshot.keywords,
                 exclude_keywords: snapshot.excludeKeywords,
                 email: snapshot.email,
-                schedule: snapshot.schedule,
+                schedule_frequency: snapshot.scheduleFrequency,
                 last_results: snapshot.lastResults
             };
             const { data } = await apiClient.put('/api/search-settings', payload);
@@ -94,7 +94,7 @@ export function useSearch() {
         }
     });
 
-    const updateSettings = (key, value) => {
+    const updateSettings = async (key, value) => {
         let next;
         queryClient.setQueryData(['searchSettings'], (prev) => {
             if (!prev) return prev;
@@ -102,7 +102,7 @@ export function useSearch() {
             return next;
         });
         if (next && key !== 'targetSites') {
-            saveSettingsMutation.mutate(next);
+            await saveSettingsMutation.mutateAsync(next);
         }
     };
 
@@ -191,6 +191,21 @@ export function useSearch() {
         }
     };
 
+    const runSearchMutation = useMutation({
+        mutationFn: async () => {
+            const { data } = await apiClient.post('/api/search-settings/run-search');
+            return data;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['searchSettings'] });
+            queryClient.invalidateQueries({ queryKey: ['scrapedJobs'] });
+        }
+    });
+
+    const runSearch = async () => {
+        return runSearchMutation.mutateAsync();
+    };
+
     return { 
         loading, 
         searchSettings, 
@@ -201,6 +216,8 @@ export function useSearch() {
         removeSite, 
         updateSite, 
         toggleSite, 
-        clearResults 
+        clearResults,
+        runSearch,
+        isSearching: runSearchMutation.isPending
     };
 }

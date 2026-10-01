@@ -1,48 +1,23 @@
 const eventsService = require('../services/events.service');
 
 const getAll = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await eventsService.getAllEvents(userId, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await eventsService.getAllEvents(req.user.id, req.supabase);
+    res.json(data);
 };
 
 const create = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await eventsService.createEvent(userId, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await eventsService.createEvent(req.user.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const update = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await eventsService.updateEvent(userId, req.params.id, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await eventsService.updateEvent(req.user.id, req.params.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const remove = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await eventsService.deleteEvent(userId, req.params.id, req.supabase);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const result = await eventsService.deleteEvent(req.user.id, req.params.id, req.supabase);
+    res.json(result);
 };
 
-module.exports = {
-    getAll,
-    create,
-    update,
-    remove
-};
+module.exports = { getAll, create, update, remove };

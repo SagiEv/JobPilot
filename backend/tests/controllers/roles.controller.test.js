@@ -29,7 +29,7 @@ describe('Roles Controller', () => {
         expect(mockRes.json).toHaveBeenCalledWith([{ id: 1, name: 'Software Engineer' }]);
     });
 
-    it('should handle db error gracefully (Rainy Day)', async () => {
+    it('should throw on db error (Rainy Day)', async () => {
         mockReq = {
             supabase: {
                 from: jest.fn().mockReturnValue({
@@ -43,8 +43,6 @@ describe('Roles Controller', () => {
             }
         };
 
-        await rolesController.getRolesBank(mockReq, mockRes);
-        expect(mockRes.status).toHaveBeenCalledWith(400);
-        expect(mockRes.json).toHaveBeenCalledWith({ error: 'Database error' });
+        await expect(rolesController.getRolesBank(mockReq, mockRes)).rejects.toThrow();
     });
 });

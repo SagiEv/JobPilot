@@ -28,7 +28,7 @@ jest.mock('../../utils/encryption', () => ({
     decrypt: jest.fn((v) => v ? v.replace('enc_', '') : null),
 }));
 
-const { pollAllUsers } = require('../../services/mail-poller.service');
+const { pollAllUsers } = require('../../services/mailPoller.service');
 
 describe('Integration: Email Cron Scheduling', () => {
     beforeEach(() => {

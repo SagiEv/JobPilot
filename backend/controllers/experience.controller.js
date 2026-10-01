@@ -1,50 +1,23 @@
 const experienceService = require('../services/experience.service');
 
-// Projects
 const getProjects = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await experienceService.getAllProjects(userId, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await experienceService.getAllProjects(req.user.id, req.supabase);
+    res.json(data);
 };
 
 const postProject = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await experienceService.createProject(userId, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        console.error("Experience Project Creation Error:", error);
-        res.status(400).json({ error: error.message, details: error });
-    }
+    const data = await experienceService.createProject(req.user.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const putProject = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await experienceService.updateProject(userId, req.params.id, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await experienceService.updateProject(req.user.id, req.params.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const deleteProject = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await experienceService.deleteProject(userId, req.params.id, req.supabase);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const result = await experienceService.deleteProject(req.user.id, req.params.id, req.supabase);
+    res.json(result);
 };
 
-module.exports = {
-    getProjects,
-    postProject,
-    putProject,
-    deleteProject
-};
+module.exports = { getProjects, postProject, putProject, deleteProject };

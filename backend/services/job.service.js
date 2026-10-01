@@ -1,3 +1,4 @@
+const AppError = require('../utils/AppError');
 // supabaseClient required lazily inside functions to avoid circular dependency issues
 
 /**
@@ -15,7 +16,7 @@ async function createJob(userId, type, client) {
         
     if (error) {
         console.error('Error creating job:', error);
-        throw new Error('Failed to create background job');
+        throw new AppError('Failed to create background job', 400);
     }
     
     return data.id;
@@ -90,7 +91,7 @@ async function getJob(jobId, client) {
         .single();
         
     if (error) {
-        throw new Error('Job not found');
+        throw new AppError('Job not found', 400);
     }
     
     return data;

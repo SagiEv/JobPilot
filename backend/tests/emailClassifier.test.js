@@ -5,7 +5,7 @@ const {
     extractCompanyFromSubject,
     detectStatus,
     classifyEmail,
-} = require('../services/email-classifier.service');
+} = require('../services/emailClassifier.service');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -476,5 +476,60 @@ The Salesforce Recruiting Team`;
         // "melio" appears in subject and body as substring
         expect(result.applicationId).toBe(1);
         expect(result.matchedCompany).toBe('Melio');
+    });
+
+    test('Jobgether email falsely matching "Vi" due to substring in "review"', () => {
+        const apps = [
+            app(1, 'Vi', 'Software Engineer'),
+        ];
+        const bodySnippet = `Hello there, Thank you for applying to Software Engineer: Backend. Your profile is currently under review. Here’s what happens next: We’re reviewing applications and will select the top matching candidates for preliminary screening interviews. If you’re among them, we’ll contact you to arrange a convenient time. In the meantime, you can already check your preliminary Match Feedback Report and Score for this role.`;
+        
+        const result = classifyEmail({
+            from: 'Jobgether Talent Team <shortlist@jobgether.com>',
+            subject: 'Next Steps for Your Job Application: Software Engineer: Backend at Jobgether',
+            bodySnippet: bodySnippet,
+        }, apps);
+
+        expect(result.applicationId).toBeNull();
+    });
+
+    test('SecretHunter email falsely matching "EY" due to substring in words like "they"', () => {
+        const apps = [
+            app(1, 'EY', 'Support Engineer'),
+        ];
+        const bodySnippet = `Hi Sagi 4 new jobs for you Want to find a job faster? Check out our premium subscription. Change job updates: saved searches. Junior Field Support Engineer Mornex Ltd · Hadera · Junior Mornex Ltd is looking for a Junior Field Support Engineer to provide on-site technical services to business clients.`;
+        
+        const result = classifyEmail({
+            from: 'Yaniv Beaudoin <yaniv@mail.secrethunter.io>',
+            subject: '4 New Job Matches for You',
+            bodySnippet: bodySnippet,
+        }, apps);
+
+        expect(result.applicationId).toBeNull();
+    });
+
+    test('[Lendbuzz/Lever] correctly identifies Lendbuzz over "Align" and sets status to Rejected', () => {
+        const apps = [
+            app(1, 'Lendbuzz', 'Backend Engineer'),
+            app(2, 'Align', 'Software Engineer'),
+        ];
+        const bodySnippet = `Hello Sagi, 
+Hope you are doing well.
+We want to express our appreciation for your interest in the Backend Engineer role at Lendbuzz. We sincerely appreciate the time and effort you invested in your application.
+After careful consideration, we regret to inform you that the position has now been filled. While we were impressed with your qualifications, we have decided to move forward with another candidate at this time.
+We want to keep your application on file for any future opportunities that may better align with your skills and experience. Please feel free to continue exploring other openings with us, as new roles often become available.
+Thank you again for considering Lendbuzz, and we wish you the best of luck in your job search and future endeavors.
+Best regards,
+Noa Maman`;
+
+        const result = classifyEmail({
+            from: 'Lendbuzz <no-reply@hire.lever.co>',
+            subject: 'Lendbuzz - Application Update',
+            bodySnippet: bodySnippet,
+        }, apps);
+
+        expect(result.applicationId).toBe(1);
+        expect(result.matchedCompany).toBe('Lendbuzz');
+        expect(result.classifiedStatus).toBe('Rejected');
     });
 });

@@ -1,4 +1,5 @@
 const Parser = require('rss-parser');
+const AppError = require('../utils/AppError');
 const axios = require('axios');
 const rssRepo = require('../repositories/rss.repository');
 
@@ -9,7 +10,7 @@ const pollRssFeeds = async () => {
     console.log('🔄 [RSS Poller] Starting feed polling cycle...');
     try {
         const { data: feeds, error } = await rssRepo.findAllFeeds();
-        if (error) throw new Error(error.message);
+        if (error) throw new AppError(error.message, error.status || 400, error.code);
 
         const enabledFeeds = feeds.filter(f => f.enabled);
         if (enabledFeeds.length === 0) {

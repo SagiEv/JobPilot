@@ -1,21 +1,8 @@
 const validate = (schema) => (req, res, next) => {
-    console.log("📥 [VALIDATE] Incoming request:", {
-        method: req.method,
-        url: req.originalUrl,
-        body: req.body
-    });
-
     try {
-        const result = schema.parse(req.body);
-
-        console.log("✅ [VALIDATE] Passed:", result);
-
+        schema.parse(req.body);
         next();
     } catch (error) {
-        console.log("❌ [VALIDATE] FAILED");
-
-        console.log("RAW ERROR:", error);
-
         const issues = error?.issues || error?.errors || [];
 
         const formatted = Array.isArray(issues)
@@ -24,8 +11,6 @@ const validate = (schema) => (req, res, next) => {
                 issue: err?.message || 'Invalid value'
             }))
             : [];
-
-        console.log("DETAILS:", formatted);
 
         return res.status(400).json({
             status: 'error',

@@ -1,8 +1,10 @@
 const profileRepository = require('../repositories/profile.repository');
+const AppError = require('../utils/AppError');
 const skillsRepository = require('../repositories/skills.repository');
 const experienceRepository = require('../repositories/experience.repository');
 const settingsService = require('./settings.service');
-const pdfParse = require('pdf-parse');
+const pdfParseRaw = require('pdf-parse');
+const pdfParse = pdfParseRaw.default || pdfParseRaw.pdf || pdfParseRaw;
 
 const axios = require('axios');
 
@@ -17,7 +19,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
     // Validate provider token
     const tokenKey = `${routing.provider}_token`;
     if (!aiConfigs || !aiConfigs[tokenKey]) {
-        throw new Error(`API key for ${routing.provider} is not configured. Please add it in Settings.`);
+        throw new AppError(`API key for ${routing.provider} is not configured. Please add it in Settings.`, 400);
     }
 
     // 2. Fetch context based on user choice
@@ -39,10 +41,10 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
             baseCvText = pdfData.text;
         } catch (err) {
             console.error("Failed to parse PDF:", err);
-            throw new Error("Failed to parse uploaded PDF file. Please ensure it is a valid PDF.");
+            throw new AppError("Failed to parse uploaded PDF file. Please ensure it is a valid PDF.", 400);
         }
     } else {
-        throw new Error("No CV provided. Please use profile CV or upload a PDF.");
+        throw new AppError("No CV provided. Please use profile CV or upload a PDF.", 400);
     }
 
     const { getEmbedding } = require('./embedding.service');
@@ -126,11 +128,11 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         const errDetail = error.response?.data?.detail;
         
         if (errDetail && typeof errDetail === 'object') {
-            const err = new Error(errDetail.error || 'AI Service Error');
+            const err = new AppError(errDetail.error || 'AI Service Error', 502);
             err.detail = errDetail; // Preserve the object!
             throw err;
         } else {
-            throw new Error(errDetail || 'Failed to connect to AI tailoring service. Is it running?');
+            throw new AppError(errDetail || 'Failed to connect to AI tailoring service. Is it running?', 502);
         }
     }
 };

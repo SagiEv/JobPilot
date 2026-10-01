@@ -1,4 +1,4 @@
-const { pollAllUsers } = require('../services/mail-poller.service');
+const { pollAllUsers } = require('../services/mailPoller.service');
 
 const POLL_CYCLE_MS = 5 * 60 * 1000; // Check every 5 minutes which users need polling
 
