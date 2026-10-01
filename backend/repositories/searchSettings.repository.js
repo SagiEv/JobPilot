@@ -2,7 +2,12 @@
 
 // Settings
 const findSettings = async (userId, client) => {
-    return await client.from('search_settings').select('*').eq('user_id', userId).single();
+    return await client.from('search_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 };
 
 const upsertSettings = async (userId, id, updateData, client) => {

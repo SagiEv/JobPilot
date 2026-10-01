@@ -47,7 +47,7 @@ describe('ProfilePage', () => {
 
     render(<ProfilePage />);
 
-    expect(screen.getByText('Current Experience')).toBeInTheDocument();
+    expect(screen.getByText('Current Position')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Software Engineer')).toBeInTheDocument();
     
     // We can't strictly match dynamic text because "months/years" depends on current date, 

@@ -16,11 +16,10 @@ describe('events.controller', () => {
             expect(res.json).toHaveBeenCalledWith([{ id: 1 }]);
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes();
             eventsService.getAllEvents.mockRejectedValue(new Error('fail'));
-            await controller.getAll(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getAll(req, res)).rejects.toThrow();
         });
     });
 

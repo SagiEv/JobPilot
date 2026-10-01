@@ -1,29 +1,30 @@
 const supabase = require('../supabaseClient');
+const logger = require('../utils/logger');
 
 
 const authenticate = async (req, res, next) => {
     try {
-        console.log('[AUTH] Incoming request:', {
+        logger.debug({
             method: req.method,
             path: req.path,
-        });
+        }, '[AUTH] Incoming request');
 
         const authHeader = req.headers.authorization;
 
         if (!authHeader?.startsWith('Bearer ')) {
-            console.warn('[AUTH] Missing or malformed Authorization header');
+            logger.warn('[AUTH] Missing or malformed Authorization header');
             return res.status(401).json({ error: 'No token provided' });
         }
 
         const token = authHeader.split(' ')[1];
 
-        console.log('[AUTH] Token received (truncated):', token?.slice(0, 10) + '...');
+        logger.debug({ token: token?.slice(0, 10) + '...' }, '[AUTH] Token received (truncated)');
 
         let user;
         try {
             const { data, error } = await supabase.auth.getUser(token);
             if (error || !data?.user) {
-                console.error('[AUTH] Supabase verification error:', error?.message);
+                logger.error({ error: error?.message }, '[AUTH] Supabase verification error');
                 return res.status(401).json({ error: 'Invalid or expired token' });
             }
             user = {
@@ -32,14 +33,14 @@ const authenticate = async (req, res, next) => {
                 role: data.user.role || 'authenticated'
             };
         } catch (error) {
-            console.error('[AUTH] Unexpected verification error:', error.message);
+            logger.error({ error: error.message }, '[AUTH] Unexpected verification error');
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
-        console.log('[AUTH] Auth success for user:', {
+        logger.debug({
             id: user.id,
             email: user.email,
-        });
+        }, '[AUTH] Auth success for user');
 
         req.user = user;
         req.token = token;
@@ -49,7 +50,7 @@ const authenticate = async (req, res, next) => {
         next();
 
     } catch (err) {
-        console.error('[AUTH] Unexpected authentication failure:', err);
+        logger.error({ err }, '[AUTH] Unexpected authentication failure');
         return res.status(500).json({
             error: 'Authentication failed',
         });

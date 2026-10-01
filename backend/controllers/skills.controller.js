@@ -1,48 +1,23 @@
 const skillService = require('../services/skills.service');
 
 const getAll = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await skillService.getAllSkills(userId, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await skillService.getAllSkills(req.user.id, req.supabase);
+    res.json(data);
 };
 
 const create = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await skillService.createSkill(userId, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await skillService.createSkill(req.user.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const update = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await skillService.updateSkill(userId, req.params.id, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await skillService.updateSkill(req.user.id, req.params.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const remove = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await skillService.deleteSkill(userId, req.params.id, req.supabase);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const result = await skillService.deleteSkill(req.user.id, req.params.id, req.supabase);
+    res.json(result);
 };
 
-module.exports = {
-    getAll,
-    create,
-    update,
-    remove
-};
+module.exports = { getAll, create, update, remove };

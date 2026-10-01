@@ -16,11 +16,10 @@ describe('searchSettings.controller', () => {
             expect(res.json).toHaveBeenCalledWith({ keywords: 'node' });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes();
             searchService.getSettings.mockRejectedValue(new Error('fail'));
-            await controller.getSettings(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getSettings(req, res)).rejects.toThrow();
         });
     });
 

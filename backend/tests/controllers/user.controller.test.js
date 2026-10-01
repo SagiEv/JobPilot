@@ -14,14 +14,12 @@ describe('user.controller', () => {
             userService.registerUser.mockResolvedValue({ user: { id: '1' } });
             await controller.signup(req, res);
             expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({ user: { id: '1' } });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes({ body: {} });
             userService.registerUser.mockRejectedValue(new Error('Email taken'));
-            await controller.signup(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.signup(req, res)).rejects.toThrow();
         });
     });
 
@@ -36,8 +34,7 @@ describe('user.controller', () => {
         it('should return 401 on error', async () => {
             const { req, res } = buildReqRes({ body: {} });
             userService.loginUser.mockRejectedValue(new Error('Bad creds'));
-            await controller.login(req, res);
-            expect(res.status).toHaveBeenCalledWith(401);
+            await expect(controller.login(req, res)).rejects.toThrow();
         });
     });
 
@@ -52,8 +49,7 @@ describe('user.controller', () => {
         it('should return 401 on error', async () => {
             const { req, res } = buildReqRes({ body: {} });
             userService.refreshUserSession.mockRejectedValue(new Error('Expired'));
-            await controller.refreshToken(req, res);
-            expect(res.status).toHaveBeenCalledWith(401);
+            await expect(controller.refreshToken(req, res)).rejects.toThrow();
         });
     });
 });

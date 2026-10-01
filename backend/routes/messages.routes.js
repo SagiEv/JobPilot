@@ -3,9 +3,10 @@ const router = express.Router();
 const multer = require('multer');
 const messagesController = require('../controllers/messages.controller');
 const { authenticate } = require('../middleware/auth');
+const { asyncHandler } = require('../middleware/asyncHandler');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/generate', authenticate, upload.single('cvFile'), messagesController.generateMessage);
+router.post('/generate', authenticate, upload.single('cvFile'), asyncHandler(messagesController.generateMessage));
 
 module.exports = router;

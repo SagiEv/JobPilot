@@ -1,20 +1,8 @@
-const supabase = require('../supabaseClient');
+const rolesService = require('../services/roles.service');
 
 const getRolesBank = async (req, res) => {
-    try {
-        const { data, error } = await req.supabase
-            .from('roles_dictionary')
-            .select('*')
-            .order('name');
-            
-        if (error) throw new Error(error.message);
-        
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await rolesService.getRolesBank(req.supabase);
+    res.json(data);
 };
 
-module.exports = {
-    getRolesBank
-};
+module.exports = { getRolesBank };

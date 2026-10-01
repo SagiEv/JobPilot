@@ -17,11 +17,10 @@ describe('applicationHistory.controller', () => {
             expect(res.json).toHaveBeenCalledWith([{ id: 1 }]);
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes({ params: { id: 1 } });
             historyService.getHistoryByApplicationId.mockRejectedValue(new Error('fail'));
-            await controller.getHistory(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getHistory(req, res)).rejects.toThrow();
         });
     });
 
@@ -45,11 +44,10 @@ describe('applicationHistory.controller', () => {
             expect(res.json).toHaveBeenCalledWith({ id: 10 });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes({ params: { id: 1 }, body: {} });
             historyService.addHistory.mockRejectedValue(new Error('fail'));
-            await controller.addNote(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.addNote(req, res)).rejects.toThrow();
         });
     });
 });

@@ -1,70 +1,33 @@
 const interviewService = require('../services/interviews.service');
 
 const getAll = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await interviewService.getAllInterviews(userId, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await interviewService.getAllInterviews(req.user.id, req.supabase);
+    res.json(data);
 };
 
 const create = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await interviewService.createInterview(userId, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await interviewService.createInterview(req.user.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const update = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await interviewService.updateInterview(userId, req.params.id, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await interviewService.updateInterview(req.user.id, req.params.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const remove = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await interviewService.deleteInterview(userId, req.params.id, req.supabase);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const result = await interviewService.deleteInterview(req.user.id, req.params.id, req.supabase);
+    res.json(result);
 };
 
 const getAiReports = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const reports = await interviewService.getAiReports(userId, req.supabase);
-        res.json(reports);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const reports = await interviewService.getAiReports(req.user.id, req.supabase);
+    res.json(reports);
 };
 
 const generateAiReport = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const report = await interviewService.generateAiReport(userId, req.supabase);
-        res.json(report);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const report = await interviewService.generateAiReport(req.user.id, req.supabase);
+    res.json(report);
 };
 
-module.exports = {
-    getAll,
-    create,
-    update,
-    remove,
-    getAiReports,
-    generateAiReport
-};
+module.exports = { getAll, create, update, remove, getAiReports, generateAiReport };

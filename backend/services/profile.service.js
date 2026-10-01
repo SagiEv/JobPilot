@@ -1,14 +1,15 @@
 const profileRepository = require('../repositories/profile.repository');
+const AppError = require('../utils/AppError');
 
 const getProfile = async (userId, supabaseClient) => {
     const { data, error } = await profileRepository.findFirstProfile(userId, supabaseClient);
 
-    if (error && error.code !== 'PGRST116') throw new Error(error.message);
+    if (error && error.code !== 'PGRST116') throw new AppError(error.message, error.status || 400, error.code);
 
     let profile = data || {};
 
     const { data: experiencesData, error: expError } = await profileRepository.findUserExperiences(userId, supabaseClient);
-    if (expError) throw new Error(expError.message);
+    if (expError) throw new AppError(expError.message, expError.status || 400, expError.code);
 
     profile.experiences = experiencesData || [];
 
@@ -41,11 +42,11 @@ const upsertProfile = async (userId, payload, supabaseClient) => {
         ? await profileRepository.updateProfile(userId, updateData, supabaseClient)
         : await profileRepository.createProfile(userId, updateData, supabaseClient);
 
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     if (experiences !== undefined) {
         if (experiences.filter(exp => exp.status === 'current').length > 1) {
-            throw new Error("Only one current experience is allowed.");
+            throw new AppError("Only one current experience is allowed.", 400);
         }
         await profileRepository.syncUserExperiences(userId, experiences, supabaseClient);
     }

@@ -12,8 +12,7 @@ describe('applications.controller', () => {
         it('should return 401 when req.user is missing', async () => {
             const { req, res } = buildReqRes();
             req.user = null;
-            await controller.getAll(req, res);
-            expect(res.status).toHaveBeenCalledWith(401);
+            await expect(controller.getAll(req, res)).rejects.toThrow();
         });
 
         it('should return data via res.json', async () => {
@@ -27,8 +26,7 @@ describe('applications.controller', () => {
         it('should return 400 on service error', async () => {
             const { req, res } = buildReqRes();
             applicationService.getAllApplications.mockRejectedValue(new Error('fail'));
-            await controller.getAll(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getAll(req, res)).rejects.toThrow();
         });
     });
 
@@ -36,8 +34,7 @@ describe('applications.controller', () => {
         it('should return 401 when req.user is missing', async () => {
             const { req, res } = buildReqRes();
             req.user = null;
-            await controller.create(req, res);
-            expect(res.status).toHaveBeenCalledWith(401);
+            await expect(controller.create(req, res)).rejects.toThrow();
         });
 
         it('should return data on success', async () => {
@@ -57,14 +54,13 @@ describe('applications.controller', () => {
             applicationService.updateApplication.mockRejectedValue(err);
             await controller.update(req, res);
             expect(res.status).toHaveBeenCalledWith(409);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'CONFLICTING_EVENT' }));
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Conflict' }));
         });
 
         it('should return 400 on other errors', async () => {
             const { req, res } = buildReqRes({ params: { id: 1 } });
             applicationService.updateApplication.mockRejectedValue(new Error('bad'));
-            await controller.update(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.update(req, res)).rejects.toThrow();
         });
     });
 

@@ -4,9 +4,7 @@ import apiClient from './apiClient';
 export const uploadCSV = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await apiClient.post('/api/csv/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await apiClient.post('/api/csv/upload', formData);
     return response.data;
 };
 
@@ -25,8 +23,6 @@ export const runTailor = async (jobDescription, mode = 'full', cvFile = null, us
     formData.append('pipeline_mode', pipelineMode);
     if (cvFile && !useProfileCv) formData.append('cv_file', cvFile);
 
-    const response = await apiClient.post('/api/tailor', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await apiClient.post('/api/tailor', formData);
     return response.data;
 };

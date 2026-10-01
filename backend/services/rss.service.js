@@ -1,33 +1,34 @@
 const rssRepo = require('../repositories/rss.repository');
+const AppError = require('../utils/AppError');
 
 const getFeeds = async (supabaseClient) => {
     const { data, error } = await rssRepo.findAllFeeds(supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const addFeed = async (feedData, supabaseClient) => {
     const { data, error } = await rssRepo.createFeed(feedData, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const updateFeed = async (id, updateData, supabaseClient) => {
     updateData.updated_at = new Date().toISOString();
     const { data, error } = await rssRepo.updateFeed(id, updateData, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const deleteFeed = async (id, supabaseClient) => {
     const { error } = await rssRepo.removeFeed(id, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return { success: true };
 };
 
 const getJobs = async (supabaseClient) => {
     const { data, error } = await rssRepo.findAllJobs(supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 

@@ -35,7 +35,10 @@ export const JobProvider = ({ children }) => {
 
                 setJobs(prev => ({ ...prev, [jobId]: jobData }));
 
-                if (jobData.status === 'completed' || jobData.status === 'failed') {
+                const isTimeout = new Date() - new Date(jobData.created_at) > 300000;
+                if (jobData.status === 'completed' || jobData.status === 'failed' || isTimeout) {
+                    if (isTimeout && jobData.status === 'pending') jobData.status = 'failed';
+                    if (isTimeout) jobData.error_message = 'The request timed out. The backend might have restarted or the AI service is unreachable.';
                     clearInterval(pollingIntervals.current[jobId]);
                     delete pollingIntervals.current[jobId];
                     if (toastId) removeToast(toastId);
@@ -57,8 +60,8 @@ export const JobProvider = ({ children }) => {
                         let humanMsg = "The AI service encountered an error.";
                         const rawError = jobData.error_message || '';
                         
-                        if (rawError.includes('Service busy')) {
-                            humanMsg = "The selected AI model is currently busy.";
+                        if (rawError.includes('Service busy') || rawError.includes('503') || rawError.includes('high demand')) {
+                            humanMsg = "The selected AI model is currently busy. Spikes in demand are temporary.";
                         } else if (rawError.includes('413') || rawError.includes('Payload Too Large')) {
                             humanMsg = "The text is too large for this model.";
                         } else if (rawError) {

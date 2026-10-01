@@ -224,7 +224,7 @@ def classify_job(payload: JobClassificationRequest):
         raise HTTPException(status_code=400, detail="groq_api_key is required")
 
     try:
-        llm = get_fast_llm(payload.groq_api_key)
+        llm = get_fast_llm({"groq_token": payload.groq_api_key})
         structured_llm = llm.with_structured_output(JobClassificationResponse)
         
         prompt = f"""

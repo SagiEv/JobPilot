@@ -16,11 +16,10 @@ describe('profile.controller', () => {
             expect(res.json).toHaveBeenCalledWith({ name: 'John' });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes();
             profileService.getProfile.mockRejectedValue(new Error('fail'));
-            await controller.getProfile(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getProfile(req, res)).rejects.toThrow();
         });
     });
 

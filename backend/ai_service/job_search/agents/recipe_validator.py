@@ -112,7 +112,7 @@ def _test_selectors(url: str, selectors: dict) -> dict:
 
 
 def recipe_validator_node(state: SearchState, groq_api_key: str) -> dict:
-    llm = get_fast_llm(groq_api_key)
+    llm = get_fast_llm({"groq_token": groq_api_key})
 
     url = state["careers_url"]
     company = state["company"]

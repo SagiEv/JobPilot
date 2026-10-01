@@ -5,7 +5,7 @@ one powerful model for creative/reasoning tasks.
 from router.llm_router import LLMRouter
 
 def get_fast_llm(api_keys: dict, provider: str = "groq", model: str = None):
-    return LLMRouter.get_model(
+    return LLMRouter.get_model_with_fallback(
         provider=provider,
         model=model,
         api_keys=api_keys,
@@ -15,7 +15,7 @@ def get_fast_llm(api_keys: dict, provider: str = "groq", model: str = None):
     )
 
 def get_power_llm(api_keys: dict, provider: str = "groq", model: str = None):
-    return LLMRouter.get_model(
+    return LLMRouter.get_model_with_fallback(
         provider=provider,
         model=model,
         api_keys=api_keys,
