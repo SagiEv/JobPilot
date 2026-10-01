@@ -23,8 +23,8 @@ test.describe('Profile Page - Experience Editor', () => {
 
   test('should display toast when trying to add empty experience', async ({ page }) => {
     // We try to add an experience. First find the "Current Experience" editor
-    const currentExpSection = page.locator('.experience-editor').filter({ hasText: 'Current Experience' });
-    const addRoleBtn = currentExpSection.locator('button', { hasText: '+ Add Role' });
+    const currentExpSection = page.locator('.experience-editor').filter({ hasText: 'Current Position' });
+    const addRoleBtn = currentExpSection.locator('button', { hasText: '+ Add Position' });
     
     // Add one role (if list is empty, this adds an empty role)
     await addRoleBtn.click();
