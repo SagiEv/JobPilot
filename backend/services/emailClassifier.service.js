@@ -70,6 +70,7 @@ const GENERIC_SUBDOMAINS = new Set([
     'no-reply', 'donotreply', 'do-not-reply', 'careers', 'jobs',
     'notifications', 'alerts', 'info', 'support', 'contact', 'hr',
     'talent', 'recruiting', 'recruitment', 'bounce', 'bounce-handler',
+    'hire'
 ]);
 
 // Aggregator senders whose domain is irrelevant — real company is in subject/body
@@ -180,12 +181,13 @@ function extractDomain(email) {
         if (username) return username;
     }
 
-    // 3. Walk segments right-to-left, skipping TLDs and generic words
+    // 3. Walk segments right-to-left, skipping TLDs, generic words, and ATS domains
     // Segments in order: [subdomain…, company, tld] — iterate from right
     const reversed = [...segments].reverse();
     for (const seg of reversed) {
         if (COMMON_TLDS.has(seg)) continue;
         if (GENERIC_SUBDOMAINS.has(seg)) continue;
+        if (ATS_DOMAIN_SEGMENTS.has(seg)) continue;
         if (seg.length < 2) continue;
         return seg;
     }
@@ -311,6 +313,9 @@ function classifyEmail(email, applications) {
         const normCompany = normalizeCompany(app.company);
         if (!normCompany) continue;
 
+        const escapedCompany = normCompany.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const companyRegex = new RegExp(`\\b${escapedCompany}\\b`);
+
         if (isAggregator) {
             // ── Aggregator path ──────────────────────────────────────────────
             // Use the company extracted from the subject as the primary signal.
@@ -330,14 +335,14 @@ function classifyEmail(email, applications) {
             } else {
                 // Subject extraction failed; fall back to plain substring match
                 // but require a higher threshold to reduce noise.
-                if (!text.includes(normCompany)) continue;
+                if (!companyRegex.test(text)) continue;
                 score += 0.45;
             }
         } else {
             // ── Standard (non-aggregator) path ───────────────────────────────
             const companyInText = stringSimilarity.findBestMatch(normCompany, [text]);
             const directSimilarity = stringSimilarity.compareTwoStrings(normCompany, senderDomain);
-            const substringMatch = text.includes(normCompany);
+            const substringMatch = companyRegex.test(text);
 
             if (directSimilarity >= 0.8) {
                 score += 0.75;

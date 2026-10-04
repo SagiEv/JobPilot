@@ -13,6 +13,17 @@ const apiClient = axios.create({
 // Memory storage for the JWT
 let accessToken = null;
 
+// Refresh lock & queue to prevent concurrent refresh token rotation
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(({ resolve, reject }) => {
+        error ? reject(error) : resolve(token);
+    });
+    failedQueue = [];
+};
+
 export const setAccessToken = (token) => {
     accessToken = token;
     window.accessToken = token; // For console debugging
@@ -45,13 +56,47 @@ apiClient.interceptors.response.use(
         const originalRequest = error.config;
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const { data } = await supabase.auth.refreshSession();
-            if (data?.session) {
-                accessToken = data.session.access_token;
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-                return apiClient(originalRequest);
+
+            // If a refresh is already in-flight, queue this request
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then((token) => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return apiClient(originalRequest);
+                });
+            }
+
+            isRefreshing = true;
+            try {
+                const { data } = await supabase.auth.refreshSession();
+                if (data?.session) {
+                    accessToken = data.session.access_token;
+                    localStorage.setItem('refresh_token', data.session.refresh_token);
+                    originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                    processQueue(null, accessToken);
+                    return apiClient(originalRequest);
+                } else {
+                    processQueue(new Error('Refresh failed'));
+                }
+            } catch (refreshError) {
+                processQueue(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
+        
+        // Format Zod validation errors for easier consumption by hooks
+        if (error.response?.data) {
+            const data = error.response.data;
+            if (data.status === 'error' && Array.isArray(data.details) && data.details.length > 0) {
+                const issues = data.details.map(d => `${d.field}: ${d.issue}`).join(', ');
+                data.error = `${data.message} - ${issues}`;
+            } else if (!data.error && data.message) {
+                data.error = data.message;
+            }
+        }
+
         return Promise.reject(error);
     }
 );

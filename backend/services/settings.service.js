@@ -1,4 +1,5 @@
 const settingsRepository = require('../repositories/settings.repository');
+const AppError = require('../utils/AppError');
 const { encrypt, decrypt } = require('../utils/encryption');
 const { validateAiToken } = require('../utils/ai_validator');
 
@@ -6,7 +7,7 @@ const MASKED = '•••••••••••••••••••••�
 
 const getSettings = async (userId, supabaseClient) => {
     const { data, error } = await settingsRepository.findSettings(userId, supabaseClient);
-    if (error && error.code !== 'PGRST116') throw new Error(error.message);
+    if (error && error.code !== 'PGRST116') throw new AppError(error.message, error.status || 400, error.code);
 
     const settings = data || {};
 
@@ -46,7 +47,7 @@ const saveSettings = async (userId, payload, supabaseClient) => {
             const rawToken = payload[payloadKey];
             if (rawToken) {
                 const { valid, error } = await validateAiToken(provider, rawToken);
-                if (!valid) throw new Error(error || `Invalid ${provider} token`);
+                if (!valid) throw new AppError(error || `Invalid ${provider} token`, 400);
                 updateData[encryptedKey] = encrypt(rawToken);
             } else {
                 updateData[encryptedKey] = null;
@@ -82,7 +83,7 @@ const saveSettings = async (userId, payload, supabaseClient) => {
     }
 
     const { data, error } = await settingsRepository.upsertSettings(userId, updateData, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     return {
         groq_token_set: !!data?.groq_token_encrypted || !!data?.groq_token,

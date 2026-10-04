@@ -2,6 +2,7 @@
 
 const fs        = require('fs');
 const puppeteer = require('puppeteer');
+const AppError = require('../utils/AppError');
 const { mapToJsonResume }    = require('./jsonresume-mapper');
 const { reorderSections }    = require('./jsonresume-section-order');
 
@@ -62,7 +63,7 @@ function resolveRender(themeModule) {
         if (typeof themeModule.default.render === 'function') return themeModule.default.render;
         if (typeof themeModule.default === 'function') return themeModule.default;
     }
-    throw new Error('Could not find a render() function in the loaded theme module.');
+    throw new AppError('Could not find a render() function in the loaded theme module.', 400);
 }
 
 // ---------------------------------------------------------------------------

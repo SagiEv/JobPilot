@@ -10,7 +10,7 @@
 // the real service/repository chain with Supabase sandbox responses.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { pollUserInbox } = require('../../services/mail-poller.service');
+const { pollUserInbox } = require('../../services/mailPoller.service');
 const { sandbox } = require('./setup.integration');
 
 // ── Mock ImapFlow ────────────────────────────────────────────────────────────

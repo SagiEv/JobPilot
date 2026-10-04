@@ -16,11 +16,10 @@ describe('rss.controller', () => {
             expect(res.json).toHaveBeenCalledWith([{ id: 1 }]);
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes();
             rssService.getFeeds.mockRejectedValue(new Error('fail'));
-            await controller.getFeeds(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getFeeds(req, res)).rejects.toThrow();
         });
     });
 

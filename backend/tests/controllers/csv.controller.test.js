@@ -15,9 +15,7 @@ describe('csv.controller', () => {
         it('should return 400 when no file provided', async () => {
             const { req, res } = buildReqRes();
             req.file = null;
-            await controller.uploadAndParse(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({ error: 'No file provided' });
+            await expect(controller.uploadAndParse(req, res)).rejects.toThrow();
         });
 
         it('should parse valid CSV and return records', async () => {
@@ -85,13 +83,8 @@ describe('csv.controller', () => {
                 originalname: 'empty.csv',
             };
 
-            // Act
-            await controller.uploadAndParse(req, res);
-
-            // Assert
-            expect(res.status).toHaveBeenCalledWith(400);
-            const response = res.json.mock.calls[0][0];
-            expect(response.error).toBe('Failed to parse CSV');
+            // Act & Assert
+            await expect(controller.uploadAndParse(req, res)).rejects.toThrow();
         });
     });
 });

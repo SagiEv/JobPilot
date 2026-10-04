@@ -413,7 +413,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                         isEvent: true,
                                         type: e.type
                                     }));
-                                    const rawHistoryList = history.filter(evt => evt.event_type !== 'Application Added' && evt.event_type !== 'Initial Import' && !(evt.notes && evt.notes.includes('Migrated to new status')));
+                                    const rawHistoryList = history;
                                     const combinedHistory = [...rawHistoryList, ...appEvents].sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
                                     
                                     if (combinedHistory.length === 0) {
@@ -431,11 +431,18 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                 const hasDetails = evt.isEvent || evt.interviews || evt.notes || evt.with_who;
                                                 const isExpanded = expandedEvents[evt.id] !== undefined ? expandedEvents[evt.id] : (isMostRecentInterview || evt.event_type === 'Note');
                                                 
+                                                const today = new Date();
+                                                today.setHours(0,0,0,0);
+                                                const evDate = new Date(evt.event_date);
+                                                evDate.setHours(0,0,0,0);
+                                                const isFuture = evDate > today;
+                                                const diffDaysFromToday = Math.round((evDate - today) / (1000 * 60 * 60 * 24));
+                                                
                                                 return (
                                                     <div key={evt.id} style={{ display: 'flex', gap: '10px' }}>
                                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '4px' }} />
-                                                            {idx < combinedHistory.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border-color)', margin: '4px 0' }} />}
+                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isFuture ? 'var(--bg)' : 'var(--accent)', border: isFuture ? '2px solid var(--accent)' : 'none', marginTop: '4px' }} />
+                                                            {idx < combinedHistory.length - 1 && <div style={{ width: '2px', flex: 1, background: 'transparent', borderLeft: `2px ${isFuture ? 'dashed' : 'solid'} var(--border-color)`, margin: '4px 0' }} />}
                                                         </div>
                                                         <div style={{ flex: 1, paddingBottom: '12px' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -444,7 +451,8 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                                         style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-main)', cursor: hasDetails ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '4px' }}
                                                                         onClick={() => hasDetails && toggleEvent(evt.id)}
                                                                     >
-                                                                        {evt.event_type} {evt.title ? `- ${evt.title}` : ''} {evt.interviews?.stage ? `- ${evt.interviews.stage}` : ''}
+                                                                        {evt.event_type === 'Application Added' || evt.event_type === 'Initial Import' ? 'Application Submitted' : evt.event_type} {evt.title ? `- ${evt.title}` : ''} {evt.interviews?.stage ? `- ${evt.interviews.stage}` : ''}
+                                                                        {isFuture && <span style={{ marginLeft: '6px', padding: '2px 6px', background: 'rgba(139, 92, 246, 0.15)', color: 'var(--accent)', fontSize: '9px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upcoming</span>}
                                                                         {hasDetails && (
                                                                             <span style={{ fontSize: '9px', color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
                                                                         )}
@@ -455,7 +463,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                                     </div>
                                                                     {isExpanded && (
                                                                         <div style={{ marginTop: '4px' }}>
-                                                                            {evt.notes && (
+                                                                            {evt.notes && !evt.notes.includes('Migrated to new status') && !evt.notes.includes('Application created') && (
                                                                                 <div style={{ fontSize: '11px', padding: '6px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)', marginBottom: '4px' }}>
                                                                                     {evt.notes}
                                                                                 </div>
@@ -472,11 +480,15 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                                                         {formatDate(evt.event_date, settings?.timezone)}
                                                                     </div>
-                                                                    {diffDays > 0 && (
+                                                                    {isFuture ? (
+                                                                        <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '4px', fontWeight: '500' }}>
+                                                                            {diffDaysFromToday === 1 ? 'Tomorrow' : `In ${diffDaysFromToday} days`}
+                                                                        </div>
+                                                                    ) : (diffDays > 0 && (
                                                                         <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
                                                                             {diffDays} {diffDays === 1 ? 'day' : 'days'} later
                                                                         </div>
-                                                                    )}
+                                                                    ))}
                                                                 </div>
                                                             </div>
                                                         </div>

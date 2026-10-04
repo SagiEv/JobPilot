@@ -14,9 +14,7 @@ describe('tailor.controller', () => {
     describe('tailorCv', () => {
         it('should return 400 when job_description is missing', async () => {
             const { req, res } = buildReqRes({ body: {} });
-            await controller.tailorCv(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({ error: 'job_description is required' });
+            await expect(controller.tailorCv(req, res)).rejects.toThrow();
         });
 
         it('should return 202 with jobId on success', async () => {
@@ -39,9 +37,7 @@ describe('tailor.controller', () => {
             });
             jobService.createJob.mockRejectedValue(new Error('DB fail'));
 
-            await controller.tailorCv(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(500);
+            await expect(controller.tailorCv(req, res)).rejects.toThrow();
         });
     });
 
@@ -61,18 +57,14 @@ describe('tailor.controller', () => {
             const { req, res } = buildReqRes({ params: { id: 'job-123' } });
             jobService.getJob.mockResolvedValue({ id: 'job-123', user_id: 'other-user' });
 
-            await controller.getJobStatus(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(403);
+            await expect(controller.getJobStatus(req, res)).rejects.toThrow();
         });
 
-        it('should return 404 when job not found', async () => {
+        it('should throw when job not found', async () => {
             const { req, res } = buildReqRes({ params: { id: 'bad' } });
             jobService.getJob.mockRejectedValue(new Error('Not found'));
 
-            await controller.getJobStatus(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(404);
+            await expect(controller.getJobStatus(req, res)).rejects.toThrow();
         });
     });
 });

@@ -19,7 +19,7 @@ process.env.AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:800
 process.env.NODE_ENV = 'test';
 
 // ── Prevent cron jobs from auto-starting ─────────────────────────────────────
-jest.mock('../../cron/mail-poll-cron', () => ({
+jest.mock('../../cron/mailPollCron', () => ({
     startMailPolling: jest.fn(),
     stopMailPolling: jest.fn(),
 }));

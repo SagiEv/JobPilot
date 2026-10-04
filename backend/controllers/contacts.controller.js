@@ -1,59 +1,28 @@
 const contactService = require('../services/contacts.service');
 
 const getAll = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await contactService.getAllContacts(userId, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await contactService.getAllContacts(req.user.id, req.supabase);
+    res.json(data);
 };
 
 const create = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await contactService.createContact(userId, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await contactService.createContact(req.user.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const update = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const data = await contactService.updateContact(userId, req.params.id, req.body, req.supabase);
-        res.json(data);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const data = await contactService.updateContact(req.user.id, req.params.id, req.body, req.supabase);
+    res.json(data);
 };
 
 const remove = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await contactService.deleteContact(userId, req.params.id, req.supabase);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const result = await contactService.deleteContact(req.user.id, req.params.id, req.supabase);
+    res.json(result);
 };
 
 const bulkCreate = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const result = await contactService.bulkCreateContacts(userId, req.body.contacts, req.supabase);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message, details: error.details });
-    }
+    const result = await contactService.bulkCreateContacts(req.user.id, req.body.contacts, req.supabase);
+    res.json(result);
 };
 
-module.exports = {
-    getAll,
-    create,
-    update,
-    remove,
-    bulkCreate
-};
+module.exports = { getAll, create, update, remove, bulkCreate };

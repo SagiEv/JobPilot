@@ -23,5 +23,6 @@ const createAuthClient = (token) => {
 };
 
 module.exports = supabase;
+module.exports.supabase = supabase;
 module.exports.adminSupabase = adminSupabase;
 module.exports.createAuthClient = createAuthClient;

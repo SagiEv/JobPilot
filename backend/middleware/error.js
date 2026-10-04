@@ -11,13 +11,27 @@ const errorHandler = (err, req, res, next) => {
         message = 'Resource already exists.';
     }
 
-    return res.status(statusCode).json({
+    const response = {
         status: 'error',
         message,
-        stack: process.env.NODE_ENV === 'development'
-            ? err.stack
-            : undefined
-    });
+    };
+
+    // Include machine-readable error code if present (e.g. 'CONFLICTING_EVENT')
+    if (err.code && err.code !== '23505') {
+        response.code = err.code;
+    }
+
+    // Include additional details if present (e.g. conflict data)
+    if (err.details) {
+        response.details = err.details;
+    }
+
+    // Include stack trace in development
+    if (process.env.NODE_ENV === 'development') {
+        response.stack = err.stack;
+    }
+
+    return res.status(statusCode).json(response);
 };
 
 module.exports = { errorHandler };

@@ -1,16 +1,15 @@
 const applicationRepository = require('../repositories/applications.repository');
+const AppError = require('../utils/AppError');
+const applicationHistoryRepo = require('../repositories/applicationHistory.repository');
 const applicationHistoryService = require('./applicationHistory.service');
 
 const getAllApplications = async (userId, supabaseClient) => {
     const { data, error } = await applicationRepository.findAll(userId, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     const appIds = data.map(a => a.id);
     if (appIds.length > 0) {
-        const { data: history, error: histError } = await supabaseClient
-            .from('application_history')
-            .select('application_id, event_date, created_at, event_type')
-            .in('application_id', appIds);
+        const { data: history, error: histError } = await applicationHistoryRepo.findLatestDatesByAppIds(appIds, supabaseClient);
             
         if (!histError && history) {
             const latestDates = {};
@@ -35,7 +34,7 @@ const getAllApplications = async (userId, supabaseClient) => {
 
 const createApplication = async (userId, data, supabaseClient) => {
     const { data: newApp, error } = await applicationRepository.create(userId, data, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     // Log creation
     await applicationHistoryService.logChange(
@@ -55,7 +54,7 @@ const createApplication = async (userId, data, supabaseClient) => {
 const updateApplication = async (userId, id, data, supabaseClient) => {
     // Fetch existing application
     const { data: oldApp } = await applicationRepository.findById(userId, id, supabaseClient);
-    if (!oldApp) throw new Error("Application not found");
+    if (!oldApp) throw new AppError("Application not found", 400);
     
     // Extract event_date and conflict_resolution so they're not saved directly in applications table
     const { event_date, conflict_resolution, notes, with_who, ...updateData } = data;
@@ -106,7 +105,7 @@ const updateApplication = async (userId, id, data, supabaseClient) => {
                         with_who: with_who !== undefined ? with_who : existingEvent.with_who
                     }, supabaseClient);
                 } else {
-                    const error = new Error('Conflicting event on this date');
+                    const error = new AppError('Conflicting event on this date', 400);
                     error.code = 'CONFLICTING_EVENT';
                     error.conflictData = { existingEvent, inputStatus, inputStage, targetDate };
                     throw error;
@@ -144,6 +143,7 @@ const updateApplication = async (userId, id, data, supabaseClient) => {
         if (latestEvent.new_stage !== undefined) {
             updateData.stage = latestEvent.new_stage;
         }
+        updateData.date = new Date(latestEvent.event_date || latestEvent.created_at || 0).toISOString().split('T')[0];
     } else {
         // Fallback to input if no history exists (e.g. legacy apps)
         updateData.status = inputStatus;
@@ -157,14 +157,14 @@ const updateApplication = async (userId, id, data, supabaseClient) => {
     }
 
     const { data: updatedApp, error } = await applicationRepository.update(userId, id, updateData, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     return updatedApp;
 };
 
 const deleteApplication = async (userId, id, supabaseClient) => {
     const { error } = await applicationRepository.remove(userId, id, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return { success: true };
 };
 
@@ -195,7 +195,7 @@ const bulkCreateApplications = async (userId, applications, supabaseClient) => {
 };
 const getAnalyticsMetrics = async (userId, supabaseClient) => {
     const { data: apps, error: appError } = await applicationRepository.findAll(userId, supabaseClient);
-    if (appError) throw new Error(appError.message);
+    if (appError) throw new AppError(appError.message, appError.status || 400, appError.code);
 
     if (!apps || apps.length === 0) {
         return {
@@ -210,13 +210,9 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
     const appIds = apps.map(a => a.id);
 
     // Fetch all history for user's applications
-    const { data: history, error: histError } = await supabaseClient
-        .from('application_history')
-        .select('*')
-        .in('application_id', appIds)
-        .order('event_date', { ascending: true });
+    const { data: history, error: histError } = await applicationHistoryRepo.findByAppIds(appIds, supabaseClient);
 
-    if (histError) throw new Error(histError.message);
+    if (histError) throw new AppError(histError.message, histError.status || 400, histError.code);
 
     // Helper to calculate days diff
     const calcDays = (start, end) => Math.ceil(Math.abs(new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
@@ -285,7 +281,7 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
 
 const getDailyStats = async (userId, startIso, endIso, supabaseClient) => {
     const { data: apps, error: appsError } = await applicationRepository.findAll(userId, supabaseClient);
-    if (appsError) throw new Error(appsError.message);
+    if (appsError) throw new AppError(appsError.message, appsError.status || 400, appsError.code);
     
     if (!apps || apps.length === 0) {
         return { appliedToday: 0, rejectedToday: 0 };
@@ -293,14 +289,9 @@ const getDailyStats = async (userId, startIso, endIso, supabaseClient) => {
     
     const appIds = apps.map(a => a.id);
     
-    const { data: history, error: histError } = await supabaseClient
-        .from('application_history')
-        .select('event_type, new_status, event_date')
-        .in('application_id', appIds)
-        .gte('event_date', startIso)
-        .lte('event_date', endIso);
+    const { data: history, error: histError } = await applicationHistoryRepo.findByAppIdsInDateRange(appIds, startIso, endIso, supabaseClient);
 
-    if (histError) throw new Error(histError.message);
+    if (histError) throw new AppError(histError.message, histError.status || 400, histError.code);
 
     let appliedToday = 0;
     let rejectedToday = 0;

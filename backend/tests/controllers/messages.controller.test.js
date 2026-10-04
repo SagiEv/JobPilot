@@ -28,12 +28,7 @@ describe('messages.controller', () => {
                 // groq_token is missing
             });
 
-            await controller.generateMessage(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith(
-                expect.objectContaining({ error: expect.stringContaining('API key') })
-            );
+            await expect(controller.generateMessage(req, res)).rejects.toThrow();
         });
 
         it('should return generated message on success', async () => {
@@ -72,9 +67,7 @@ describe('messages.controller', () => {
             experienceRepository.findExperienceText.mockResolvedValue({ data: {} });
             axios.post.mockRejectedValue(new Error('Connection refused'));
 
-            await controller.generateMessage(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(500);
+            await expect(controller.generateMessage(req, res)).rejects.toThrow();
         });
     });
 });

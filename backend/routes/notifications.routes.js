@@ -1,46 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const notificationsRepo = require('../repositories/notifications.repository');
+const notificationsController = require('../controllers/notifications.controller');
 const { authenticate } = require('../middleware/auth');
+const { asyncHandler } = require('../middleware/asyncHandler');
 
-router.get('/', authenticate, async (req, res) => {
-    try {
-        const { data, error } = await notificationsRepo.findByUser(req.user.id, req.supabase);
-        if (error) throw new Error(error.message);
-        res.json(data || []);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
-
-router.get('/unread-count', authenticate, async (req, res) => {
-    try {
-        const { count, error } = await notificationsRepo.countUnread(req.user.id, req.supabase);
-        if (error) throw new Error(error.message);
-        res.json({ count });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
-
-router.put('/:id/read', authenticate, async (req, res) => {
-    try {
-        const { error } = await notificationsRepo.markRead(req.user.id, req.params.id, req.supabase);
-        if (error) throw new Error(error.message);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
-
-router.put('/read-all', authenticate, async (req, res) => {
-    try {
-        const { error } = await notificationsRepo.markAllRead(req.user.id, req.supabase);
-        if (error) throw new Error(error.message);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
+router.get('/', authenticate, asyncHandler(notificationsController.getAll));
+router.get('/unread-count', authenticate, asyncHandler(notificationsController.getUnreadCount));
+router.put('/:id/read', authenticate, asyncHandler(notificationsController.markRead));
+router.put('/read-all', authenticate, asyncHandler(notificationsController.markAllRead));
 
 module.exports = router;

@@ -50,6 +50,20 @@ export const authService = {
 export const restoreSession = async () => {
     let { data } = await supabase.auth.getSession();
 
+    // If session exists but access token is expired (or about to), refresh proactively
+    if (data?.session?.expires_at) {
+        const expiresAt = data.session.expires_at * 1000; // convert to ms
+        const bufferMs = 60_000; // 60 second safety margin
+        if (Date.now() >= expiresAt - bufferMs) {
+            const { data: refreshed } = await supabase.auth.refreshSession();
+            if (refreshed?.session) {
+                data = { session: refreshed.session };
+            } else {
+                data = { session: null }; // fall through to localStorage fallback
+            }
+        }
+    }
+
     // Fallback: if no native supabase session, but we have a stored refresh_token
     if (!data?.session) {
         const localRefreshToken = localStorage.getItem('refresh_token');

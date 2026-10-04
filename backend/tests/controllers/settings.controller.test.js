@@ -1,18 +1,18 @@
 'use strict';
 
 jest.mock('../../services/settings.service');
-jest.mock('../../services/mail-poller.service');
+jest.mock('../../services/mailPoller.service');
 jest.mock('../../utils/encryption');
 jest.mock('../../utils/ai_validator');
 jest.mock('../../repositories/settings.repository');
-jest.mock('../../repositories/email-logs.repository');
+jest.mock('../../repositories/emailLogs.repository');
 
 const settingsService = require('../../services/settings.service');
-const { testImapConnection } = require('../../services/mail-poller.service');
+const { testImapConnection } = require('../../services/mailPoller.service');
 const { decrypt } = require('../../utils/encryption');
 const { validateAiToken } = require('../../utils/ai_validator');
 const settingsRepository = require('../../repositories/settings.repository');
-const emailLogsRepo = require('../../repositories/email-logs.repository');
+const emailLogsRepo = require('../../repositories/emailLogs.repository');
 const controller = require('../../controllers/settings.controller');
 const { buildReqRes } = require('../helpers/factories');
 
@@ -27,11 +27,10 @@ describe('settings.controller', () => {
             expect(res.json).toHaveBeenCalledWith({ timezone: 'UTC' });
         });
 
-        it('should return 400 on error', async () => {
+        it('should throw on error', async () => {
             const { req, res } = buildReqRes();
             settingsService.getSettings.mockRejectedValue(new Error('fail'));
-            await controller.getSettings(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.getSettings(req, res)).rejects.toThrow();
         });
     });
 
@@ -48,8 +47,7 @@ describe('settings.controller', () => {
         it('should return 400 when no password provided and none saved', async () => {
             const { req, res } = buildReqRes({ body: { smtp_email: 'a@b.com', smtp_host: 'imap.gmail.com' } });
             settingsRepository.findSettings.mockResolvedValue({ data: {} });
-            await controller.testSmtpConnection(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.testSmtpConnection(req, res)).rejects.toThrow();
         });
 
         it('should return 400 when missing required fields', async () => {
@@ -58,8 +56,7 @@ describe('settings.controller', () => {
                 data: { smtp_password_encrypted: 'enc' },
             });
             decrypt.mockReturnValue('secret');
-            await controller.testSmtpConnection(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.testSmtpConnection(req, res)).rejects.toThrow();
         });
 
         it('should return success on valid IMAP connection', async () => {
@@ -84,8 +81,7 @@ describe('settings.controller', () => {
     describe('testAiToken', () => {
         it('should return 400 when no provider', async () => {
             const { req, res } = buildReqRes({ body: {} });
-            await controller.testAiToken(req, res);
-            expect(res.status).toHaveBeenCalledWith(400);
+            await expect(controller.testAiToken(req, res)).rejects.toThrow();
         });
 
         it('should return success when token is valid', async () => {

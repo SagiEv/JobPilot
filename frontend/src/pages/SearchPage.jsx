@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useSearch } from '../hooks/useSearch';
 import { useRss } from '../hooks/useRss';
+import { useToast } from '../components/ToastProvider';
+import { useScrapedJobs } from '../hooks/useScrapedJobs';
 
 /* ── inline editable site row ─────────────────────────────────── */
 const SiteRow = ({ site, onToggle, onDelete, onSave }) => {
@@ -55,9 +57,9 @@ const SiteRow = ({ site, onToggle, onDelete, onSave }) => {
                 role="switch"
                 aria-label={`Toggle ${site.name}`}
             />
-            <div className="site-info">
+            <div className="site-info" style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
                 <strong style={{ opacity: site.enabled ? 1 : 0.45 }}>{site.name}</strong>
-                <span className="site-url" style={{ opacity: site.enabled ? 1 : 0.45 }}>{site.url}</span>
+                <span className="site-url" style={{ opacity: site.enabled ? 1 : 0.45, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{site.url}</span>
             </div>
             <div className="site-row-actions">
                 <button className="site-action-btn" onClick={() => setEditing(true)} title="Edit">✎</button>
@@ -120,9 +122,9 @@ const RssFeedRow = ({ feed, onToggle, onDelete, onSave }) => {
                 role="switch"
                 aria-label={`Toggle Feed`}
             />
-            <div className="site-info">
+            <div className="site-info" style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
                 <strong style={{ opacity: feed.enabled ? 1 : 0.45 }}>{feed.category || 'General'}</strong>
-                <span className="site-url" style={{ opacity: feed.enabled ? 1 : 0.45 }}>{feed.url}</span>
+                <span className="site-url" style={{ opacity: feed.enabled ? 1 : 0.45, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{feed.url}</span>
             </div>
             <div className="site-row-actions">
                 <button className="site-action-btn" onClick={() => setEditing(true)} title="Edit">✎</button>
@@ -134,12 +136,23 @@ const RssFeedRow = ({ feed, onToggle, onDelete, onSave }) => {
 
 /* ── main page ────────────────────────────────────────────────── */
 const SearchPage = () => {
+    const { addToast } = useToast();
     const {
         loading,
         searchSettings, addTag, removeTag,
         addSite, removeSite, updateSite, toggleSite,
-        clearResults
+        updateSettings,
+        clearResults,
+        runSearch, isSearching
     } = useSearch();
+
+    const {
+        scrapedJobs,
+        loading: jobsLoading,
+        toggleBookmark,
+        markAsSeen,
+        removeJob
+    } = useScrapedJobs();
 
     const [newSite, setNewSite] = useState({ name: '', url: '' });
     
@@ -172,7 +185,7 @@ const SearchPage = () => {
 
             <div className="search-outer">
                 {/* ── Left column ───────────────────────────────── */}
-                <div>
+                <div style={{ minWidth: 0 }}>
                     {/* Keywords */}
                     <div className="card" style={{ marginBottom: '14px' }}>
                         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -284,11 +297,45 @@ const SearchPage = () => {
                             <button className="btn btn-sm" onClick={handleAddSite}>+ Add</button>
                         </div>
 
-                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                            <button className="btn">Save Settings</button>
-                            <button className="btn btn-primary">Run Search Now</button>
+                        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <label style={{ fontSize: '14px', fontWeight: '500' }}>Schedule:</label>
+                                <select 
+                                    className="field-input" 
+                                    style={{ width: 'auto', padding: '4px 8px' }}
+                                    value={searchSettings.scheduleFrequency || 'Manual only'}
+                                    onChange={async (e) => {
+                                        const newVal = e.target.value;
+                                        try {
+                                            await updateSettings('scheduleFrequency', newVal);
+                                            addToast('Schedule setting updated', 'success');
+                                        } catch (err) {
+                                            addToast('Failed to update schedule', 'error');
+                                        }
+                                    }}
+                                >
+                                    <option value="Manual only">Manual only</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="2 weeks">2 weeks</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            <button className="btn btn-primary" onClick={async () => {
+                                addToast('Starting manual search...', 'info');
+                                try {
+                                    const res = await runSearch();
+                                    addToast(`Search complete! Found ${res.totalFound} jobs across ${res.sitesScraped} sites.`, 'success');
+                                } catch (err) {
+                                    addToast(`Search failed: ${err.message}`, 'error');
+                                }
+                            }} disabled={isSearching}>
+                                {isSearching ? 'Searching...' : 'Run Search Now'}
+                            </button>
                         </div>
                     </div>
+
+
 
                     {/* Google Alerts RSS Feeds */}
                     <div className="card" style={{ marginTop: '14px' }}>
@@ -378,8 +425,11 @@ const SearchPage = () => {
                             <div className="empty-results">No results yet</div>
                         ) : (
                             searchSettings.lastResults.map((res, i) => (
-                                <div key={i} className="site-item">
-                                    <span>{res.title}</span>
+                                <div key={i} className="site-item" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '10px' }}>
+                                    <strong>{new Date(res.date).toLocaleString()}</strong>
+                                    <span style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px' }}>
+                                        Found {res.totalFound} jobs across {res.sitesScraped} sites.
+                                    </span>
                                 </div>
                             ))
                         )}
@@ -387,6 +437,75 @@ const SearchPage = () => {
 
                 </div>
             </div>
+
+            {/* ── Bottom Section: Scraped Jobs Queue ─────────────────────── */}
+            <div className="card" style={{ marginTop: '20px' }}>
+                <div className="label-row" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
+                    <div className="card-title" style={{ marginBottom: 0 }}>Scraped Job Matches Queue</div>
+                    <span className="count-badge">
+                        {scrapedJobs.filter(j => !j.seen).length} unseen
+                    </span>
+                </div>
+
+                {jobsLoading ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Loading scraped jobs...</div>
+                ) : scrapedJobs.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                        No scraped jobs available yet. Add target sites or RSS feeds above, and wait for background scraper to run.
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                        {scrapedJobs.map((job) => (
+                            <div 
+                                key={job.id} 
+                                className={`card ${!job.seen ? 'unseen-job' : ''}`}
+                                style={{ 
+                                    padding: '16px', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '10px', 
+                                    border: !job.seen ? '1px solid var(--primary-color)' : '1px solid var(--border)',
+                                    boxShadow: 'none',
+                                    position: 'relative'
+                                }}
+                                onMouseEnter={() => !job.seen && markAsSeen(job.id)}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)', paddingRight: '20px' }}>{job.title}</h4>
+                                    <button 
+                                        style={{ 
+                                            background: 'none', 
+                                            border: 'none', 
+                                            cursor: 'pointer', 
+                                            color: job.bookmarked ? '#eab308' : 'var(--text-muted)',
+                                            padding: 0,
+                                            fontSize: '1.2rem',
+                                            lineHeight: 1
+                                        }}
+                                        onClick={() => toggleBookmark(job.id, job.bookmarked)}
+                                        title={job.bookmarked ? 'Remove Bookmark' : 'Bookmark Job'}
+                                    >
+                                        {job.bookmarked ? '★' : '☆'}
+                                    </button>
+                                </div>
+                                <div style={{ fontWeight: '500', color: 'var(--primary-color)' }}>{job.company}</div>
+                                {job.location && <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>📍 {job.location}</div>}
+                                
+                                <div style={{ marginTop: 'auto', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                        {new Date(job.created_at).toLocaleDateString()}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="btn btn-sm" style={{ color: 'var(--danger-c)', border: '1px solid var(--danger-c)' }} onClick={() => removeJob(job.id)}>Delete</button>
+                                        <a href={job.url} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary">Apply / View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
         </div>
     );
 };

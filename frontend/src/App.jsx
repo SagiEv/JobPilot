@@ -14,6 +14,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import { checkBackendHealth } from './services/apiService';
 import { restoreSession } from './services/authService';
+import { supabase } from './supabaseClient';
+import { setAccessToken } from './services/apiClient';
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -28,7 +30,7 @@ function App() {
             .catch(() => setBackendStatus('disconnected'));
     }, []);
 
-    // 2. Restore Session on Load
+    // 2. Restore Session on Load + keep tokens synced via auth listener
     useEffect(() => {
         const initAuth = async () => {
             const session = await restoreSession();
@@ -38,6 +40,22 @@ function App() {
             setIsInitialising(false);
         };
         initAuth();
+
+        // Keep in-memory token synced with Supabase's auto-refresh
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (event, session) => {
+                if (event === 'TOKEN_REFRESHED' && session) {
+                    setAccessToken(session.access_token);
+                    localStorage.setItem('refresh_token', session.refresh_token);
+                } else if (event === 'SIGNED_OUT') {
+                    setAccessToken(null);
+                    localStorage.removeItem('refresh_token');
+                    setIsAuthenticated(false);
+                }
+            }
+        );
+
+        return () => subscription.unsubscribe();
     }, []);
 
     // 3. Listen for Navigation/Login Events

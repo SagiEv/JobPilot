@@ -1,20 +1,21 @@
 const applicationHistoryRepo = require('../repositories/applicationHistory.repository');
+const AppError = require('../utils/AppError');
 
 const getHistoryByApplicationId = async (applicationId, supabaseClient) => {
     const { data, error } = await applicationHistoryRepo.findAllByApplicationId(applicationId, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const addHistory = async (historyData, supabaseClient) => {
     const { data, error } = await applicationHistoryRepo.create(historyData, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 
 const updateHistory = async (id, historyData, supabaseClient) => {
     const { data, error } = await applicationHistoryRepo.update(id, historyData, supabaseClient);
-    if (error) throw new Error(error.message);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
     return data;
 };
 

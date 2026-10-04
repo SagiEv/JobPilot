@@ -2,11 +2,12 @@ from typing import List, Dict, Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_anthropic import ChatAnthropic
 from interfaces.llm_provider import LLMProvider
+from providers.model_registry import get_default_model, get_available_models as registry_models
 
 class ClaudeProvider(LLMProvider):
     def get_model(self, model_name: str, api_key: str, temperature: float = 0.7, max_tokens: int = 4096, max_retries: int = 3) -> BaseChatModel:
         if not model_name:
-            model_name = "claude-3-5-sonnet-20240620"
+            model_name = get_default_model("claude")
             
         return ChatAnthropic(
             model=model_name,
@@ -17,8 +18,5 @@ class ClaudeProvider(LLMProvider):
         )
 
     def get_available_models(self) -> List[Dict[str, Any]]:
-        return [
-            {"id": "claude-3-5-sonnet-20240620", "name": "Claude 3.5 Sonnet"},
-            {"id": "claude-3-haiku-20240307", "name": "Claude 3 Haiku"},
-            {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus"}
-        ]
+        return registry_models("claude")
+

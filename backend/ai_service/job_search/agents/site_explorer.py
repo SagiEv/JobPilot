@@ -209,7 +209,7 @@ def _fetch_page(url: str) -> tuple[str, str]:
 
 
 def site_explorer_node(state: SearchState, groq_api_key: str) -> dict:
-    llm = get_fast_llm(groq_api_key)
+    llm = get_fast_llm({"groq_token": groq_api_key})
 
     url = state["careers_url"]
     html, page_text = _fetch_page(url)
