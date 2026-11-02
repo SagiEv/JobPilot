@@ -108,8 +108,9 @@ test.describe('Application Management Journeys', () => {
     await interviewModal.getByPlaceholder('e.g. First Round Technical').fill('Final Round');
     await interviewModal.locator('.modal-section').filter({ hasText: 'Company' }).locator('input').fill('Test Company Inc');
     
-    // Fill date time
-    await page.locator('input[type="datetime-local"]').fill('2026-10-10T10:00');
+    // Fill date time with a dynamic future date so it always appears in Upcoming Interviews
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+    await page.locator('input[type="datetime-local"]').fill(futureDate);
     
     await page.getByRole('button', { name: 'Save Interview' }).click();
     
