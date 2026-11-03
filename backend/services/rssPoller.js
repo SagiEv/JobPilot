@@ -2,6 +2,7 @@ const Parser = require('rss-parser');
 const AppError = require('../utils/AppError');
 const axios = require('axios');
 const rssRepo = require('../repositories/rss.repository');
+const { decrypt } = require('../utils/encryption');
 
 const parser = new Parser();
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8001';
@@ -59,9 +60,9 @@ const pollRssFeeds = async () => {
 
                     // Add GROQ API Key for the AI service by reading it from the DB
                     const { data: appSettings } = await rssRepo.findFirstAppSettings();
-                    const groqApiKey = appSettings?.groq_token;
+                    const groqApiKey = appSettings?.groq_token_encrypted ? decrypt(appSettings.groq_token_encrypted) : null;
                     if (!groqApiKey) {
-                        console.warn('⚠️ groq_token is missing in app_settings table! AI classification will fail.');
+                        console.warn('⚠️ groq_token_encrypted is missing in app_settings table! AI classification will fail.');
                     }
                     normalizedJob.groq_api_key = groqApiKey || '';
 
