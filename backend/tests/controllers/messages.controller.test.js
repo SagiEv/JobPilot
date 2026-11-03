@@ -67,7 +67,9 @@ describe('messages.controller', () => {
             experienceRepository.findExperienceText.mockResolvedValue({ data: {} });
             axios.post.mockRejectedValue(new Error('Connection refused'));
 
-            await expect(controller.generateMessage(req, res)).rejects.toThrow();
+            await expect(controller.generateMessage(req, res)).rejects.toThrow(
+                'AI Service is starting up or temporarily unavailable. Please try again in a moment.'
+            );
         });
     });
 });

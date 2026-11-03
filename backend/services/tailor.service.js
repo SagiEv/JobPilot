@@ -4,7 +4,19 @@ const skillsRepository = require('../repositories/skills.repository');
 const experienceRepository = require('../repositories/experience.repository');
 const settingsService = require('./settings.service');
 const pdfParseRaw = require('pdf-parse');
-const pdfParse = pdfParseRaw.default || pdfParseRaw.pdf || pdfParseRaw;
+const parsePdfBuffer = async (buffer) => {
+    const fn = typeof pdfParseRaw === 'function' ? pdfParseRaw : (typeof pdfParseRaw.default === 'function' ? pdfParseRaw.default : null);
+    if (fn) return await fn(buffer);
+    if (pdfParseRaw.PDFParse) {
+        const parser = new pdfParseRaw.PDFParse({ data: buffer });
+        try {
+            return await parser.getText();
+        } finally {
+            if (typeof parser.destroy === 'function') await parser.destroy();
+        }
+    }
+    throw new Error('Unsupported pdf-parse export');
+};
 
 const axios = require('axios');
 
@@ -37,7 +49,7 @@ const runTailoring = async (userId, jobDescription, mode = 'full', useProfile = 
         cvData = profile?.cv_data || {};
     } else if (cvFile) {
         try {
-            const pdfData = await pdfParse(cvFile.buffer);
+            const pdfData = await parsePdfBuffer(cvFile.buffer);
             baseCvText = pdfData.text;
         } catch (err) {
             console.error("Failed to parse PDF:", err);

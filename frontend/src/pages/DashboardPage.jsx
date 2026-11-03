@@ -213,7 +213,7 @@ const DashboardPage = () => {
             setComposedMessage(res.data.message);
         } catch(err) {
             console.error(err);
-            const serverError = err.response?.data?.detail || err.response?.data?.error || err.message;
+            const serverError = err.response?.data?.message || err.response?.data?.detail || err.response?.data?.error || err.message;
             addToast(`Failed to generate message: ${serverError}`, 'error');
         } finally {
             setIsComposing(false);
