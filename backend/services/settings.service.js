@@ -11,7 +11,7 @@ const getSettings = async (userId, supabaseClient) => {
 
     const settings = data || {};
 
-    let groqDecrypted = settings.groq_token_encrypted ? decrypt(settings.groq_token_encrypted) : (settings.groq_token || null);
+    let groqDecrypted = settings.groq_token_encrypted ? decrypt(settings.groq_token_encrypted) : null;
     let openaiDecrypted = settings.openai_token_encrypted ? decrypt(settings.openai_token_encrypted) : null;
     let claudeDecrypted = settings.claude_token_encrypted ? decrypt(settings.claude_token_encrypted) : null;
     let geminiDecrypted = settings.gemini_token_encrypted ? decrypt(settings.gemini_token_encrypted) : null;
@@ -56,8 +56,6 @@ const saveSettings = async (userId, payload, supabaseClient) => {
     };
 
     await validateAndSetToken('groq', 'groq_token', 'groq_token_encrypted');
-    if ('groq_token' in payload) updateData.groq_token = null; // Clear unencrypted legacy token
-    
     await validateAndSetToken('openai', 'openai_token', 'openai_token_encrypted');
     await validateAndSetToken('claude', 'claude_token', 'claude_token_encrypted');
     await validateAndSetToken('gemini', 'gemini_token', 'gemini_token_encrypted');
@@ -86,7 +84,7 @@ const saveSettings = async (userId, payload, supabaseClient) => {
     if (error) throw new AppError(error.message, error.status || 400, error.code);
 
     return {
-        groq_token_set: !!data?.groq_token_encrypted || !!data?.groq_token,
+        groq_token_set: !!data?.groq_token_encrypted,
         openai_token_set: !!data?.openai_token_encrypted,
         claude_token_set: !!data?.claude_token_encrypted,
         gemini_token_set: !!data?.gemini_token_encrypted,
@@ -108,7 +106,7 @@ const getAllAiConfigs = async (userId, supabaseClient) => {
     if (error) return null;
     
     return {
-        groq_token: data?.groq_token_encrypted ? decrypt(data.groq_token_encrypted) : (data?.groq_token || null),
+        groq_token: data?.groq_token_encrypted ? decrypt(data.groq_token_encrypted) : null,
         openai_token: data?.openai_token_encrypted ? decrypt(data.openai_token_encrypted) : null,
         claude_token: data?.claude_token_encrypted ? decrypt(data.claude_token_encrypted) : null,
         gemini_token: data?.gemini_token_encrypted ? decrypt(data.gemini_token_encrypted) : null,

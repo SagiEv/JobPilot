@@ -49,20 +49,6 @@ describe('settings.service', () => {
             expect(result.openai_token_set).toBe(false);
         });
 
-        it('should fall back to plain groq_token when no encrypted version', async () => {
-            // Arrange
-            settingsRepository.findSettings.mockResolvedValue({
-                data: buildSettings({ groq_token: 'gsk_plain_key_12345678' }),
-                error: null,
-            });
-
-            // Act
-            const result = await settingsService.getSettings('user-123', 'token');
-
-            // Assert
-            expect(result.groq_token_set).toBe(true);
-        });
-
         it('should return SMTP fields and defaults', async () => {
             // Arrange
             settingsRepository.findSettings.mockResolvedValue({

@@ -61,9 +61,7 @@ exports.testAiToken = async (req, res) => {
     
     const { data: settings } = await settingsRepository.findSettings(userId, req.supabase);
     const encryptedKey = settings?.[`${provider}_token_encrypted`];
-    const unencryptedKey = settings?.[`${provider}_token`];
-    
-    const rawToken = encryptedKey ? decrypt(encryptedKey) : unencryptedKey;
+    const rawToken = encryptedKey ? decrypt(encryptedKey) : null;
     if (!rawToken) {
         throw new AppError('No token configured for this provider.', 400);
     }

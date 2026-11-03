@@ -15,6 +15,7 @@ function encrypt(text) {
 
 function decrypt(text) {
     if (!text) return null;
+    if (!text.includes(':')) return text;
     const textParts = text.split(':');
     const iv = Buffer.from(textParts.shift(), 'hex');
     const encryptedText = Buffer.from(textParts.join(':'), 'hex');

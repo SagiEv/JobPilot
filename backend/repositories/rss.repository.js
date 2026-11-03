@@ -30,7 +30,7 @@ const findJobByUrl = async (url, client) => {
 };
 
 const findFirstAppSettings = async (client) => {
-    return await adminSupabase.from('app_settings').select('groq_token').limit(1).maybeSingle();
+    return await adminSupabase.from('app_settings').select('groq_token_encrypted').limit(1).maybeSingle();
 };
 
 module.exports = {

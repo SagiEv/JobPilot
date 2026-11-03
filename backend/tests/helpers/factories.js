@@ -76,7 +76,6 @@ const buildHistoryEntry = (overrides = {}) => ({
 
 const buildSettings = (overrides = {}) => ({
     groq_token_encrypted: null,
-    groq_token: null,
     openai_token_encrypted: null,
     claude_token_encrypted: null,
     gemini_token_encrypted: null,

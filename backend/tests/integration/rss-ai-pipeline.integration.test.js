@@ -70,7 +70,7 @@ describe('Integration: RSS → AI Classification Pipeline', () => {
 
         // App settings for groq_token
         sandbox.onTable('app_settings').forSelect({
-            data: { groq_token: 'test-groq-key' },
+            data: { groq_token_encrypted: 'test-groq-key' },
             error: null,
         });
 
@@ -106,7 +106,7 @@ describe('Integration: RSS → AI Classification Pipeline', () => {
 
         sandbox.onTable('rss_jobs').forSelect({ data: null, error: null });
         sandbox.onTable('app_settings').forSelect({
-            data: { groq_token: 'test-key' },
+            data: { groq_token_encrypted: 'test-key' },
             error: null,
         });
 
@@ -168,7 +168,7 @@ describe('Integration: RSS → AI Classification Pipeline', () => {
 
         sandbox.onTable('rss_jobs').forSelect({ data: null, error: null });
         sandbox.onTable('app_settings').forSelect({
-            data: { groq_token: 'test-key' },
+            data: { groq_token_encrypted: 'test-key' },
             error: null,
         });
 
@@ -201,7 +201,7 @@ describe('Integration: RSS → AI Classification Pipeline', () => {
 
         sandbox.onTable('rss_jobs').forSelect({ data: null, error: null });
         sandbox.onTable('app_settings').forSelect({
-            data: { groq_token: 'test-key' },
+            data: { groq_token_encrypted: 'test-key' },
             error: null,
         });
 
