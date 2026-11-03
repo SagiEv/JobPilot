@@ -15,8 +15,8 @@ class GeminiProvider(LLMProvider):
             temperature=temperature,
             max_tokens=max_tokens,
             max_retries=max_retries,
+            timeout=12,
         )
 
     def get_available_models(self) -> List[Dict[str, Any]]:
         return registry_models("gemini")
-

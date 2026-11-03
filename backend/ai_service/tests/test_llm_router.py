@@ -56,6 +56,35 @@ class TestLLMRouter:
         assert exc_info.value.status_code == 429
         assert exc_info.value.detail["suggested_model"] == "openai"
 
+    @patch("router.llm_router.rate_limiter")
+    def test_runtime_fallback_on_503_unavailable(self, mock_limiter):
+        """When primary model raises 503 UNAVAILABLE on invoke(), falls back to next model."""
+        mock_limiter.is_limited.return_value = False
+
+        from router.llm_router import LLMRouter
+        from langchain_core.messages import AIMessage
+
+        primary_llm = MagicMock()
+        primary_llm.invoke.side_effect = Exception("503 UNAVAILABLE. This model is currently experiencing high demand.")
+
+        fallback_llm = MagicMock()
+        fallback_llm.invoke.return_value = AIMessage(content="Fallback model succeeded!")
+
+        mock_provider = MagicMock()
+        mock_provider.get_model.side_effect = [primary_llm, fallback_llm, fallback_llm]
+
+        with patch.dict(LLMRouter._providers, {"gemini": mock_provider}):
+            llm = LLMRouter.get_model(
+                provider="gemini",
+                model=None,
+                api_keys={"gemini_token": "test-gemini-key"},
+            )
+            res = llm.invoke(["Hello"])
+
+        assert res.content == "Fallback model succeeded!"
+        assert primary_llm.invoke.call_count == 1
+        assert fallback_llm.invoke.call_count == 1
+
 
 # ── Rate Limiter ─────────────────────────────────────────────────────────────
 

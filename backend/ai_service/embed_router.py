@@ -5,13 +5,19 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Try loading the model globally
-try:
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-except Exception as e:
-    logger.error(f"Failed to load sentence-transformers: {e}")
-    model = None
+# Lazy-load the model on first /embed request so startup does not block Uvicorn binding
+class _LazySentenceTransformer:
+    def __init__(self, model_name: str):
+        self._model_name = model_name
+        self._instance = None
+
+    def encode(self, *args, **kwargs):
+        if self._instance is None:
+            from sentence_transformers import SentenceTransformer
+            self._instance = SentenceTransformer(self._model_name)
+        return self._instance.encode(*args, **kwargs)
+
+model = _LazySentenceTransformer('all-MiniLM-L6-v2')
 
 class EmbedRequest(BaseModel):
     text: str

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const pdfParse = require('pdf-parse');
+const pdfParseRaw = require('pdf-parse');
 const profileRepository = require('../repositories/profile.repository');
 const skillsRepository = require('../repositories/skills.repository');
 const experienceRepository = require('../repositories/experience.repository');
@@ -7,12 +7,30 @@ const settingsService = require('./settings.service');
 const AppError = require('../utils/AppError');
 
 /**
- * Extract text content from a PDF buffer.
+ * Extract text content from a PDF buffer (supports pdf-parse v1 function and v2 PDFParse class).
  */
 const extractCvText = async (cvFile) => {
     if (!cvFile || cvFile.mimetype !== 'application/pdf') return '';
-    const pdfData = await pdfParse(cvFile.buffer);
-    return pdfData.text;
+    if (typeof pdfParseRaw === 'function') {
+        const pdfData = await pdfParseRaw(cvFile.buffer);
+        return pdfData?.text || '';
+    }
+    if (typeof pdfParseRaw.default === 'function') {
+        const pdfData = await pdfParseRaw.default(cvFile.buffer);
+        return pdfData?.text || '';
+    }
+    if (pdfParseRaw.PDFParse) {
+        const parser = new pdfParseRaw.PDFParse({ data: cvFile.buffer });
+        try {
+            const pdfData = await parser.getText();
+            return pdfData?.text || '';
+        } finally {
+            if (typeof parser.destroy === 'function') {
+                await parser.destroy();
+            }
+        }
+    }
+    return '';
 };
 
 /**
@@ -26,10 +44,22 @@ const gatherUserContext = async (userId, supabaseClient) => {
         experienceRepository.findExperienceText(userId, supabaseClient)
     ]);
 
+    const cleanSkills = (skillsResult?.data || []).map(({ name, level, category }) => ({
+        name,
+        level,
+        category
+    }));
+
+    const cleanProjects = (projectsResult?.data || []).map(({ title, description, tech_stack }) => ({
+        title,
+        description,
+        tech_stack
+    }));
+
     return {
         profile: profileResult?.data || null,
-        skills: skillsResult?.data || [],
-        projects: projectsResult?.data || [],
+        skills: cleanSkills,
+        projects: cleanProjects,
         experienceText: experienceResult?.data?.text || ''
     };
 };
@@ -68,6 +98,9 @@ const mapAiError = (err) => {
     const errorDetail = err.response?.data || err.message;
     const errorStr = JSON.stringify(errorDetail).toLowerCase();
 
+    if (errorStr.includes('econnrefused') || errorStr.includes('econnreset') || errorStr.includes('connection refused')) {
+        return 'AI Service is starting up or temporarily unavailable. Please try again in a moment.';
+    }
     if (errorStr.includes('503') || errorStr.includes('unavailable') || errorStr.includes('high demand')) {
         return 'AI Provider is currently experiencing high demand. Please try again later.';
     }

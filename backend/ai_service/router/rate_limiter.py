@@ -6,8 +6,14 @@ class RateLimiter:
         # Fallback to localhost if not set in .env
         redis_host = os.environ.get("REDIS_HOST", "localhost")
         redis_port = int(os.environ.get("REDIS_PORT", 6379))
-        # Simple redis client
-        self.redis_client = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+        # Simple redis client with short timeouts so missing Redis fails open immediately
+        self.redis_client = redis.Redis(
+            host=redis_host,
+            port=redis_port,
+            decode_responses=True,
+            socket_connect_timeout=1,
+            socket_timeout=1,
+        )
         
         # Hardcoded free tier limits (Loosened since we pace internally via graph delays)
         self.limits = {
@@ -33,7 +39,7 @@ class RateLimiter:
                 return True
                 
             return False
-        except redis.ConnectionError:
+        except redis.RedisError:
             # If Redis is down, fail open (allow request) to prevent complete outage
             print("Warning: Redis connection error in RateLimiter")
             return False
@@ -49,7 +55,7 @@ class RateLimiter:
             # Set expiry to 60s if it's a new key
             if self.redis_client.ttl(rpm_key) == -1:
                 self.redis_client.expire(rpm_key, 60)
-        except redis.ConnectionError:
+        except redis.RedisError:
             pass
         
     def set_cooldown(self, provider: str, seconds: int):
@@ -57,7 +63,7 @@ class RateLimiter:
         try:
             cooldown_key = f"rate_limit:cooldown:{provider}"
             self.redis_client.setex(cooldown_key, max(1, seconds), "1")
-        except redis.ConnectionError:
+        except redis.RedisError:
             pass
 
     def get_alternative_provider(self, current_provider: str, available_providers: list) -> str:
