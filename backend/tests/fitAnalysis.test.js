@@ -72,4 +72,33 @@ describe('Fit Analysis Service - Deterministic Calculation', () => {
         expect(result.reasons.some(r => r.includes('Explicit experience requirement found: 0-2 years'))).toBe(true);
         expect(result.reasons.some(r => r.includes('✅ Candidate experience (1 years) fits'))).toBe(true);
     });
+
+    test('getFitContext strips skill embeddings and internal metadata', async () => {
+        const { getFitContext } = require('../services/fitAnalysis.service');
+        const profileRepository = require('../repositories/profile.repository');
+        const skillsRepository = require('../repositories/skills.repository');
+        const settingsRepository = require('../repositories/settings.repository');
+
+        jest.spyOn(profileRepository, 'findFirstProfile').mockResolvedValue({
+            data: { id: 1, user_id: 'u1', summary: 'Dev', cv: 'CV text', cv_data: { basics: {} } }
+        });
+        jest.spyOn(skillsRepository, 'findAll').mockResolvedValue({
+            data: [{ id: 10, user_id: 'u1', name: 'React', level: 'Advanced', category: 'Frontend', embedding: [0.1, 0.2, 0.3] }]
+        });
+        jest.spyOn(profileRepository, 'findUserExperiences').mockResolvedValue({
+            data: [{ id: 20, user_id: 'u1', role_id: 5, roles_dictionary: { name: 'Software Engineer' }, status: 'past', years: 3, start_date: '2022', end_date: '2025' }]
+        });
+        jest.spyOn(settingsRepository, 'findSettings').mockResolvedValue({
+            data: { ai_routing: { jobFitAnalysis: { enabled: true, provider: 'gemini', model: 'gemini-3.8-flash' } } }
+        });
+
+        const { candidateData, fitConfig } = await getFitContext('u1', {});
+        expect(candidateData.skills).toEqual([{ name: 'React', level: 'Advanced', category: 'Frontend' }]);
+        expect(candidateData.skills[0].embedding).toBeUndefined();
+        expect(candidateData.profile).toEqual({ summary: 'Dev', cv: 'CV text' });
+        expect(candidateData.experiences[0].role).toBe('Software Engineer');
+        expect(fitConfig.model).toBe('gemini-3.8-flash');
+
+        jest.restoreAllMocks();
+    });
 });

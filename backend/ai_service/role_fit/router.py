@@ -37,7 +37,7 @@ Return the result matching this JSON structure:
 @router.post("/analyze", response_model=FitAnalysisResponse)
 async def analyze_fit(request: FitAnalysisRequest):
     try:
-        llm = get_fast_llm(request.api_keys, request.provider)
+        llm = get_fast_llm(request.api_keys, request.provider, request.model)
         
         # We use structured output to guarantee JSON format
         structured_llm = llm.with_structured_output(FitAnalysisResponse)
