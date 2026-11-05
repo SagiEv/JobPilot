@@ -163,10 +163,30 @@ exports.getFitContext = async (userId, supabaseClient) => {
             settingsRepository.findSettings(userId, supabaseClient)
         ]);
 
+        const cleanSkills = (skillsRes.data || []).map(({ name, level, category }) => ({
+            name,
+            level,
+            category
+        }));
+
+        const cleanExperiences = (experiencesRes.data || []).map(exp => ({
+            role: exp.roles_dictionary?.name || exp.role_id,
+            status: exp.status,
+            years: exp.years,
+            start_date: exp.start_date,
+            end_date: exp.end_date
+        }));
+
+        const rawProfile = profileRes.data;
+        const cleanProfile = rawProfile ? {
+            summary: rawProfile.summary,
+            cv: (rawProfile.cv || '').substring(0, 10000)
+        } : null;
+
         const candidateData = {
-            profile: profileRes.data || null,
-            skills: skillsRes.data || [],
-            experiences: experiencesRes.data || []
+            profile: cleanProfile,
+            skills: cleanSkills,
+            experiences: cleanExperiences
         };
 
         const settings = settingsRes.data || {};
@@ -217,8 +237,10 @@ exports.triggerAsyncAiAnalysis = (userId, applicationId, jobDescription, supabas
             }
             
             const axios = require('axios');
-            const response = await axios.post(`${process.env.AI_SERVICE_URL}/role-fit/analyze`, {
-                job_description: jobDescription,
+            const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8001';
+            const safeJobDesc = (jobDescription || '').substring(0, 15000);
+            const response = await axios.post(`${aiServiceUrl}/role-fit/analyze`, {
+                job_description: safeJobDesc,
                 candidate_data: candidateData,
                 api_keys: {
                     groq_token: aiConfigs?.groq_token,
@@ -226,7 +248,8 @@ exports.triggerAsyncAiAnalysis = (userId, applicationId, jobDescription, supabas
                     claude_token: aiConfigs?.claude_token,
                     gemini_token: aiConfigs?.gemini_token
                 },
-                provider: aiProvider
+                provider: aiProvider,
+                model: fitConfig.model || null
             });
             
             if (response.data) {

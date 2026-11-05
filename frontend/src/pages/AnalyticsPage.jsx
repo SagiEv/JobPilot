@@ -105,7 +105,7 @@ const AnalyticsPage = () => {
         let poorFitCount = 0;
 
         applications.forEach(a => {
-            const score = a.fit_analysis_ai?.overall_score ?? a.fit_score_deterministic;
+            const score = a.fit_analysis_ai?.ai_score ?? a.fit_analysis_ai?.overall_score ?? a.fit_score_deterministic;
             if (score != null) {
                 totalFitScore += score;
                 fitCount++;

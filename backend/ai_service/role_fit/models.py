@@ -5,6 +5,7 @@ class FitAnalysisRequest(BaseModel):
     candidate_data: dict
     api_keys: dict
     provider: str = "groq"
+    model: str | None = None
 
 class FitAnalysisResponse(BaseModel):
     ai_score: int = Field(description="Score from 0 to 100 representing the fit.")

@@ -9,14 +9,17 @@ class GeminiProvider(LLMProvider):
         if not model_name:
             model_name = get_default_model("gemini")
             
-        return ChatGoogleGenerativeAI(
-            model=model_name,
-            google_api_key=api_key,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            max_retries=max_retries,
-            timeout=12,
-        )
+        kwargs: Dict[str, Any] = {
+            "model": model_name,
+            "google_api_key": api_key,
+            "max_tokens": max_tokens,
+            "max_retries": max_retries,
+            "timeout": 45,
+        }
+        if model_name != "gemini-3.5-flash-lite":
+            kwargs["temperature"] = temperature
+
+        return ChatGoogleGenerativeAI(**kwargs)
 
     def get_available_models(self) -> List[Dict[str, Any]]:
         return registry_models("gemini")
