@@ -32,23 +32,87 @@ const getAllApplications = async (userId, supabaseClient) => {
     return data;
 };
 
-const createApplication = async (userId, data, supabaseClient) => {
-    const { data: newApp, error } = await applicationRepository.create(userId, data, supabaseClient);
-    if (error) throw new AppError(error.message, error.status || 400, error.code);
+const inFlightCreations = new Map();
 
-    // Log creation
-    await applicationHistoryService.logChange(
-        newApp.id,
-        'Application Added',
-        null,
-        newApp.status,
-        null,
-        newApp.stage,
-        'Application created',
-        '', null, newApp.date || null, supabaseClient
-    );
+const normalizeDateToDay = (dateVal) => {
+    if (!dateVal) return '';
+    const str = String(dateVal).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+        return str.slice(0, 10);
+    }
+    const parsed = new Date(str);
+    return !isNaN(parsed.getTime()) ? parsed.toISOString().split('T')[0] : str;
+};
 
-    return newApp;
+const buildCreationKey = (userId, data = {}) => {
+    const company = (data.company || '').trim().toLowerCase();
+    const roleId = (data.role_id || '').trim().toLowerCase();
+    if (!company || !roleId) return null;
+    const day = normalizeDateToDay(data.date) || new Date().toISOString().split('T')[0];
+    return `${userId}:${company}:${roleId}:${day}`;
+};
+
+const markDeduplicated = (app) => {
+    if (!app || typeof app !== 'object') return app;
+    const copy = { ...app };
+    Object.defineProperty(copy, '_wasDeduplicated', {
+        value: true,
+        enumerable: false,
+        configurable: true
+    });
+    return copy;
+};
+
+const createApplication = async (userId, data = {}, supabaseClient) => {
+    const payload = { ...data };
+    if (payload.date) {
+        payload.date = normalizeDateToDay(payload.date);
+    }
+
+    const key = buildCreationKey(userId, payload);
+    if (key && inFlightCreations.has(key)) {
+        const coalescedApp = await inFlightCreations.get(key);
+        return markDeduplicated(coalescedApp);
+    }
+
+    const performCreate = async () => {
+        if (typeof applicationRepository.findDuplicate === 'function') {
+            const duplicateResult = await applicationRepository.findDuplicate(userId, payload, supabaseClient);
+            if (duplicateResult?.data) {
+                return markDeduplicated(duplicateResult.data);
+            }
+        }
+
+        const { data: newApp, error } = await applicationRepository.create(userId, payload, supabaseClient);
+        if (error) throw new AppError(error.message, error.status || 400, error.code);
+
+        // Log creation
+        await applicationHistoryService.logChange(
+            newApp.id,
+            'Application Added',
+            null,
+            newApp.status,
+            null,
+            newApp.stage,
+            'Application created',
+            '', null, newApp.date || null, supabaseClient
+        );
+
+        return newApp;
+    };
+
+    const creationPromise = performCreate();
+    if (key) {
+        inFlightCreations.set(key, creationPromise);
+    }
+
+    try {
+        return await creationPromise;
+    } finally {
+        if (key) {
+            inFlightCreations.delete(key);
+        }
+    }
 };
 
 const updateApplication = async (userId, id, data, supabaseClient) => {

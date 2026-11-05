@@ -40,7 +40,7 @@ const ConflictModal = ({ conflict, onResolve }) => (
 
 const ApplicationsPage = () => {
     const { addToast } = useToast();
-    const { applications, stats, status, handleUpload, updateApplication, addApplication, loading, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting } = useApplications();
+    const { applications, stats, status, handleUpload, updateApplication, addApplication, isAdding, loading, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting } = useApplications();
     const { settings } = useSettings();
 
     // UI State
@@ -353,18 +353,19 @@ const ApplicationsPage = () => {
 
             {/* Add Application Modal */}
             {isAddModalOpen && (
-                <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+                <div className="modal-overlay" onClick={() => !isAdding && setIsAddModalOpen(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div className="modal-header">
                             <h2>New Application</h2>
-                            <button className="modal-close" onClick={() => setIsAddModalOpen(false)}>✕</button>
+                            <button className="modal-close" onClick={() => setIsAddModalOpen(false)} disabled={isAdding}>✕</button>
                         </div>
                         <form onSubmit={async (e) => {
                             e.preventDefault();
+                            if (isAdding) return;
                             try {
                                 await addApplication(newAppForm);
                                 setIsAddModalOpen(false);
-                                setNewAppForm({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
+                                setNewAppForm({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
                             } catch (error) {
                                 addToast(`Failed to create application: ${error.response?.data?.error || error.message || 'Unknown error'}`, 'error');
                             }
@@ -496,9 +497,9 @@ const ApplicationsPage = () => {
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" disabled={!newAppForm.COMPANY || !newAppForm.ROLE_ID}>
-                                    Save Application
+                                <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)} disabled={isAdding}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={isAdding || !newAppForm.COMPANY || !newAppForm.ROLE_ID}>
+                                    {isAdding ? 'Adding...' : 'Save Application'}
                                 </button>
                             </div>
                         </form>

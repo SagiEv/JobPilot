@@ -97,6 +97,61 @@ describe('applications.service', () => {
             await expect(applicationService.createApplication('user-123', {}, supabaseClient))
                 .rejects.toThrow('Insert failed');
         });
+
+        it('should return existing application idempotently when duplicate already exists in DB on the same day', async () => {
+            const existingApp = buildApplication({
+                id: 99,
+                company: 'Google',
+                role_id: 'Frontend Engineer',
+                date: '2026-11-06',
+            });
+            applicationRepository.findDuplicate.mockResolvedValue({ data: existingApp, error: null });
+
+            const result = await applicationService.createApplication('user-123', {
+                company: '  google ',
+                role_id: 'FRONTEND ENGINEER',
+                date: '2026-11-06T18:30:00Z',
+            }, supabaseClient);
+
+            expect(result).toEqual(existingApp);
+            expect(result._wasDeduplicated).toBe(true);
+            expect(applicationRepository.create).not.toHaveBeenCalled();
+            expect(applicationHistoryService.logChange).not.toHaveBeenCalled();
+        });
+
+        it('should coalesce concurrent in-flight creation requests with same details and date (ignoring hour)', async () => {
+            const createdApp = buildApplication({
+                id: 42,
+                company: 'Meta',
+                role_id: 'Backend Engineer',
+                date: '2026-11-06',
+            });
+            applicationRepository.findDuplicate.mockResolvedValue({ data: null, error: null });
+            applicationRepository.create.mockImplementation(
+                () => new Promise((resolve) => setTimeout(() => resolve({ data: createdApp, error: null }), 30))
+            );
+            applicationHistoryService.logChange.mockResolvedValue({});
+
+            const [res1, res2] = await Promise.all([
+                applicationService.createApplication('user-123', {
+                    company: 'Meta',
+                    role_id: 'Backend Engineer',
+                    date: '2026-11-06T09:00:00Z',
+                }, supabaseClient),
+                applicationService.createApplication('user-123', {
+                    company: ' meta ',
+                    role_id: 'backend engineer',
+                    date: '2026-11-06T21:45:00Z',
+                }, supabaseClient),
+            ]);
+
+            expect(res1).toEqual(createdApp);
+            expect(res2).toEqual(createdApp);
+            expect(res1._wasDeduplicated).toBeUndefined();
+            expect(res2._wasDeduplicated).toBe(true);
+            expect(applicationRepository.create).toHaveBeenCalledTimes(1);
+            expect(applicationHistoryService.logChange).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('deleteApplication', () => {

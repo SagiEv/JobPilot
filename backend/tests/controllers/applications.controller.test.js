@@ -43,6 +43,28 @@ describe('applications.controller', () => {
             await controller.create(req, res);
             expect(res.json).toHaveBeenCalledWith({ id: 1 });
         });
+
+        it('should coalesce concurrent identical requests and only call createApplication once', async () => {
+            const reqRes1 = buildReqRes({
+                body: { company: 'Apple', role_id: 'iOS Dev', date: '2026-11-06T10:00:00Z' },
+            });
+            const reqRes2 = buildReqRes({
+                body: { company: ' apple ', role_id: 'ios dev', date: '2026-11-06T19:00:00Z' },
+            });
+
+            applicationService.createApplication.mockImplementation(
+                () => new Promise((resolve) => setTimeout(() => resolve({ id: 77, company: 'Apple' }), 30))
+            );
+
+            await Promise.all([
+                controller.create(reqRes1.req, reqRes1.res),
+                controller.create(reqRes2.req, reqRes2.res),
+            ]);
+
+            expect(applicationService.createApplication).toHaveBeenCalledTimes(1);
+            expect(reqRes1.res.json).toHaveBeenCalledWith({ id: 77, company: 'Apple' });
+            expect(reqRes2.res.json).toHaveBeenCalledWith({ id: 77, company: 'Apple' });
+        });
     });
 
     describe('update', () => {
