@@ -20,4 +20,21 @@ const markAllRead = async (req, res) => {
     res.json(result);
 };
 
-module.exports = { getAll, getUnreadCount, markRead, markAllRead };
+const revertNotification = async (req, res) => {
+    const result = await notificationsService.revertNotification(req.user.id, req.params.id, req.supabase);
+    res.json(result);
+};
+
+const unrevertNotification = async (req, res) => {
+    const result = await notificationsService.unrevertNotification(req.user.id, req.params.id, req.supabase);
+    res.json(result);
+};
+
+module.exports = {
+    getAll,
+    getUnreadCount,
+    markRead,
+    markAllRead,
+    revertNotification,
+    unrevertNotification
+};

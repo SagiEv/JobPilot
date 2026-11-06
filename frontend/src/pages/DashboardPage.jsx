@@ -18,7 +18,7 @@ const stripEmojis = (str) => {
 };
 
 const DashboardPage = () => {
-    const { addToast } = useToast();
+    const { addToast, removeToast } = useToast();
     const { settings } = useSettings();
     const { applications, loading: appsLoading } = useApplications();
     const { data: dailyStats } = useDailyStats();
@@ -56,7 +56,7 @@ const DashboardPage = () => {
             rejectedToday: dailyStats?.rejectedToday || 0
         };
     }, [applications, appsLoading, dailyStats]);
-    const { notifications, isLoading: notifLoading, markAllRead, markRead } = useNotifications();
+    const { notifications, isLoading: notifLoading, markAllRead, markRead, revertNotification, unrevertNotification } = useNotifications();
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
     const [hoveredDay, setHoveredDay] = useState(null);
@@ -130,6 +130,59 @@ const DashboardPage = () => {
         if (hours < 24) return `${hours}h ago`;
         const days = Math.floor(hours / 24);
         return `${days}d ago`;
+    };
+
+    const handleUndoRevert = async (notifId, toastId) => {
+        if (toastId) removeToast(toastId);
+        try {
+            const res = await unrevertNotification(notifId);
+            const restored = res.restoredStatus || 'previous status';
+            addToast(`Revert undone. Status restored to ${restored}.`, 'success');
+        } catch (err) {
+            console.error(err);
+            const errMsg = err.response?.data?.message || err.message || 'Failed to undo revert';
+            addToast(errMsg, 'error');
+        }
+    };
+
+    const handleFalseAlarm = async (update) => {
+        try {
+            const res = await revertNotification(update.id);
+            const prevStatus = res.previousStatus || 'previous status';
+            const toastId = Date.now();
+
+            addToast(
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span>Status reverted to <strong>{prevStatus}</strong>.</span>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleUndoRevert(update.id, toastId);
+                        }}
+                        style={{
+                            background: '#fff',
+                            border: 'none',
+                            color: '#0f6e56',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                        }}
+                    >
+                        Undo
+                    </button>
+                </span>,
+                'info',
+                () => handleUndoRevert(update.id, toastId),
+                toastId
+            );
+        } catch (err) {
+            console.error(err);
+            const errMsg = err.response?.data?.message || err.message || 'Failed to revert status';
+            addToast(errMsg, 'error');
+        }
     };
 
     // Calendar logic
@@ -254,22 +307,88 @@ const DashboardPage = () => {
                             <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888', fontSize: '0.9rem' }}>
                                 {notifLoading ? 'Loading…' : 'No notifications yet. Email sync updates will appear here.'}
                             </div>
-                        ) : notifications.map(update => (
-                            <div key={update.id} onClick={() => { if (!update.read) markRead(update.id); }} style={{
-                                display: 'flex', gap: '1rem', padding: '1rem',
-                                backgroundColor: update.read ? '#f8f9fa' : '#f0fdf4',
-                                borderRadius: '8px',
-                                borderLeft: `4px solid ${update.read ? '#ccc' : '#0f6e56'}`,
-                                transition: 'background 0.2s',
-                                cursor: update.read ? 'default' : 'pointer'
-                            }}>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '0.95rem', fontWeight: update.read ? 400 : 600, color: '#333' }}>{update.title}</div>
-                                    {update.body && <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>{update.body}</div>}
-                                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{timeAgo(update.created_at)}</div>
+                        ) : notifications.map(update => {
+                            const isRevertible = update.application_id && (update.type === 'email_sync' || update.body?.includes('Status updated to'));
+                            const isReverted = Boolean(update.reverted || update.metadata?.reverted || update.title?.startsWith('[Reverted]'));
+
+                            return (
+                                <div key={update.id} onClick={() => { if (!update.read) markRead(update.id); }} style={{
+                                    display: 'flex', gap: '1rem', padding: '1rem',
+                                    backgroundColor: update.read ? '#f8f9fa' : '#f0fdf4',
+                                    borderRadius: '8px',
+                                    borderLeft: `4px solid ${isReverted ? '#94a3b8' : update.read ? '#ccc' : '#0f6e56'}`,
+                                    transition: 'background 0.2s',
+                                    cursor: update.read ? 'default' : 'pointer',
+                                    alignItems: 'flex-start'
+                                }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: update.read ? 400 : 600, color: '#333', lineHeight: '1.4' }}>
+                                                {update.title}
+                                            </div>
+                                            {isRevertible && (
+                                                isReverted ? (
+                                                    <span style={{
+                                                        fontSize: '0.72rem',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '12px',
+                                                        backgroundColor: '#e2e8f0',
+                                                        color: '#64748b',
+                                                        fontWeight: 500,
+                                                        whiteSpace: 'nowrap',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        ✓ Reverted
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleFalseAlarm(update);
+                                                        }}
+                                                        style={{
+                                                            fontSize: '0.75rem',
+                                                            padding: '2px 8px',
+                                                            backgroundColor: '#fff',
+                                                            border: '1px solid #fca5a5',
+                                                            color: '#dc2626',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            fontWeight: 500,
+                                                            whiteSpace: 'nowrap',
+                                                            flexShrink: 0,
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#fef2f2';
+                                                            e.currentTarget.style.borderColor = '#dc2626';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#fff';
+                                                            e.currentTarget.style.borderColor = '#fca5a5';
+                                                        }}
+                                                        title="Discard status change and revert to previous status"
+                                                    >
+                                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                                            <path d="M3 3v5h5" />
+                                                        </svg>
+                                                        False Alarm
+                                                    </button>
+                                                )
+                                            )}
+                                        </div>
+                                        {update.body && <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>{update.body}</div>}
+                                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{timeAgo(update.created_at)}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {notifications.length > 0 && (
                             <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                                 <button className="btn btn-sm" style={{ color: '#0f6e56' }} onClick={() => markAllRead()}>Mark all as read</button>

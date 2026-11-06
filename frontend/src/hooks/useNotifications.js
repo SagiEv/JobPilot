@@ -52,6 +52,33 @@ export function useNotifications() {
     const markRead = (id) => markReadMutation.mutate(id);
     const markAllRead = () => markAllReadMutation.mutate();
 
+    const revertMutation = useMutation({
+        mutationFn: async (id) => {
+            const res = await apiClient.post(`/api/notifications/${id}/revert`);
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+            queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
+        },
+    });
+
+    const unrevertMutation = useMutation({
+        mutationFn: async (id) => {
+            const res = await apiClient.post(`/api/notifications/${id}/unrevert`);
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+            queryClient.invalidateQueries({ queryKey: ['applications'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
+        },
+    });
+
+    const revertNotification = (id) => revertMutation.mutateAsync(id);
+    const unrevertNotification = (id) => unrevertMutation.mutateAsync(id);
+
     return {
         notifications,
         unreadCount,
@@ -60,5 +87,9 @@ export function useNotifications() {
         refetch,
         markRead,
         markAllRead,
+        revertNotification,
+        unrevertNotification,
+        isReverting: revertMutation.isPending,
+        isUnreverting: unrevertMutation.isPending,
     };
 }
