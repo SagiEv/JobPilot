@@ -237,6 +237,42 @@ describe('applications.service', () => {
     });
 
     describe('getAnalyticsMetrics', () => {
+        it('should calculate avg interview cycle and longest cycle for interviewed apps', async () => {
+            applicationRepository.findAll.mockResolvedValue({
+                data: [
+                    { id: 10, company: 'Google', role_id: 'Staff FE', status: 'Rejected', date: '2023-01-01' },
+                    { id: 20, company: 'Stripe', role_id: 'Backend Eng', status: 'Offer', date: '2023-02-01' },
+                    { id: 30, company: 'Apple', role_id: 'iOS Eng', status: 'Rejected', date: '2023-03-01' }
+                ],
+                error: null
+            });
+            applicationHistoryRepo.findByAppIds.mockResolvedValue({
+                data: [
+                    // Google (cycle: 30 days)
+                    { application_id: 10, event_date: '2023-01-01', event_type: 'Application Added' },
+                    { application_id: 10, event_date: '2023-01-10', new_status: 'Interviewing' },
+                    { application_id: 10, event_date: '2023-01-31', new_status: 'Rejected' },
+                    // Stripe (cycle: 14 days)
+                    { application_id: 20, event_date: '2023-02-01', event_type: 'Application Added' },
+                    { application_id: 20, event_date: '2023-02-05', new_status: 'Interviewing' },
+                    { application_id: 20, event_date: '2023-02-15', new_status: 'Offer' },
+                    // Apple (screening reject without interview -> ignored in interview cycle)
+                    { application_id: 30, event_date: '2023-03-01', event_type: 'Application Added' },
+                    { application_id: 30, event_date: '2023-03-05', new_status: 'Rejected' }
+                ],
+                error: null
+            });
+
+            const result = await applicationService.getAnalyticsMetrics('user-123', supabaseClient);
+            expect(result.interviewCycle).toEqual({ averageDays: 22, count: 2 });
+            expect(result.longestInterviewCycle).toEqual({
+                days: 30,
+                company: 'Google',
+                role: 'Staff FE',
+                outcome: 'Rejected'
+            });
+        });
+
         it('should extract historicalInterviewAppIds from history transitions', async () => {
             applicationRepository.findAll.mockResolvedValue({
                 data: [{ id: 1 }, { id: 2 }, { id: 3 }],
@@ -268,6 +304,8 @@ describe('applications.service', () => {
                 timeToReject: { averageDays: 0, count: 0 },
                 timeToInterview: { averageDays: 0, count: 0 },
                 timeToOffer: { averageDays: 0, count: 0 },
+                interviewCycle: { averageDays: 0, count: 0 },
+                longestInterviewCycle: { days: 0, company: '', role: '', outcome: '' },
                 hrToTechnical: { averageDays: 0, count: 0 },
                 technicalToFinal: { averageDays: 0, count: 0 },
                 historicalInterviewAppIds: []

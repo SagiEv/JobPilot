@@ -5,7 +5,15 @@ import { useApplications } from '../../hooks/useApplications';
 import { useInterviews } from '../../hooks/useInterviews';
 
 vi.mock('@tanstack/react-query', () => ({
-    useQuery: vi.fn().mockReturnValue({ data: {}, isLoading: false })
+    useQuery: vi.fn().mockReturnValue({
+        data: {
+            timeToInterview: { averageDays: 12, count: 4 },
+            interviewCycle: { averageDays: 24, count: 3 },
+            longestInterviewCycle: { days: 45, company: 'Google', role: 'Staff FE', outcome: 'Offer' },
+            timeToReject: { averageDays: 7, count: 10 }
+        },
+        isLoading: false
+    })
 }));
 
 vi.mock('../../hooks/useApplications', () => ({
@@ -51,7 +59,7 @@ describe('AnalyticsPage', () => {
         expect(screen.getByText('No application data yet.')).toBeInTheDocument();
     });
 
-    it('renders charts when applications exist', () => {
+    it('renders charts and redesigned timing cards when applications exist', () => {
         useApplications.mockReturnValue({
             applications: [
                 { id: '1', COMPANY: 'Google', ROLE_ID: 'Frontend', STATUS: 'Applied', DATE: '2023-01-01' },
@@ -66,6 +74,16 @@ describe('AnalyticsPage', () => {
         // Check for section headers
         expect(screen.getByText('Conversion Funnel')).toBeInTheDocument();
         expect(screen.getByText('Monthly Volume')).toBeInTheDocument();
+
+        // Check for timing KPI cards
+        expect(screen.getByText('Time to 1st Interview')).toBeInTheDocument();
+        expect(screen.getByText('Avg. Interview Cycle')).toBeInTheDocument();
+        expect(screen.getByText('Longest Interview Cycle')).toBeInTheDocument();
+        expect(screen.getByText('Interviewed This Year')).toBeInTheDocument();
+
+        // Check for monthly legend
+        expect(screen.getByText('Applications Applied')).toBeInTheDocument();
+        expect(screen.getByText('Companies Interviewed')).toBeInTheDocument();
     });
 
     it('renders overall company funnel with deduplication and interview outcomes', () => {

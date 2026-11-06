@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCompanyFunnelMetrics, hasAppReachedInterview } from '../analyticsCalculations';
+import { calculateCompanyFunnelMetrics, hasAppReachedInterview, calculateMonthlyVolume } from '../analyticsCalculations';
 
 describe('analyticsCalculations', () => {
     describe('hasAppReachedInterview', () => {
@@ -66,7 +66,6 @@ describe('analyticsCalculations', () => {
                 { id: 42, COMPANY: 'Uber', STATUS: 'Rejected', STAGE: '' }
             ];
 
-            // 42 had an interview in history transitions
             const res = calculateCompanyFunnelMetrics(apps, [], [42]);
             expect(res.totalCompanies).toBe(1);
             expect(res.interviewedCount).toBe(1);
@@ -77,32 +76,58 @@ describe('analyticsCalculations', () => {
 
         it('correctly tracks post-interview rejection vs pre-interview rejection', () => {
             const apps = [
-                // Reached interview, then rejected
                 { id: 1, COMPANY: 'Meta', STATUS: 'Rejected', STAGE: 'HR Screen' },
-                // Rejected without interview
                 { id: 2, COMPANY: 'Apple', STATUS: 'Rejected', STAGE: '' },
-                // Interviewed and got offer
                 { id: 3, COMPANY: 'Stripe', STATUS: 'Offer', STAGE: 'Final' },
-                // Still waiting
                 { id: 4, COMPANY: 'Amazon', STATUS: 'Applied', STAGE: '' }
             ];
 
             const res = calculateCompanyFunnelMetrics(apps, []);
             expect(res.totalCompanies).toBe(4);
-            expect(res.interviewedCount).toBe(2); // Meta & Stripe
+            expect(res.interviewedCount).toBe(2);
             expect(res.interviewRate).toBe(50.0);
-
-            // Interviewed outcomes
             expect(res.interviewed.offer.count).toBe(1);
             expect(res.interviewed.offer.companies).toEqual(['Stripe']);
             expect(res.interviewed.rejected.count).toBe(1);
             expect(res.interviewed.rejected.companies).toEqual(['Meta']);
-
-            // Non-interview outcomes
             expect(res.noInterview.pending.count).toBe(1);
             expect(res.noInterview.pending.companies).toEqual(['Amazon']);
             expect(res.noInterview.rejected.count).toBe(1);
             expect(res.noInterview.rejected.companies).toEqual(['Apple']);
+        });
+    });
+
+    describe('calculateMonthlyVolume', () => {
+        it('handles empty inputs cleanly', () => {
+            const res = calculateMonthlyVolume([], [], []);
+            expect(res.months).toEqual([]);
+            expect(res.maxVolume).toBe(1);
+            expect(res.companiesInterviewedThisYear).toBe(0);
+        });
+
+        it('deduplicates multiple interviews for the same company in the same month', () => {
+            const year = new Date().getFullYear();
+            const monthStr = `${year}-05`;
+
+            const apps = [
+                { id: 1, COMPANY: 'Google', DATE: `${monthStr}-01`, STATUS: 'Interviewing', STAGE: 'Tech' },
+                { id: 2, COMPANY: 'Google', DATE: `${monthStr}-02`, STATUS: 'Interviewing', STAGE: 'Tech' },
+                { id: 3, COMPANY: 'Microsoft', DATE: `${monthStr}-10`, STATUS: 'Applied', STAGE: '' }
+            ];
+
+            const interviews = [
+                { company: 'Google', date: `${monthStr}-05`, application_id: 1 },
+                { company: 'Google', date: `${monthStr}-12`, application_id: 1 },
+                { company: 'Google', date: `${monthStr}-20`, application_id: 2 }
+            ];
+
+            const res = calculateMonthlyVolume(apps, interviews, []);
+            expect(res.months).toContain(monthStr);
+            expect(res.monthlyApplied[monthStr]).toBe(3);
+            // Even with 3 interviews and 2 apps, Google counts as 1 unique company interviewed in this month
+            expect(res.monthlyInterviewCounts[monthStr]).toBe(1);
+            expect(res.monthlyInterviewCompanies[monthStr]).toEqual(['Google']);
+            expect(res.companiesInterviewedThisYear).toBe(1);
         });
     });
 });

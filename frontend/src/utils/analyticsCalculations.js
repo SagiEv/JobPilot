@@ -170,3 +170,107 @@ export const calculateCompanyFunnelMetrics = (applications = [], interviews = []
     };
 };
 
+
+/**
+ * Calculates monthly volume metrics combining applications applied and unique companies interviewed per month.
+ *
+ * @param {Array} applications - List of applications
+ * @param {Array} interviews - List of interviews
+ * @param {Array} historicalInterviewAppIds - App IDs that had interview transitions
+ * @returns {Object} Monthly volume breakdown
+ */
+export const calculateMonthlyVolume = (applications = [], interviews = [], historicalInterviewAppIds = []) => {
+    const interviewAppIds = new Set((interviews || []).map(i => i.application_id).filter(Boolean));
+    const interviewCompanies = new Set((interviews || []).map(i => (i.company || '').trim().toLowerCase()).filter(Boolean));
+    const historicalAppIds = new Set(historicalInterviewAppIds || []);
+
+    const currentYear = new Date().getFullYear().toString();
+    const yearCompaniesSet = new Set();
+
+    // Collect all unique months (YYYY-MM)
+    const monthSet = new Set();
+
+    (applications || []).forEach(a => {
+        const d = (a.DATE || a.date || '').substring(0, 7);
+        if (d && /^\d{4}-\d{2}$/.test(d)) monthSet.add(d);
+    });
+
+    (interviews || []).forEach(i => {
+        const d = (i.date || '').substring(0, 7);
+        if (d && /^\d{4}-\d{2}$/.test(d)) monthSet.add(d);
+    });
+
+    const months = Array.from(monthSet).sort().reverse().slice(0, 8);
+
+    const monthlyApplied = {};
+    const monthlyInterviews = {};
+
+    months.forEach(m => {
+        monthlyApplied[m] = 0;
+        monthlyInterviews[m] = new Map();
+    });
+
+    // Count applications applied per month
+    (applications || []).forEach(a => {
+        const m = (a.DATE || a.date || '').substring(0, 7);
+        if (m && monthlyApplied[m] !== undefined) {
+            monthlyApplied[m]++;
+        }
+    });
+
+    // Count unique companies interviewed per month from interviews table
+    (interviews || []).forEach(i => {
+        const m = (i.date || '').substring(0, 7);
+        const comp = (i.company || '').trim();
+        if (comp) {
+            const key = comp.toLowerCase();
+            if (m && monthlyInterviews[m]) {
+                monthlyInterviews[m].set(key, comp);
+            }
+            if (m && m.startsWith(currentYear)) {
+                yearCompaniesSet.add(key);
+            }
+        }
+    });
+
+    // Also check applications active/interviewed in each month
+    (applications || []).forEach(a => {
+        const isInterviewed = hasAppReachedInterview(a, interviewAppIds, interviewCompanies, historicalAppIds);
+        if (!isInterviewed) return;
+
+        const comp = (a.COMPANY || a.company || '').trim();
+        if (!comp) return;
+        const key = comp.toLowerCase();
+
+        const m = (a.DATE || a.date || '').substring(0, 7);
+        if (m && monthlyInterviews[m] && !monthlyInterviews[m].has(key)) {
+            monthlyInterviews[m].set(key, comp);
+        }
+
+        if (m && m.startsWith(currentYear)) {
+            yearCompaniesSet.add(key);
+        }
+    });
+
+    const monthlyInterviewCounts = {};
+    let maxVolume = 1;
+
+    months.forEach(m => {
+        const applied = monthlyApplied[m] || 0;
+        const interviewed = monthlyInterviews[m] ? monthlyInterviews[m].size : 0;
+        monthlyInterviewCounts[m] = interviewed;
+        if (applied > maxVolume) maxVolume = applied;
+        if (interviewed > maxVolume) maxVolume = interviewed;
+    });
+
+    return {
+        months,
+        monthlyApplied,
+        monthlyInterviewCounts,
+        monthlyInterviewCompanies: Object.fromEntries(
+            Object.entries(monthlyInterviews).map(([m, map]) => [m, Array.from(map.values())])
+        ),
+        maxVolume,
+        companiesInterviewedThisYear: yearCompaniesSet.size
+    };
+};

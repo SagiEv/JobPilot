@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 import { useApplications } from '../hooks/useApplications';
 import { useInterviews } from '../hooks/useInterviews';
-import { calculateCompanyFunnelMetrics } from '../utils/analyticsCalculations';
+import { calculateCompanyFunnelMetrics, calculateMonthlyVolume } from '../utils/analyticsCalculations';
 import PageLoader from '../components/PageLoader';
 
 /* ── Tiny SVG ring meter ──────────────────────────────────────────────────── */
@@ -64,6 +64,10 @@ const AnalyticsPage = () => {
 
     const companyMetrics = useMemo(() => {
         return calculateCompanyFunnelMetrics(applications, interviews, metrics?.historicalInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+
+    const monthlyData = useMemo(() => {
+        return calculateMonthlyVolume(applications, interviews, metrics?.historicalInterviewAppIds);
     }, [applications, interviews, metrics?.historicalInterviewAppIds]);
 
     const an = useMemo(() => {
@@ -219,26 +223,33 @@ const AnalyticsPage = () => {
                 />
             </div>
             
-            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                 <KpiCard
                     icon={<span style={{ fontSize: '18px' }}>⏱️</span>}
-                    label="Avg. Time to Interview"
+                    label="Time to 1st Interview"
                     value={metrics?.timeToInterview?.count > 0 ? `${metrics.timeToInterview.averageDays} days` : 'N/A'}
                     sub={`Based on ${metrics?.timeToInterview?.count || 0} interviews`}
                     accent="#d97706"
                 />
                 <KpiCard
-                    icon={<span style={{ fontSize: '18px' }}>🚀</span>}
-                    label="HR to Technical"
-                    value={metrics?.hrToTechnical?.count > 0 ? `${metrics.hrToTechnical.averageDays} days` : 'N/A'}
-                    sub={`Based on ${metrics?.hrToTechnical?.count || 0} transitions`}
+                    icon={<span style={{ fontSize: '18px' }}>🔄</span>}
+                    label="Avg. Interview Cycle"
+                    value={metrics?.interviewCycle?.count > 0 ? `${metrics.interviewCycle.averageDays} days` : 'N/A'}
+                    sub={metrics?.interviewCycle?.count > 0 ? `Apply to decision (${metrics.interviewCycle.count} loops)` : 'No completed loops'}
                     accent="#8b5cf6"
                 />
                 <KpiCard
-                    icon={<span style={{ fontSize: '18px' }}>🏆</span>}
-                    label="Technical to Final"
-                    value={metrics?.technicalToFinal?.count > 0 ? `${metrics.technicalToFinal.averageDays} days` : 'N/A'}
-                    sub={`Based on ${metrics?.technicalToFinal?.count || 0} transitions`}
+                    icon={<span style={{ fontSize: '18px' }}>⏳</span>}
+                    label="Longest Interview Cycle"
+                    value={metrics?.longestInterviewCycle?.days > 0 ? `${metrics.longestInterviewCycle.days} days` : 'N/A'}
+                    sub={metrics?.longestInterviewCycle?.company ? `${metrics.longestInterviewCycle.company} • ${metrics.longestInterviewCycle.outcome}` : 'No loops completed'}
+                    accent="#ec4899"
+                />
+                <KpiCard
+                    icon={<span style={{ fontSize: '18px' }}>🏢</span>}
+                    label="Interviewed This Year"
+                    value={`${monthlyData.companiesInterviewedThisYear} companies`}
+                    sub={`in ${new Date().getFullYear()}`}
                     accent="#10b981"
                 />
                 <KpiCard
@@ -540,30 +551,65 @@ const AnalyticsPage = () => {
             )}
 
             {/* ── Monthly bar chart ─────────────────────────────────── */}
-            <h3 className="subsection-title">Monthly Volume</h3>
+            <div className="an-chart-header" style={{ margin: '24px 22px 10px' }}>
+                <h3 className="subsection-title" style={{ margin: 0 }}>Monthly Volume</h3>
+                <div className="an-chart-legend">
+                    <span className="an-legend-item">
+                        <span className="an-legend-dot" style={{ background: 'var(--accent)' }}></span>
+                        Applications Applied
+                    </span>
+                    <span className="an-legend-item">
+                        <span className="an-legend-dot" style={{ background: '#d97706' }}></span>
+                        Companies Interviewed
+                    </span>
+                </div>
+            </div>
             <div className="card an-chart-card">
-                {an.months.length === 0 ? (
+                {monthlyData.months.length === 0 ? (
                     <div className="an-empty">No application data yet.</div>
                 ) : (
                     <div className="an-chart">
-                        {an.months.map((month, i) => {
-                            const count = an.monthlyGroups[month];
-                            const barPct = (count / an.maxMonth) * 100;
+                        {monthlyData.months.map((month, i) => {
+                            const applied = monthlyData.monthlyApplied[month] || 0;
+                            const interviewed = monthlyData.monthlyInterviewCounts[month] || 0;
+                            const appliedPct = (applied / monthlyData.maxVolume) * 100;
+                            const interviewedPct = (interviewed / monthlyData.maxVolume) * 100;
                             const isCurrentMonth = month === new Date().toISOString().substring(0, 7);
                             const [yr, mo] = month.split('-');
                             const label = new Date(+yr, +mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
+                            const interviewedCompaniesList = monthlyData.monthlyInterviewCompanies[month] || [];
+
                             return (
                                 <div key={month} className={`an-bar-item${isCurrentMonth ? ' an-bar-item--current' : ''}`}>
-                                    <div className="an-bar-track">
-                                        <div
-                                            className="an-bar-fill"
-                                            style={{
-                                                height: `${barPct}%`,
-                                                animationDelay: `${i * 60}ms`,
-                                            }}
-                                        />
+                                    <div className="an-bar-tooltip">
+                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{applied} applied</span>
+                                        <span style={{ color: '#d97706', fontWeight: 600 }}>{interviewed} interviewed</span>
                                     </div>
-                                    <div className="an-bar-count">{count}</div>
+                                    <div className="an-bar-pair">
+                                        {/* Applied Bar */}
+                                        <div className="an-bar-track--sm" title={`${applied} applied in ${label}`}>
+                                            <div
+                                                className="an-bar-fill an-bar-fill--applied"
+                                                style={{
+                                                    height: `${appliedPct}%`,
+                                                    animationDelay: `${i * 60}ms`,
+                                                }}
+                                            />
+                                        </div>
+                                        {/* Interviewed Companies Bar */}
+                                        <div 
+                                            className="an-bar-track--sm" 
+                                            title={`${interviewed} companies interviewed in ${label}${interviewedCompaniesList.length ? `: ${interviewedCompaniesList.join(', ')}` : ''}`}
+                                        >
+                                            <div
+                                                className="an-bar-fill an-bar-fill--interviewed"
+                                                style={{
+                                                    height: `${interviewedPct}%`,
+                                                    animationDelay: `${i * 60 + 30}ms`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="an-bar-label">{label}</div>
                                 </div>
                             );

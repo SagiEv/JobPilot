@@ -266,6 +266,8 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
             timeToReject: { averageDays: 0, count: 0 },
             timeToInterview: { averageDays: 0, count: 0 },
             timeToOffer: { averageDays: 0, count: 0 },
+            interviewCycle: { averageDays: 0, count: 0 },
+            longestInterviewCycle: { days: 0, company: '', role: '', outcome: '' },
             hrToTechnical: { averageDays: 0, count: 0 },
             technicalToFinal: { averageDays: 0, count: 0 },
             historicalInterviewAppIds: []
@@ -286,24 +288,38 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
         timeToReject: { totalDays: 0, count: 0 },
         timeToInterview: { totalDays: 0, count: 0 },
         timeToOffer: { totalDays: 0, count: 0 },
+        interviewCycle: { totalDays: 0, count: 0 },
         hrToTechnical: { totalDays: 0, count: 0 },
         technicalToFinal: { totalDays: 0, count: 0 }
     };
+    let longestInterviewCycle = { days: 0, company: '', role: '', outcome: '' };
 
     for (const appId of appIds) {
+        const app = apps.find(a => a.id === appId);
         const appHistory = history.filter(h => h.application_id === appId);
-        if (appHistory.length < 2) continue;
+        const firstDate = (appHistory.length > 0 && appHistory[0].event_date) || app?.date;
+        if (!firstDate) continue;
 
-        const firstDate = appHistory[0].event_date;
-        
         // Find specific transition events
         const firstReject = appHistory.find(h => h.new_status?.toLowerCase() === 'rejected');
-        const firstInterview = appHistory.find(h => h.new_status?.toLowerCase() === 'interviewing');
-        const firstOffer = appHistory.find(h => h.new_status?.toLowerCase() === 'offer');
+        const firstInterview = appHistory.find(h => 
+            h.new_status?.toLowerCase() === 'interviewing' || 
+            h.event_type === 'Interview' || 
+            h.interview_id != null
+        );
+        const firstOffer = appHistory.find(h => {
+            const s = h.new_status?.toLowerCase();
+            return s === 'offer' || s === 'hired' || s === 'accepted';
+        });
 
-        const hrScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('hr') || h.new_stage?.toLowerCase().includes('recruiter'));
-        const techScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('technical'));
-        const finalScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('final'));
+        const appStatus = (app?.status || '').toLowerCase();
+        const appStage = (app?.stage || '').toLowerCase();
+        const hadInterview = Boolean(
+            firstInterview || 
+            appStatus.includes('interview') || 
+            appStatus === 'offer' || 
+            (appStage && appStage !== 'applied' && appStage !== 'none')
+        );
 
         if (firstReject) {
             metrics.timeToReject.totalDays += calcDays(firstDate, firstReject.event_date);
@@ -318,7 +334,46 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
             metrics.timeToOffer.count++;
         }
 
-        // Transitions within stages
+        // Interview Cycle Duration: Only for applications that had an interview and reached a conclusion
+        if (hadInterview) {
+            let resolutionDate = null;
+            let outcome = null;
+
+            if (firstOffer) {
+                resolutionDate = firstOffer.event_date;
+                outcome = 'Offer';
+            } else if (firstReject) {
+                resolutionDate = firstReject.event_date;
+                outcome = 'Rejected';
+            } else if (['offer', 'hired', 'accepted'].includes(appStatus)) {
+                resolutionDate = app.last_activity_date || app.date;
+                outcome = 'Offer';
+            } else if (appStatus.includes('reject')) {
+                resolutionDate = app.last_activity_date || app.date;
+                outcome = 'Rejected';
+            }
+
+            if (resolutionDate) {
+                const cycleDays = calcDays(firstDate, resolutionDate);
+                metrics.interviewCycle.totalDays += cycleDays;
+                metrics.interviewCycle.count++;
+
+                if (cycleDays >= longestInterviewCycle.days) {
+                    longestInterviewCycle = {
+                        days: cycleDays,
+                        company: app?.company || '',
+                        role: app?.role_id || '',
+                        outcome
+                    };
+                }
+            }
+        }
+
+        const hrScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('hr') || h.new_stage?.toLowerCase().includes('recruiter'));
+        const techScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('technical'));
+        const finalScreen = appHistory.find(h => h.new_stage?.toLowerCase().includes('final'));
+
+        // Transitions within stages (legacy)
         if (hrScreen && techScreen && new Date(techScreen.event_date) >= new Date(hrScreen.event_date)) {
             metrics.hrToTechnical.totalDays += calcDays(hrScreen.event_date, techScreen.event_date);
             metrics.hrToTechnical.count++;
@@ -350,6 +405,8 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
         timeToReject: formatMetric(metrics.timeToReject),
         timeToInterview: formatMetric(metrics.timeToInterview),
         timeToOffer: formatMetric(metrics.timeToOffer),
+        interviewCycle: formatMetric(metrics.interviewCycle),
+        longestInterviewCycle,
         hrToTechnical: formatMetric(metrics.hrToTechnical),
         technicalToFinal: formatMetric(metrics.technicalToFinal),
         historicalInterviewAppIds
