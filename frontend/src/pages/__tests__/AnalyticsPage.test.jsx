@@ -130,4 +130,32 @@ describe('AnalyticsPage', () => {
         expect(screen.getByText('Offer Rate')).toBeInTheDocument();
         expect(screen.getByText('Awaiting Reply')).toBeInTheDocument();
     });
+    it('renders referral impact metrics with cohorts and application chips', () => {
+        useApplications.mockReturnValue({
+            applications: [
+                { id: '1', COMPANY: 'Google', ROLE_ID: 'FE Lead', STATUS: 'Interviewing', STAGE: 'Technical Interview', REFERAL: 'Jane Doe', DATE: '2023-01-01', fit_analysis_ai: { ai_score: 90 } },
+                { id: '2', COMPANY: 'Google', ROLE_ID: 'BE Senior', STATUS: 'Rejected', STAGE: '', REFERAL: '', DATE: '2023-01-02', fit_score_deterministic: 70 },
+                { id: '3', COMPANY: 'Meta', ROLE_ID: 'Staff Eng', STATUS: 'Rejected', STAGE: 'Recruiter / HR Screen', REFERAL: '', DATE: '2023-01-03', fit_score_deterministic: 85 },
+                { id: '4', COMPANY: 'Stripe', ROLE_ID: 'Tech Lead', STATUS: 'Offer', STAGE: 'Final', REFERAL: 'John Smith', DATE: '2023-01-04', fit_score_deterministic: 95 }
+            ],
+            loading: false,
+            stats: { total: 4, active: 2 }
+        });
+
+        render(<AnalyticsPage />);
+
+        expect(screen.getByText('Referral Impact')).toBeInTheDocument();
+        expect(screen.getByText('Referred Interview Share')).toBeInTheDocument();
+        expect(screen.getByText('Interview Rate (Ref vs Direct)')).toBeInTheDocument();
+        expect(screen.getByText('Referral Advantage')).toBeInTheDocument();
+
+        // Cohort headers
+        expect(screen.getByText(/With Referral \(2 applications\)/i)).toBeInTheDocument();
+        expect(screen.getByText(/Direct \/ No Referral \(1 applications\)/i)).toBeInTheDocument();
+
+        // Application chips (Company • Role)
+        expect(screen.getByText('Google • FE Lead')).toBeInTheDocument();
+        expect(screen.getByText('Stripe • Tech Lead')).toBeInTheDocument();
+        expect(screen.getByText('Meta • Staff Eng')).toBeInTheDocument();
+    });
 });

@@ -3939,3 +3939,47 @@ td:nth-child(3) {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Referral Impact Section ─────────────────────────────── */
+.an-referral-section {
+  margin-top: 28px;
+}
+
+.an-referral-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.an-referral-cohort {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chip-ref-app {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.chip-direct-app {
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.an-cohort-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.an-cohort-stats-row:last-child {
+  border-bottom: none;
+}

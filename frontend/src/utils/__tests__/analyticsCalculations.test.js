@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCompanyFunnelMetrics, hasAppReachedInterview, calculateMonthlyVolume } from '../analyticsCalculations';
+import {
+    calculateCompanyFunnelMetrics,
+    hasAppReachedInterview,
+    calculateMonthlyVolume,
+    calculateReferralMetrics
+} from '../analyticsCalculations';
 
 describe('analyticsCalculations', () => {
     describe('hasAppReachedInterview', () => {
@@ -124,10 +129,64 @@ describe('analyticsCalculations', () => {
             const res = calculateMonthlyVolume(apps, interviews, []);
             expect(res.months).toContain(monthStr);
             expect(res.monthlyApplied[monthStr]).toBe(3);
-            // Even with 3 interviews and 2 apps, Google counts as 1 unique company interviewed in this month
             expect(res.monthlyInterviewCounts[monthStr]).toBe(1);
             expect(res.monthlyInterviewCompanies[monthStr]).toEqual(['Google']);
             expect(res.companiesInterviewedThisYear).toBe(1);
+        });
+    });
+
+    describe('calculateReferralMetrics', () => {
+        it('handles empty applications cleanly', () => {
+            const res = calculateReferralMetrics([], [], []);
+            expect(res.hasData).toBe(false);
+            expect(res.totalReferredCount).toBe(0);
+            expect(res.totalDirectCount).toBe(0);
+            expect(res.totalInterviewedApps).toBe(0);
+        });
+
+        it('correctly compares applications with referral vs direct on the application level', () => {
+            const apps = [
+                // Google App 1: Referred, reached interview and got offer
+                { id: 1, COMPANY: 'Google', ROLE_ID: 'FE Lead', REFERAL: 'John Doe', STATUS: 'Offer', STAGE: 'Final', fit_score_deterministic: 85 },
+                // Google App 2: Direct, rejected at screening (no interview)
+                { id: 2, COMPANY: 'Google', ROLE_ID: 'Backend', REFERAL: '', STATUS: 'Rejected', STAGE: '', fit_score_deterministic: 70 },
+                // Stripe: Referred, still interviewing
+                { id: 3, COMPANY: 'Stripe', ROLE_ID: 'Fullstack', REFERAL: 'Alice', STATUS: 'Interviewing', STAGE: 'Technical', fit_score_deterministic: 90 },
+                // Meta: Direct, reached interview and rejected post-interview
+                { id: 4, COMPANY: 'Meta', ROLE_ID: 'Infra', REFERAL: 'None', STATUS: 'Rejected', STAGE: 'HR Screen', fit_score_deterministic: 80 },
+                // Apple: Direct, applied pending
+                { id: 5, COMPANY: 'Apple', ROLE_ID: 'iOS', REFERAL: '', STATUS: 'Applied', STAGE: '', fit_score_deterministic: 60 }
+            ];
+
+            const res = calculateReferralMetrics(apps, [], []);
+            expect(res.hasData).toBe(true);
+            expect(res.totalReferredCount).toBe(2); // Apps 1 & 3
+            expect(res.totalDirectCount).toBe(3);   // Apps 2, 4, 5
+
+            // Interviewed applications: 3 apps total (App 1 Google, App 3 Stripe, App 4 Meta)
+            expect(res.totalInterviewedApps).toBe(3);
+
+            // Referred interview apps: 2 (Google FE Lead, Stripe Fullstack)
+            expect(res.referred.interviewApps.length).toBe(2);
+            expect(res.referred.interviewApps.map(a => a.label)).toEqual(['Google • FE Lead', 'Stripe • Fullstack']);
+            expect(res.refInterviewRate).toBe(100.0); // 2/2 = 100%
+            expect(res.referred.outcomes.offers.count).toBe(1);
+            expect(res.referred.outcomes.active.count).toBe(1);
+            expect(res.referred.avgFit).toBe(88); // (85 + 90) / 2 = 87.5 -> 88
+
+            // Direct interview apps: 1 (Meta Infra)
+            expect(res.direct.interviewApps.length).toBe(1);
+            expect(res.direct.interviewApps[0].label).toBe('Meta • Infra');
+            expect(res.directInterviewRate).toBe(33.3); // 1/3 = 33.3%
+            expect(res.direct.outcomes.rejected.count).toBe(1);
+            expect(res.direct.avgFit).toBe(80);
+
+            // Shares of interviewed applications
+            expect(res.refShareOfInterviews).toBe(66.7); // 2/3
+            expect(res.directShareOfInterviews).toBe(33.3); // 1/3
+
+            // Lift: 100 / 33.3 = 3.0x
+            expect(res.lift).toBe(3.0);
         });
     });
 });

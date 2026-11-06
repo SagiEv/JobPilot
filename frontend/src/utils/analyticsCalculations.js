@@ -274,3 +274,142 @@ export const calculateMonthlyVolume = (applications = [], interviews = [], histo
         companiesInterviewedThisYear: yearCompaniesSet.size
     };
 };
+
+/**
+ * Calculates Referral Impact metrics at the application level, comparing
+ * applications with a referral vs direct applications among those that reached screening/interview.
+ *
+ * @param {Array} applications - List of applications
+ * @param {Array} interviews - List of interviews
+ * @param {Array} historicalInterviewAppIds - App IDs that had interview transitions
+ * @returns {Object} Referral impact analytics
+ */
+export const calculateReferralMetrics = (applications = [], interviews = [], historicalInterviewAppIds = []) => {
+    const interviewAppIds = new Set((interviews || []).map(i => i.application_id).filter(Boolean));
+    const interviewCompanies = new Set((interviews || []).map(i => (i.company || '').trim().toLowerCase()).filter(Boolean));
+    const historicalAppIds = new Set(historicalInterviewAppIds || []);
+
+    const isReferralApp = (app) => {
+        const ref = (app.REFERAL || app.referal || '').trim();
+        if (!ref) return false;
+        const lower = ref.toLowerCase();
+        return !['none', 'no', 'n/a', 'false', '0', '-'].includes(lower);
+    };
+
+    const getOutcome = (app) => {
+        const s = (app.STATUS || app.status || '').toLowerCase();
+        if (NORM_OFFER_STATUSES.includes(s)) return 'offer';
+        if (s.includes('interview')) return 'active';
+        return 'rejected';
+    };
+
+    const getFitScore = (app) => {
+        return app.fit_analysis_ai?.ai_score ?? app.fit_analysis_ai?.overall_score ?? app.fit_score_deterministic;
+    };
+
+    let totalReferredCount = 0;
+    let totalDirectCount = 0;
+
+    const referredInterviewApps = [];
+    const directInterviewApps = [];
+
+    let referredFitSum = 0;
+    let referredFitCount = 0;
+    let directFitSum = 0;
+    let directFitCount = 0;
+
+    (applications || []).forEach(app => {
+        const hasRef = isReferralApp(app);
+        if (hasRef) {
+            totalReferredCount++;
+        } else {
+            totalDirectCount++;
+        }
+
+        const reached = hasAppReachedInterview(app, interviewAppIds, interviewCompanies, historicalAppIds);
+        if (!reached) return;
+
+        const company = (app.COMPANY || app.company || '').trim();
+        const role = (app.ROLE_ID || app.role_id || '').trim();
+        const label = role ? `${company} • ${role}` : company;
+        const outcome = getOutcome(app);
+        const fitScore = getFitScore(app);
+
+        const item = {
+            id: app.id,
+            company,
+            role,
+            label,
+            outcome,
+            fitScore
+        };
+
+        if (hasRef) {
+            referredInterviewApps.push(item);
+            if (fitScore != null) {
+                referredFitSum += fitScore;
+                referredFitCount++;
+            }
+        } else {
+            directInterviewApps.push(item);
+            if (fitScore != null) {
+                directFitSum += fitScore;
+                directFitCount++;
+            }
+        }
+    });
+
+    const totalInterviewedApps = referredInterviewApps.length + directInterviewApps.length;
+    const safeTotalInterviewed = totalInterviewedApps || 1;
+    const safeTotalReferred = totalReferredCount || 1;
+    const safeTotalDirect = totalDirectCount || 1;
+
+    const refInterviewRate = +((referredInterviewApps.length / safeTotalReferred) * 100).toFixed(1);
+    const directInterviewRate = +((directInterviewApps.length / safeTotalDirect) * 100).toFixed(1);
+
+    const refShareOfInterviews = +((referredInterviewApps.length / safeTotalInterviewed) * 100).toFixed(1);
+    const directShareOfInterviews = +((directInterviewApps.length / safeTotalInterviewed) * 100).toFixed(1);
+
+    let lift = null;
+    if (directInterviewRate > 0) {
+        lift = +(refInterviewRate / directInterviewRate).toFixed(1);
+    } else if (refInterviewRate > 0) {
+        lift = +(refInterviewRate / 1).toFixed(1);
+    }
+
+    const summarizeOutcomes = (appsList) => {
+        const count = appsList.length;
+        const safe = count || 1;
+        const offers = appsList.filter(a => a.outcome === 'offer').length;
+        const active = appsList.filter(a => a.outcome === 'active').length;
+        const rejected = appsList.filter(a => a.outcome === 'rejected').length;
+        return {
+            total: count,
+            offers: { count: offers, pct: +((offers / safe) * 100).toFixed(1) },
+            active: { count: active, pct: +((active / safe) * 100).toFixed(1) },
+            rejected: { count: rejected, pct: +((rejected / safe) * 100).toFixed(1) }
+        };
+    };
+
+    return {
+        hasData: applications.length > 0,
+        totalReferredCount,
+        totalDirectCount,
+        totalInterviewedApps,
+        refShareOfInterviews,
+        directShareOfInterviews,
+        refInterviewRate,
+        directInterviewRate,
+        lift,
+        referred: {
+            interviewApps: referredInterviewApps,
+            outcomes: summarizeOutcomes(referredInterviewApps),
+            avgFit: referredFitCount > 0 ? Math.round(referredFitSum / referredFitCount) : null
+        },
+        direct: {
+            interviewApps: directInterviewApps,
+            outcomes: summarizeOutcomes(directInterviewApps),
+            avgFit: directFitCount > 0 ? Math.round(directFitSum / directFitCount) : null
+        }
+    };
+};

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 import { useApplications } from '../hooks/useApplications';
 import { useInterviews } from '../hooks/useInterviews';
-import { calculateCompanyFunnelMetrics, calculateMonthlyVolume } from '../utils/analyticsCalculations';
+import { calculateCompanyFunnelMetrics, calculateMonthlyVolume, calculateReferralMetrics } from '../utils/analyticsCalculations';
 import PageLoader from '../components/PageLoader';
 
 /* ── Tiny SVG ring meter ──────────────────────────────────────────────────── */
@@ -68,6 +68,10 @@ const AnalyticsPage = () => {
 
     const monthlyData = useMemo(() => {
         return calculateMonthlyVolume(applications, interviews, metrics?.historicalInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+
+    const referralMetrics = useMemo(() => {
+        return calculateReferralMetrics(applications, interviews, metrics?.historicalInterviewAppIds);
     }, [applications, interviews, metrics?.historicalInterviewAppIds]);
 
     const an = useMemo(() => {
@@ -698,6 +702,123 @@ const AnalyticsPage = () => {
                 </>
             )}
 
+            {/* ── Referral Impact ────────────────────────────────────── */}
+            {applications.length > 0 && (
+                <div className="an-referral-section">
+                    <h3 className="subsection-title" style={{ marginTop: '28px' }}>Referral Impact</h3>
+                    <p style={{ margin: '4px 0 16px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                        Comparing application success rates for roles with vs without referrals
+                    </p>
+
+                    <div className="an-kpi-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>👥</span>}
+                            label="Referred Interview Share"
+                            value={`${referralMetrics.refShareOfInterviews}%`}
+                            sub={`${referralMetrics.referred.interviewApps.length} of ${referralMetrics.totalInterviewedApps} interviewed applications`}
+                            accent="#8b5cf6"
+                        />
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>🚀</span>}
+                            label="Interview Rate (Ref vs Direct)"
+                            value={`${referralMetrics.refInterviewRate}% vs ${referralMetrics.directInterviewRate}%`}
+                            sub={`${referralMetrics.referred.interviewApps.length}/${referralMetrics.totalReferredCount} ref vs ${referralMetrics.direct.interviewApps.length}/${referralMetrics.totalDirectCount} direct`}
+                            accent="#10b981"
+                        />
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>🏆</span>}
+                            label="Referral Advantage"
+                            value={referralMetrics.lift !== null ? `${referralMetrics.lift}× Higher` : 'N/A'}
+                            sub={referralMetrics.lift !== null ? 'Higher interview conversion with referral' : 'Insufficient referral data'}
+                            accent="#f59e0b"
+                        />
+                    </div>
+
+                    <div className="an-referral-grid">
+                        {/* With Referral Cohort */}
+                        <div className="card an-status-card an-referral-cohort">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 600, color: '#8b5cf6', fontSize: '14px' }}>
+                                    With Referral ({referralMetrics.referred.interviewApps.length} applications)
+                                </span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    {referralMetrics.refShareOfInterviews}% of interviews
+                                </span>
+                            </div>
+                            <div className="an-status-bar-bg" style={{ height: '6px' }}>
+                                <div
+                                    className="an-status-bar-fill"
+                                    style={{ width: `${referralMetrics.refShareOfInterviews}%`, background: '#8b5cf6' }}
+                                />
+                            </div>
+
+                            <div className="an-cohort-stats-row">
+                                <span>
+                                    <strong>{referralMetrics.referred.outcomes.offers.count}</strong> Offers ({referralMetrics.referred.outcomes.offers.pct}%) •{' '}
+                                    <strong>{referralMetrics.referred.outcomes.active.count}</strong> Interviewing ({referralMetrics.referred.outcomes.active.pct}%) •{' '}
+                                    <strong>{referralMetrics.referred.outcomes.rejected.count}</strong> Rejected ({referralMetrics.referred.outcomes.rejected.pct}%)
+                                </span>
+                                <span>Avg. Fit: {referralMetrics.referred.avgFit !== null ? `${referralMetrics.referred.avgFit}%` : 'N/A'}</span>
+                            </div>
+
+                            <div className="an-company-chips" style={{ marginTop: '8px' }}>
+                                {referralMetrics.referred.interviewApps.length > 0 ? (
+                                    referralMetrics.referred.interviewApps.map((app, idx) => (
+                                        <span key={app.id || idx} className="an-company-chip chip-ref-app">
+                                            {app.label}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        No referred applications reached interviews
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Direct / No Referral Cohort */}
+                        <div className="card an-status-card an-referral-cohort">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '14px' }}>
+                                    Direct / No Referral ({referralMetrics.direct.interviewApps.length} applications)
+                                </span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    {referralMetrics.directShareOfInterviews}% of interviews
+                                </span>
+                            </div>
+                            <div className="an-status-bar-bg" style={{ height: '6px' }}>
+                                <div
+                                    className="an-status-bar-fill"
+                                    style={{ width: `${referralMetrics.directShareOfInterviews}%`, background: '#64748b' }}
+                                />
+                            </div>
+
+                            <div className="an-cohort-stats-row">
+                                <span>
+                                    <strong>{referralMetrics.direct.outcomes.offers.count}</strong> Offers ({referralMetrics.direct.outcomes.offers.pct}%) •{' '}
+                                    <strong>{referralMetrics.direct.outcomes.active.count}</strong> Interviewing ({referralMetrics.direct.outcomes.active.pct}%) •{' '}
+                                    <strong>{referralMetrics.direct.outcomes.rejected.count}</strong> Rejected ({referralMetrics.direct.outcomes.rejected.pct}%)
+                                </span>
+                                <span>Avg. Fit: {referralMetrics.direct.avgFit !== null ? `${referralMetrics.direct.avgFit}%` : 'N/A'}</span>
+                            </div>
+
+                            <div className="an-company-chips" style={{ marginTop: '8px' }}>
+                                {referralMetrics.direct.interviewApps.length > 0 ? (
+                                    referralMetrics.direct.interviewApps.map((app, idx) => (
+                                        <span key={app.id || idx} className="an-company-chip chip-direct-app">
+                                            {app.label}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        No direct applications reached interviews
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
