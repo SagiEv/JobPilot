@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RejectModal from '../components/RejectModal';
 import { useToast } from '../components/ToastProvider';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
@@ -164,12 +165,15 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
     const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
     const { events } = useEvents();
     const [isEditing, setIsEditing] = useState(false);
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+
     
     const [tempStatus, setTempStatus] = useState(app.STATUS);
     const [tempStage, setTempStage] = useState(app.STAGE);
     const [tempDate, setTempDate] = useState(new Date().toISOString().split('T')[0]);
     const [tempNotes, setTempNotes] = useState('');
     const [tempWithWho, setTempWithWho] = useState('');
+
     const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
     
     const [newNote, setNewNote] = useState('');
@@ -242,7 +246,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                 <div className="adp-hero-status">
                     {!isEditing ? (
                         <div className="adp-status-display" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <span className={`badge ${statusBadgeClass(app.STATUS)} adp-badge-lg`}>
                                     {app.STATUS || 'Applied'}
                                 </span>
@@ -251,8 +255,35 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                         {app.STAGE}
                                     </span>
                                 )}
+                                {app.STATUS?.toLowerCase() !== 'rejected' && app.STATUS?.toLowerCase() !== 'ignored' && (
+                                    <button 
+                                        title="Quick Reject"
+                                        onClick={() => setIsRejectModalOpen(true)}
+                                        style={{ 
+                                            background: 'var(--danger-c)', 
+                                            border: 'none', 
+                                            color: '#fff', 
+                                            cursor: 'pointer', 
+                                            fontSize: '12px', 
+                                            width: '24px',
+                                            height: '24px',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            lineHeight: 1,
+                                            padding: 0
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
                             </div>
-                            <button className="adp-btn-edit" onClick={() => setIsEditing(true)}>
+                            <button className="adp-btn-edit" onClick={() => {
+                                setTempStatus(app.STATUS);
+                                setTempStage(app.STAGE);
+                                setIsEditing(true);
+                            }}>
                                 ✏ Update
                             </button>
                         </div>
@@ -262,7 +293,14 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                 <select
                                     className="adp-select"
                                     value={ALL_STATUSES.find(opt => opt.label.toLowerCase() === tempStatus?.toLowerCase())?.label || tempStatus || 'Applied'}
-                                    onChange={e => setTempStatus(e.target.value)}
+                                    onChange={e => {
+                                        if (e.target.value === 'Rejected') {
+                                            setIsEditing(false);
+                                            setIsRejectModalOpen(true);
+                                        } else {
+                                            setTempStatus(e.target.value);
+                                        }
+                                    }}
                                 >
                                     {ALL_STATUSES.map(s => (
                                         <option key={s.label} value={s.label}>{s.label}</option>
@@ -342,7 +380,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
             {/* ── Progress stepper ── */}
             <div className="adp-stepper-card">
                 <p className="adp-stepper-label">Application Progress</p>
-                <StatusStepper current={tempStatus || app.STATUS || 'Applied'} />
+                <StatusStepper current={isEditing ? (tempStatus || app.STATUS || 'Applied') : (app.STATUS || 'Applied')} />
             </div>
 
             {/* ── Stat chips row ── */}
@@ -562,6 +600,22 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
 
             </div>
 
+            <RejectModal
+                isOpen={isRejectModalOpen}
+                companyName={app.COMPANY}
+                onClose={() => setIsRejectModalOpen(false)}
+                onConfirm={({ reason, autoReject }) => {
+                    onUpdate(
+                        app.id,
+                        'Rejected',
+                        app.STAGE,
+                        null,
+                        reason,
+                        autoReject
+                    );
+                    setIsRejectModalOpen(false);
+                }}
+            />
         </div>
     );
 };

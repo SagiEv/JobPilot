@@ -88,4 +88,54 @@ describe('ApplicationDetailPage', () => {
         
         expect(mockAddNote).toHaveBeenCalledWith('Called recruiter', '');
     });
+
+    it('renders quick reject button for active applications and submits rejection via modal', () => {
+        render(<ApplicationDetailPage app={mockApp} onBack={mockOnBack} onUpdate={mockOnUpdate} />);
+
+        const quickRejectBtn = screen.getByTitle('Quick Reject');
+        expect(quickRejectBtn).toBeInTheDocument();
+
+        fireEvent.click(quickRejectBtn);
+
+        expect(screen.getByText('Reject Application: Google')).toBeInTheDocument();
+
+        const reasonInput = screen.getByPlaceholderText('e.g. They went with an internal candidate');
+        fireEvent.change(reasonInput, { target: { value: 'Position closed' } });
+
+        const autoRejectCheck = screen.getByLabelText(/Automatically rejected/);
+        fireEvent.click(autoRejectCheck);
+
+        const confirmBtn = screen.getByText('Confirm Rejection');
+        fireEvent.click(confirmBtn);
+
+        expect(mockOnUpdate).toHaveBeenCalledWith(
+            '1',
+            'Rejected',
+            '',
+            null,
+            'Position closed',
+            true
+        );
+    });
+
+    it('does not render quick reject button for already rejected or ignored applications', () => {
+        const rejectedApp = { ...mockApp, STATUS: 'Rejected' };
+        const { rerender } = render(<ApplicationDetailPage app={rejectedApp} onBack={mockOnBack} onUpdate={mockOnUpdate} />);
+        expect(screen.queryByTitle('Quick Reject')).not.toBeInTheDocument();
+
+        const ignoredApp = { ...mockApp, STATUS: 'Ignored' };
+        rerender(<ApplicationDetailPage app={ignoredApp} onBack={mockOnBack} onUpdate={mockOnUpdate} />);
+        expect(screen.queryByTitle('Quick Reject')).not.toBeInTheDocument();
+    });
+
+    it('opens reject modal when selecting Rejected in the edit mode dropdown', () => {
+        render(<ApplicationDetailPage app={mockApp} onBack={mockOnBack} onUpdate={mockOnUpdate} />);
+
+        fireEvent.click(screen.getByText('✏ Update'));
+
+        const statusSelect = screen.getByDisplayValue('Applied');
+        fireEvent.change(statusSelect, { target: { value: 'Rejected' } });
+
+        expect(screen.getByText('Reject Application: Google')).toBeInTheDocument();
+    });
 });
