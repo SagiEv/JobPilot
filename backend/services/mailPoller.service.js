@@ -209,6 +209,7 @@ async function pollUserInbox(settings) {
                     ) {
                         const currentApp = allApplications.find(a => a.id === result.applicationId);
                         const currentStatus = currentApp?.status || 'Applied';
+                        const currentDate = currentApp?.date || null;
 
                         // Guard 1: Never overwrite a terminal status
                         if (TERMINAL_STATUSES.has(currentStatus)) {
@@ -243,6 +244,17 @@ async function pollUserInbox(settings) {
                                 body: `Status updated to "${result.classifiedStatus}" based on email from ${from}. Subject: "${subject.substring(0, 100)}"`,
                                 read: false,
                                 application_id: result.applicationId,
+                                reverted: false,
+                                metadata: {
+                                    previous_status: currentStatus,
+                                    previous_date: currentDate,
+                                    new_status: result.classifiedStatus,
+                                    classified_status: result.classifiedStatus,
+                                    from_address: from,
+                                    subject: subject.substring(0, 100),
+                                    event_date: receivedAt.toISOString().split('T')[0],
+                                    reverted: false
+                                }
                             }, supabase);
                         }
                     }

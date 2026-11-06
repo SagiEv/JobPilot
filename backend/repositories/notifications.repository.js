@@ -23,9 +23,38 @@ const countUnread = async (userId, client) => {
 };
 
 const insert = async (notifData, client) => {
-    return await client
+    const res = await client
         .from(TABLE)
         .insert(notifData)
+        .select()
+        .single();
+
+    if (res.error && (res.error.message?.includes('column') || res.error.code === '42703')) {
+        const { metadata, reverted, ...cleanData } = notifData;
+        return await client
+            .from(TABLE)
+            .insert(cleanData)
+            .select()
+            .single();
+    }
+    return res;
+};
+
+const findById = async (userId, id, client) => {
+    return await client
+        .from(TABLE)
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+};
+
+const update = async (userId, id, updateData, client) => {
+    return await client
+        .from(TABLE)
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', userId)
         .select()
         .single();
 };
@@ -46,4 +75,4 @@ const markAllRead = async (userId, client) => {
         .eq('read', false);
 };
 
-module.exports = { findByUser, countUnread, insert, markRead, markAllRead };
+module.exports = { findByUser, findById, countUnread, insert, update, markRead, markAllRead };

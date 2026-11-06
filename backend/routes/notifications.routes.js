@@ -8,5 +8,7 @@ router.get('/', authenticate, asyncHandler(notificationsController.getAll));
 router.get('/unread-count', authenticate, asyncHandler(notificationsController.getUnreadCount));
 router.put('/:id/read', authenticate, asyncHandler(notificationsController.markRead));
 router.put('/read-all', authenticate, asyncHandler(notificationsController.markAllRead));
+router.post('/:id/revert', authenticate, asyncHandler(notificationsController.revertNotification));
+router.post('/:id/unrevert', authenticate, asyncHandler(notificationsController.unrevertNotification));
 
 module.exports = router;
