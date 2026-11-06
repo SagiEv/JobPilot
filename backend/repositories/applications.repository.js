@@ -16,6 +16,28 @@ const findById = async (userId, id, client) => {
         .single();
 };
 
+const findDuplicate = async (userId, { company, role_id, date }, client) => {
+    const cleanCompany = (company || '').trim();
+    const cleanRoleId = (role_id || '').trim();
+    if (!cleanCompany || !cleanRoleId) {
+        return { data: null, error: null };
+    }
+
+    let query = client
+        .from('applications')
+        .select('*')
+        .eq('user_id', userId)
+        .ilike('company', cleanCompany)
+        .ilike('role_id', cleanRoleId);
+
+    if (date) {
+        const dayStr = String(date).trim().slice(0, 10);
+        query = query.eq('date', dayStr);
+    }
+
+    return await query.limit(1).maybeSingle();
+};
+
 const create = async (userId, applicationData, client) => {
     return await client
         .from('applications')
@@ -52,6 +74,7 @@ const bulkInsert = async (userId, applications, client) => {
 module.exports = {
     findAll,
     findById,
+    findDuplicate,
     create,
     update,
     remove,

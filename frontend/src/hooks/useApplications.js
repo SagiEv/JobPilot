@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
@@ -195,8 +195,16 @@ export function useApplications() {
         setConflict(null);
     };
 
+    const isAddingRef = useRef(false);
+
     const addApplication = async (newApp) => {
-        return addApplicationMutation.mutateAsync(newApp);
+        if (isAddingRef.current || addApplicationMutation.isPending) return;
+        isAddingRef.current = true;
+        try {
+            return await addApplicationMutation.mutateAsync(newApp);
+        } finally {
+            isAddingRef.current = false;
+        }
     };
 
     const stats = useMemo(() => ({
@@ -244,5 +252,5 @@ export function useApplications() {
         updateApplicationMutation.mutate({ id, newStatus });
     };
 
-    return { applications, stats, status, loading, handleUpload, updateAppStatus, updateApplication, addApplication, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting };
+    return { applications, stats, status, loading, isAdding: addApplicationMutation.isPending, handleUpload, updateAppStatus, updateApplication, addApplication, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting };
 }
