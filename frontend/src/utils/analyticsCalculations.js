@@ -8,18 +8,30 @@ const NORM_OFFER_STATUSES = ['offer', 'hired', 'accepted'];
  * Checks if an application has reached an interview stage based on its fields,
  * attached stage, status, or associated interview records.
  */
-export const hasAppReachedInterview = (app, interviewAppIds, interviewCompanies, historicalAppIds) => {
+export const hasAppReachedInterview = (
+    app,
+    interviewAppIds,
+    interviewCompanies,
+    historicalAppIds,
+    eventInterviewAppIds = null,
+    allowCompanyFallback = true
+) => {
     if (!app) return false;
     
     // Check direct interview ID linkage
     if (app.id && interviewAppIds?.has(app.id)) return true;
 
+    // Check scheduled interview events linkage from events table
+    if (app.id && eventInterviewAppIds?.has(app.id)) return true;
+
     // Check transition history linkage from application_history
     if (app.id && historicalAppIds?.has(app.id)) return true;
 
-    // Check company name in interviews table
-    const compName = (app.COMPANY || app.company || '').trim().toLowerCase();
-    if (compName && interviewCompanies?.has(compName)) return true;
+    // Check company name in interviews table (only if company fallback is enabled)
+    if (allowCompanyFallback) {
+        const compName = (app.COMPANY || app.company || '').trim().toLowerCase();
+        if (compName && interviewCompanies?.has(compName)) return true;
+    }
 
     const status = (app.STATUS || app.status || '').trim().toLowerCase();
     const stage = (app.STAGE || app.stage || '').trim().toLowerCase();
@@ -43,7 +55,12 @@ export const hasAppReachedInterview = (app, interviewAppIds, interviewCompanies,
  * @param {Array} interviews - List of interview records from the interviews table
  * @returns {Object} Comprehensive company funnel metrics
  */
-export const calculateCompanyFunnelMetrics = (applications = [], interviews = [], historicalInterviewAppIds = []) => {
+export const calculateCompanyFunnelMetrics = (
+    applications = [],
+    interviews = [],
+    historicalInterviewAppIds = [],
+    eventInterviewAppIds = []
+) => {
     const interviewAppIds = new Set(
         (interviews || []).map(i => i.application_id).filter(Boolean)
     );
@@ -51,6 +68,7 @@ export const calculateCompanyFunnelMetrics = (applications = [], interviews = []
         (interviews || []).map(i => (i.company || '').trim().toLowerCase()).filter(Boolean)
     );
     const historicalAppIds = new Set(historicalInterviewAppIds || []);
+    const eventAppIds = new Set(eventInterviewAppIds || []);
 
     // Group applications by normalized company name
     const companyMap = new Map();
@@ -81,7 +99,7 @@ export const calculateCompanyFunnelMetrics = (applications = [], interviews = []
 
     for (const [, { displayName, apps }] of companyMap.entries()) {
         const reachedInterview = apps.some(app =>
-            hasAppReachedInterview(app, interviewAppIds, interviewCompanies, historicalAppIds)
+            hasAppReachedInterview(app, interviewAppIds, interviewCompanies, historicalAppIds, eventAppIds, true)
         );
 
         if (reachedInterview) {
@@ -179,10 +197,17 @@ export const calculateCompanyFunnelMetrics = (applications = [], interviews = []
  * @param {Array} historicalInterviewAppIds - App IDs that had interview transitions
  * @returns {Object} Monthly volume breakdown
  */
-export const calculateMonthlyVolume = (applications = [], interviews = [], historicalInterviewAppIds = []) => {
+export const calculateMonthlyVolume = (
+    applications = [],
+    interviews = [],
+    historicalInterviewAppIds = [],
+    eventInterviewAppIds = [],
+    events = []
+) => {
     const interviewAppIds = new Set((interviews || []).map(i => i.application_id).filter(Boolean));
     const interviewCompanies = new Set((interviews || []).map(i => (i.company || '').trim().toLowerCase()).filter(Boolean));
     const historicalAppIds = new Set(historicalInterviewAppIds || []);
+    const eventAppIds = new Set(eventInterviewAppIds || []);
 
     const currentYear = new Date().getFullYear().toString();
     const yearCompaniesSet = new Set();
@@ -198,6 +223,13 @@ export const calculateMonthlyVolume = (applications = [], interviews = [], histo
     (interviews || []).forEach(i => {
         const d = (i.date || '').substring(0, 7);
         if (d && /^\d{4}-\d{2}$/.test(d)) monthSet.add(d);
+    });
+
+    (events || []).forEach(e => {
+        if (e.type === 'interview') {
+            const d = (e.date || '').substring(0, 7);
+            if (d && /^\d{4}-\d{2}$/.test(d)) monthSet.add(d);
+        }
     });
 
     const months = Array.from(monthSet).sort().reverse().slice(0, 8);
@@ -234,8 +266,24 @@ export const calculateMonthlyVolume = (applications = [], interviews = [], histo
     });
 
     // Also check applications active/interviewed in each month
+    (events || []).forEach(e => {
+        if (e.type === 'interview') {
+            const m = (e.date || '').substring(0, 7);
+            const comp = (e.company || '').trim();
+            if (comp) {
+                const key = comp.toLowerCase();
+                if (m && monthlyInterviews[m]) {
+                    monthlyInterviews[m].set(key, comp);
+                }
+                if (m && m.startsWith(currentYear)) {
+                    yearCompaniesSet.add(key);
+                }
+            }
+        }
+    });
+
     (applications || []).forEach(a => {
-        const isInterviewed = hasAppReachedInterview(a, interviewAppIds, interviewCompanies, historicalAppIds);
+        const isInterviewed = hasAppReachedInterview(a, interviewAppIds, interviewCompanies, historicalAppIds, eventAppIds, true);
         if (!isInterviewed) return;
 
         const comp = (a.COMPANY || a.company || '').trim();
@@ -284,13 +332,19 @@ export const calculateMonthlyVolume = (applications = [], interviews = [], histo
  * @param {Array} historicalInterviewAppIds - App IDs that had interview transitions
  * @returns {Object} Referral impact analytics
  */
-export const calculateReferralMetrics = (applications = [], interviews = [], historicalInterviewAppIds = []) => {
+export const calculateReferralMetrics = (
+    applications = [],
+    interviews = [],
+    historicalInterviewAppIds = [],
+    eventInterviewAppIds = []
+) => {
     const interviewAppIds = new Set((interviews || []).map(i => i.application_id).filter(Boolean));
     const interviewCompanies = new Set((interviews || []).map(i => (i.company || '').trim().toLowerCase()).filter(Boolean));
     const historicalAppIds = new Set(historicalInterviewAppIds || []);
+    const eventAppIds = new Set(eventInterviewAppIds || []);
 
     const isReferralApp = (app) => {
-        const ref = (app.REFERAL || app.referal || '').trim();
+        const ref = (app.REFERAL || app.referal || app.referral || app.REFERRAL || '').trim();
         if (!ref) return false;
         const lower = ref.toLowerCase();
         return !['none', 'no', 'n/a', 'false', '0', '-'].includes(lower);
@@ -326,7 +380,15 @@ export const calculateReferralMetrics = (applications = [], interviews = [], his
             totalDirectCount++;
         }
 
-        const reached = hasAppReachedInterview(app, interviewAppIds, interviewCompanies, historicalAppIds);
+        // At application level, do NOT use loose company fallback across sibling roles
+        const reached = hasAppReachedInterview(
+            app,
+            interviewAppIds,
+            interviewCompanies,
+            historicalAppIds,
+            eventAppIds,
+            false // allowCompanyFallback = false
+        );
         if (!reached) return;
 
         const company = (app.COMPANY || app.company || '').trim();

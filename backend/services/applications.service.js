@@ -2,6 +2,7 @@ const applicationRepository = require('../repositories/applications.repository')
 const AppError = require('../utils/AppError');
 const applicationHistoryRepo = require('../repositories/applicationHistory.repository');
 const applicationHistoryService = require('./applicationHistory.service');
+const eventsRepository = require('../repositories/events.repository');
 
 const getAllApplications = async (userId, supabaseClient) => {
     const { data, error } = await applicationRepository.findAll(userId, supabaseClient);
@@ -281,6 +282,14 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
 
     if (histError) throw new AppError(histError.message, histError.status || 400, histError.code);
 
+    // Fetch user's scheduled events (to account for interviews logged in events table)
+    const { data: events } = await eventsRepository.findAll(userId, supabaseClient);
+    const eventInterviewAppIds = new Set(
+        (events || [])
+            .filter(e => e.type === 'interview' && e.application_id)
+            .map(e => e.application_id)
+    );
+
     // Helper to calculate days diff
     const calcDays = (start, end) => Math.ceil(Math.abs(new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
 
@@ -312,14 +321,26 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
             return s === 'offer' || s === 'hired' || s === 'accepted';
         });
 
+        const hasEventInterview = eventInterviewAppIds.has(appId);
         const appStatus = (app?.status || '').toLowerCase();
         const appStage = (app?.stage || '').toLowerCase();
         const hadInterview = Boolean(
             firstInterview || 
+            hasEventInterview ||
             appStatus.includes('interview') || 
             appStatus === 'offer' || 
             (appStage && appStage !== 'applied' && appStage !== 'none')
         );
+
+        if (!firstInterview && hasEventInterview) {
+            const earliestEventInterview = (events || [])
+                .filter(e => e.application_id === appId && e.type === 'interview' && e.date)
+                .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+            if (earliestEventInterview && firstDate) {
+                metrics.timeToInterview.totalDays += calcDays(firstDate, earliestEventInterview.date);
+                metrics.timeToInterview.count++;
+            }
+        }
 
         if (firstReject) {
             metrics.timeToReject.totalDays += calcDays(firstDate, firstReject.event_date);
@@ -390,16 +411,17 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
         count: metric.count
     });
 
-    const historicalInterviewAppIds = Array.from(new Set(
-        (history || [])
+    const historicalInterviewAppIds = Array.from(new Set([
+        ...(history || [])
             .filter(h => 
                 h.new_status?.toLowerCase() === 'interviewing' || 
                 h.event_type === 'Interview' || 
                 h.interview_id != null
             )
             .map(h => h.application_id)
-            .filter(Boolean)
-    ));
+            .filter(Boolean),
+        ...Array.from(eventInterviewAppIds)
+    ]));
 
     return {
         timeToReject: formatMetric(metrics.timeToReject),

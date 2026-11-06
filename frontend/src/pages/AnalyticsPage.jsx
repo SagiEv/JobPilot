@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 import { useApplications } from '../hooks/useApplications';
 import { useInterviews } from '../hooks/useInterviews';
+import { useEvents } from '../hooks/useEvents';
 import { calculateCompanyFunnelMetrics, calculateMonthlyVolume, calculateReferralMetrics } from '../utils/analyticsCalculations';
 import PageLoader from '../components/PageLoader';
 
@@ -49,6 +50,7 @@ const IconStar    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="
 const AnalyticsPage = () => {
     const { applications = [], loading: appLoading } = useApplications();
     const { interviews = [], loading: interviewsLoading } = useInterviews();
+    const { events = [], loading: eventsLoading } = useEvents();
     const [funnelView, setFunnelView] = useState('company');
     const [expandedCategory, setExpandedCategory] = useState(null);
     
@@ -60,19 +62,25 @@ const AnalyticsPage = () => {
         }
     });
 
-    const loading = appLoading || metricsLoading || interviewsLoading;
+    const loading = appLoading || metricsLoading || interviewsLoading || eventsLoading;
+
+    const eventInterviewAppIds = useMemo(() => {
+        return (events || [])
+            .filter(e => e.type === 'interview' && e.application_id)
+            .map(e => e.application_id);
+    }, [events]);
 
     const companyMetrics = useMemo(() => {
-        return calculateCompanyFunnelMetrics(applications, interviews, metrics?.historicalInterviewAppIds);
-    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+        return calculateCompanyFunnelMetrics(applications, interviews, metrics?.historicalInterviewAppIds, eventInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds, eventInterviewAppIds]);
 
     const monthlyData = useMemo(() => {
-        return calculateMonthlyVolume(applications, interviews, metrics?.historicalInterviewAppIds);
-    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+        return calculateMonthlyVolume(applications, interviews, metrics?.historicalInterviewAppIds, eventInterviewAppIds, events);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds, eventInterviewAppIds, events]);
 
     const referralMetrics = useMemo(() => {
-        return calculateReferralMetrics(applications, interviews, metrics?.historicalInterviewAppIds);
-    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+        return calculateReferralMetrics(applications, interviews, metrics?.historicalInterviewAppIds, eventInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds, eventInterviewAppIds]);
 
     const an = useMemo(() => {
         const now = new Date();

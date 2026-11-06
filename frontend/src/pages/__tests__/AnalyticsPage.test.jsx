@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AnalyticsPage from '../AnalyticsPage';
 import { useApplications } from '../../hooks/useApplications';
 import { useInterviews } from '../../hooks/useInterviews';
+import { useEvents } from '../../hooks/useEvents';
 
 vi.mock('@tanstack/react-query', () => ({
     useQuery: vi.fn().mockReturnValue({
@@ -24,6 +25,10 @@ vi.mock('../../hooks/useInterviews', () => ({
     useInterviews: vi.fn().mockReturnValue({ interviews: [], loading: false })
 }));
 
+vi.mock('../../hooks/useEvents', () => ({
+    useEvents: vi.fn().mockReturnValue({ events: [], loading: false })
+}));
+
 // Mock ResizeObserver for Recharts / D3 inside AnalyticsPage
 global.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -35,6 +40,7 @@ describe('AnalyticsPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         useInterviews.mockReturnValue({ interviews: [], loading: false });
+        useEvents.mockReturnValue({ events: [], loading: false });
     });
 
     it('renders loader when loading', () => {

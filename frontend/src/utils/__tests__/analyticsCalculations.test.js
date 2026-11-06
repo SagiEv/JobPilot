@@ -31,9 +31,19 @@ describe('analyticsCalculations', () => {
             expect(hasAppReachedInterview({ id: 202, STATUS: 'Rejected', STAGE: '' }, null, null, historyAppIds)).toBe(true);
         });
 
-        it('returns true if company is in interviewCompanies', () => {
+        it('returns true if company is in interviewCompanies and allowCompanyFallback is true', () => {
             const companies = new Set(['google']);
-            expect(hasAppReachedInterview({ COMPANY: 'Google', STATUS: 'Rejected' }, null, companies)).toBe(true);
+            expect(hasAppReachedInterview({ COMPANY: 'Google', STATUS: 'Rejected' }, null, companies, null, null, true)).toBe(true);
+        });
+
+        it('returns false if company is in interviewCompanies but allowCompanyFallback is false', () => {
+            const companies = new Set(['google']);
+            expect(hasAppReachedInterview({ COMPANY: 'Google', STATUS: 'Rejected' }, null, companies, null, null, false)).toBe(false);
+        });
+
+        it('returns true if application ID is in eventInterviewAppIds', () => {
+            const eventAppIds = new Set([359]);
+            expect(hasAppReachedInterview({ id: 359, STATUS: 'Rejected' }, null, null, null, eventAppIds)).toBe(true);
         });
 
         it('returns false for plain applied or rejected without interview', () => {
@@ -187,6 +197,36 @@ describe('analyticsCalculations', () => {
 
             // Lift: 100 / 33.3 = 3.0x
             expect(res.lift).toBe(3.0);
+        });
+
+        it('does not falsely mark direct sibling roles as interviewed when an unlinked company interview exists', () => {
+            const apps = [
+                { id: 26, COMPANY: 'JFrog', ROLE_ID: 'Junior Software Engineer', REFERAL: 'Oren', STATUS: 'Applied', STAGE: '' },
+                { id: 8, COMPANY: 'JFrog', ROLE_ID: 'automation', REFERAL: '', STATUS: 'Rejected', STAGE: '' }
+            ];
+            // Interview linked to App 26
+            const interviews = [
+                { id: 5, company: 'JFrog', application_id: 26 }
+            ];
+
+            const res = calculateReferralMetrics(apps, interviews, []);
+            expect(res.referred.interviewApps.length).toBe(1);
+            expect(res.referred.interviewApps[0].role).toBe('Junior Software Engineer');
+
+            // Automation never interviewed, must NOT appear in direct interviewApps
+            expect(res.direct.interviewApps.length).toBe(0);
+        });
+
+        it('includes referred applications that reached interview via events table', () => {
+            const apps = [
+                { id: 359, COMPANY: 'Upwind', ROLE_ID: 'Junior Software Engineer', REFERAL: 'Eden', STATUS: 'Rejected', STAGE: '' }
+            ];
+            const eventInterviewAppIds = [359];
+
+            const res = calculateReferralMetrics(apps, [], [], eventInterviewAppIds);
+            expect(res.referred.interviewApps.length).toBe(1);
+            expect(res.referred.interviewApps[0].company).toBe('Upwind');
+            expect(res.refInterviewRate).toBe(100.0);
         });
     });
 });
