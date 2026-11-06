@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
 import { useApplications } from '../hooks/useApplications';
+import { useInterviews } from '../hooks/useInterviews';
+import { calculateCompanyFunnelMetrics, calculateMonthlyVolume, calculateReferralMetrics } from '../utils/analyticsCalculations';
 import PageLoader from '../components/PageLoader';
 
 /* ── Tiny SVG ring meter ──────────────────────────────────────────────────── */
@@ -45,7 +47,10 @@ const IconTrend   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="
 const IconStar    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
 
 const AnalyticsPage = () => {
-    const { applications, loading: appLoading } = useApplications();
+    const { applications = [], loading: appLoading } = useApplications();
+    const { interviews = [], loading: interviewsLoading } = useInterviews();
+    const [funnelView, setFunnelView] = useState('company');
+    const [expandedCategory, setExpandedCategory] = useState(null);
     
     const { data: metrics, isLoading: metricsLoading } = useQuery({
         queryKey: ['analytics', 'metrics'],
@@ -55,7 +60,19 @@ const AnalyticsPage = () => {
         }
     });
 
-    const loading = appLoading || metricsLoading;
+    const loading = appLoading || metricsLoading || interviewsLoading;
+
+    const companyMetrics = useMemo(() => {
+        return calculateCompanyFunnelMetrics(applications, interviews, metrics?.historicalInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+
+    const monthlyData = useMemo(() => {
+        return calculateMonthlyVolume(applications, interviews, metrics?.historicalInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
+
+    const referralMetrics = useMemo(() => {
+        return calculateReferralMetrics(applications, interviews, metrics?.historicalInterviewAppIds);
+    }, [applications, interviews, metrics?.historicalInterviewAppIds]);
 
     const an = useMemo(() => {
         const now = new Date();
@@ -210,26 +227,33 @@ const AnalyticsPage = () => {
                 />
             </div>
             
-            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                 <KpiCard
                     icon={<span style={{ fontSize: '18px' }}>⏱️</span>}
-                    label="Avg. Time to Interview"
+                    label="Time to 1st Interview"
                     value={metrics?.timeToInterview?.count > 0 ? `${metrics.timeToInterview.averageDays} days` : 'N/A'}
                     sub={`Based on ${metrics?.timeToInterview?.count || 0} interviews`}
                     accent="#d97706"
                 />
                 <KpiCard
-                    icon={<span style={{ fontSize: '18px' }}>🚀</span>}
-                    label="HR to Technical"
-                    value={metrics?.hrToTechnical?.count > 0 ? `${metrics.hrToTechnical.averageDays} days` : 'N/A'}
-                    sub={`Based on ${metrics?.hrToTechnical?.count || 0} transitions`}
+                    icon={<span style={{ fontSize: '18px' }}>🔄</span>}
+                    label="Avg. Interview Cycle"
+                    value={metrics?.interviewCycle?.count > 0 ? `${metrics.interviewCycle.averageDays} days` : 'N/A'}
+                    sub={metrics?.interviewCycle?.count > 0 ? `Apply to decision (${metrics.interviewCycle.count} loops)` : 'No completed loops'}
                     accent="#8b5cf6"
                 />
                 <KpiCard
-                    icon={<span style={{ fontSize: '18px' }}>🏆</span>}
-                    label="Technical to Final"
-                    value={metrics?.technicalToFinal?.count > 0 ? `${metrics.technicalToFinal.averageDays} days` : 'N/A'}
-                    sub={`Based on ${metrics?.technicalToFinal?.count || 0} transitions`}
+                    icon={<span style={{ fontSize: '18px' }}>⏳</span>}
+                    label="Longest Interview Cycle"
+                    value={metrics?.longestInterviewCycle?.days > 0 ? `${metrics.longestInterviewCycle.days} days` : 'N/A'}
+                    sub={metrics?.longestInterviewCycle?.company ? `${metrics.longestInterviewCycle.company} • ${metrics.longestInterviewCycle.outcome}` : 'No loops completed'}
+                    accent="#ec4899"
+                />
+                <KpiCard
+                    icon={<span style={{ fontSize: '18px' }}>🏢</span>}
+                    label="Interviewed This Year"
+                    value={`${monthlyData.companiesInterviewedThisYear} companies`}
+                    sub={`in ${new Date().getFullYear()}`}
                     accent="#10b981"
                 />
                 <KpiCard
@@ -242,78 +266,354 @@ const AnalyticsPage = () => {
             </div>
 
             {/* ── Conversion funnel ─────────────────────────────────── */}
-            <h3 className="subsection-title">Conversion Funnel</h3>
-            <div className="an-funnel-row">
-
-                <div className="an-funnel-card">
-                    <div className="an-ring-wrap">
-                        <RingMeter pct={an.rates.interview} color="#d97706" />
-                        <span className="an-ring-pct">{an.rates.interview}%</span>
-                    </div>
-                    <div className="an-funnel-label">Interview Rate</div>
-                    <div className="an-funnel-count">{an.counts.interviews} applications</div>
+            <div className="an-funnel-header-row">
+                <div>
+                    <h3 className="subsection-title" style={{ margin: 0 }}>Conversion Funnel</h3>
+                    <p className="an-funnel-subtitle">
+                        {funnelView === 'company'
+                            ? 'Overall company progression across your entire search'
+                            : 'Current status snapshot across all submitted applications'}
+                    </p>
                 </div>
-
-                <div className="an-funnel-sep">→</div>
-
-                <div className="an-funnel-card">
-                    <div className="an-ring-wrap">
-                        <RingMeter pct={an.rates.offer} color="#0f6e56" />
-                        <span className="an-ring-pct">{an.rates.offer}%</span>
-                    </div>
-                    <div className="an-funnel-label">Offer Rate</div>
-                    <div className="an-funnel-count">{an.counts.offers} applications</div>
+                <div className="an-toggle-group">
+                    <button
+                        type="button"
+                        className={`an-toggle-btn ${funnelView === 'company' ? 'active' : ''}`}
+                        onClick={() => setFunnelView('company')}
+                    >
+                        Overall (By Company)
+                    </button>
+                    <button
+                        type="button"
+                        className={`an-toggle-btn ${funnelView === 'snapshot' ? 'active' : ''}`}
+                        onClick={() => setFunnelView('snapshot')}
+                    >
+                        Current Snapshot (By App)
+                    </button>
                 </div>
-
-                <div className="an-funnel-sep">→</div>
-
-                <div className="an-funnel-card">
-                    <div className="an-ring-wrap">
-                        <RingMeter pct={an.rates.rejected} color="#a32d2d" />
-                        <span className="an-ring-pct">{an.rates.rejected}%</span>
-                    </div>
-                    <div className="an-funnel-label">Rejection Rate</div>
-                    <div className="an-funnel-count">{an.counts.rejected} applications</div>
-                </div>
-
-                <div className="an-funnel-sep">·</div>
-
-                <div className="an-funnel-card">
-                    <div className="an-ring-wrap">
-                        <RingMeter pct={an.rates.pending} color="#9499ae" />
-                        <span className="an-ring-pct">{an.rates.pending}%</span>
-                    </div>
-                    <div className="an-funnel-label">Awaiting Reply</div>
-                    <div className="an-funnel-count">{an.counts.pending} applications</div>
-                </div>
-
             </div>
 
+            {funnelView === 'snapshot' ? (
+                <div className="an-funnel-row">
+                    <div className="an-funnel-card">
+                        <div className="an-ring-wrap">
+                            <RingMeter pct={an.rates.interview} color="#d97706" />
+                            <span className="an-ring-pct">{an.rates.interview}%</span>
+                        </div>
+                        <div className="an-funnel-label">Interview Rate</div>
+                        <div className="an-funnel-count">{an.counts.interviews} applications</div>
+                    </div>
+
+                    <div className="an-funnel-sep">→</div>
+
+                    <div className="an-funnel-card">
+                        <div className="an-ring-wrap">
+                            <RingMeter pct={an.rates.offer} color="#0f6e56" />
+                            <span className="an-ring-pct">{an.rates.offer}%</span>
+                        </div>
+                        <div className="an-funnel-label">Offer Rate</div>
+                        <div className="an-funnel-count">{an.counts.offers} applications</div>
+                    </div>
+
+                    <div className="an-funnel-sep">→</div>
+
+                    <div className="an-funnel-card">
+                        <div className="an-ring-wrap">
+                            <RingMeter pct={an.rates.rejected} color="#a32d2d" />
+                            <span className="an-ring-pct">{an.rates.rejected}%</span>
+                        </div>
+                        <div className="an-funnel-label">Rejection Rate</div>
+                        <div className="an-funnel-count">{an.counts.rejected} applications</div>
+                    </div>
+
+                    <div className="an-funnel-sep">·</div>
+
+                    <div className="an-funnel-card">
+                        <div className="an-ring-wrap">
+                            <RingMeter pct={an.rates.pending} color="#9499ae" />
+                            <span className="an-ring-pct">{an.rates.pending}%</span>
+                        </div>
+                        <div className="an-funnel-label">Awaiting Reply</div>
+                        <div className="an-funnel-count">{an.counts.pending} applications</div>
+                    </div>
+                </div>
+            ) : (
+                <div className="an-company-funnel-container">
+                    <div className="an-funnel-row" style={{ paddingBottom: '16px' }}>
+                        <div className="an-funnel-card">
+                            <div className="an-ring-wrap">
+                                <RingMeter pct={100} color="#1a6cf5" />
+                                <span className="an-ring-pct">100%</span>
+                            </div>
+                            <div className="an-funnel-label">Total Applied</div>
+                            <div className="an-funnel-count">{companyMetrics.totalCompanies} companies</div>
+                        </div>
+
+                        <div className="an-funnel-sep">→</div>
+
+                        <div className="an-funnel-card">
+                            <div className="an-ring-wrap">
+                                <RingMeter pct={companyMetrics.interviewRate} color="#d97706" />
+                                <span className="an-ring-pct">{companyMetrics.interviewRate}%</span>
+                            </div>
+                            <div className="an-funnel-label">Interview Rate</div>
+                            <div className="an-funnel-count">{companyMetrics.interviewedCount} companies</div>
+                        </div>
+
+                        <div className="an-funnel-sep">→</div>
+
+                        <div className="an-funnel-card">
+                            <div className="an-ring-wrap">
+                                <RingMeter pct={companyMetrics.interviewed.offer.rateOfInterviewed} color="#0f6e56" />
+                                <span className="an-ring-pct">{companyMetrics.interviewed.offer.rateOfInterviewed}%</span>
+                            </div>
+                            <div className="an-funnel-label">Offer Conversion</div>
+                            <div className="an-funnel-count">{companyMetrics.interviewed.offer.count} of {companyMetrics.interviewedCount || 0} interviewed</div>
+                        </div>
+                    </div>
+
+                    <div className="an-breakdown-grid">
+                        {/* Interviewed Companies Section */}
+                        <div className="card an-status-card" style={{ padding: '18px 20px', margin: 0 }}>
+                            <div className="an-breakdown-card-header">
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
+                                        Companies Reached Interview ({companyMetrics.interviewedCount})
+                                    </h4>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        All companies where you had at least 1 interview
+                                    </span>
+                                </div>
+                                <span className="badge" style={{ background: 'rgba(217, 119, 6, 0.1)', color: '#d97706', fontWeight: 600 }}>
+                                    {companyMetrics.interviewRate}% of total
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
+                                {/* Active */}
+                                <div 
+                                    className="an-outcome-item"
+                                    onClick={() => setExpandedCategory(expandedCategory === 'active' ? null : 'active')}
+                                >
+                                    <div className="an-outcome-row">
+                                        <span className="an-status-name" style={{ color: '#d97706', fontWeight: 600 }}>
+                                            🎤 Still Interviewing
+                                        </span>
+                                        <div className="an-status-bar-bg">
+                                            <div 
+                                                className="an-status-bar-fill" 
+                                                style={{ width: `${companyMetrics.interviewed.active.rateOfInterviewed}%`, background: '#d97706' }} 
+                                            />
+                                        </div>
+                                        <span className="an-status-meta">
+                                            {companyMetrics.interviewed.active.count} <span className="an-status-pct">({companyMetrics.interviewed.active.rateOfInterviewed}%)</span>
+                                        </span>
+                                    </div>
+                                    {companyMetrics.interviewed.active.companies.length > 0 && (
+                                        <div className="an-company-chips">
+                                            {companyMetrics.interviewed.active.companies.map((c, i) => (
+                                                <span key={i} className="an-company-chip chip-active">{c}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Offers */}
+                                <div 
+                                    className="an-outcome-item"
+                                    onClick={() => setExpandedCategory(expandedCategory === 'offer' ? null : 'offer')}
+                                >
+                                    <div className="an-outcome-row">
+                                        <span className="an-status-name" style={{ color: 'var(--success-c)', fontWeight: 600 }}>
+                                            🏆 Received Offers
+                                        </span>
+                                        <div className="an-status-bar-bg">
+                                            <div 
+                                                className="an-status-bar-fill" 
+                                                style={{ width: `${companyMetrics.interviewed.offer.rateOfInterviewed}%`, background: 'var(--success-c)' }} 
+                                            />
+                                        </div>
+                                        <span className="an-status-meta">
+                                            {companyMetrics.interviewed.offer.count} <span className="an-status-pct">({companyMetrics.interviewed.offer.rateOfInterviewed}%)</span>
+                                        </span>
+                                    </div>
+                                    {companyMetrics.interviewed.offer.companies.length > 0 && (
+                                        <div className="an-company-chips">
+                                            {companyMetrics.interviewed.offer.companies.map((c, i) => (
+                                                <span key={i} className="an-company-chip chip-offer">{c}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Rejected post-interview */}
+                                <div 
+                                    className="an-outcome-item"
+                                    onClick={() => setExpandedCategory(expandedCategory === 'rejected-post' ? null : 'rejected-post')}
+                                >
+                                    <div className="an-outcome-row">
+                                        <span className="an-status-name" style={{ color: '#a32d2d', fontWeight: 600 }}>
+                                            🛑 Rejected Post-Interview
+                                        </span>
+                                        <div className="an-status-bar-bg">
+                                            <div 
+                                                className="an-status-bar-fill" 
+                                                style={{ width: `${companyMetrics.interviewed.rejected.rateOfInterviewed}%`, background: '#a32d2d' }} 
+                                            />
+                                        </div>
+                                        <span className="an-status-meta">
+                                            {companyMetrics.interviewed.rejected.count} <span className="an-status-pct">({companyMetrics.interviewed.rejected.rateOfInterviewed}%)</span>
+                                        </span>
+                                    </div>
+                                    {companyMetrics.interviewed.rejected.companies.length > 0 && (
+                                        <div className="an-company-chips">
+                                            {companyMetrics.interviewed.rejected.companies.map((c, i) => (
+                                                <span key={i} className="an-company-chip chip-rejected">{c}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Non-Interviewed Companies Section */}
+                        <div className="card an-status-card" style={{ padding: '18px 20px', margin: 0 }}>
+                            <div className="an-breakdown-card-header">
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
+                                        No Interview Reached ({companyMetrics.noInterviewCount})
+                                    </h4>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        Pre-interview stage applications
+                                    </span>
+                                </div>
+                                <span className="badge" style={{ background: 'rgba(100, 116, 139, 0.1)', color: '#64748b', fontWeight: 600 }}>
+                                    {companyMetrics.noInterviewRate}% of total
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
+                                {/* Awaiting Reply */}
+                                <div 
+                                    className="an-outcome-item"
+                                    onClick={() => setExpandedCategory(expandedCategory === 'pending' ? null : 'pending')}
+                                >
+                                    <div className="an-outcome-row">
+                                        <span className="an-status-name" style={{ color: '#64748b', fontWeight: 600 }}>
+                                            ⏳ Awaiting Reply
+                                        </span>
+                                        <div className="an-status-bar-bg">
+                                            <div 
+                                                className="an-status-bar-fill" 
+                                                style={{ width: `${companyMetrics.noInterview.pending.rateOfNoInterview}%`, background: '#9499ae' }} 
+                                            />
+                                        </div>
+                                        <span className="an-status-meta">
+                                            {companyMetrics.noInterview.pending.count} <span className="an-status-pct">({companyMetrics.noInterview.pending.rateOfNoInterview}%)</span>
+                                        </span>
+                                    </div>
+                                    {companyMetrics.noInterview.pending.companies.length > 0 && (
+                                        <div className="an-company-chips">
+                                            {companyMetrics.noInterview.pending.companies.map((c, i) => (
+                                                <span key={i} className="an-company-chip chip-pending">{c}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Screening Rejection */}
+                                <div 
+                                    className="an-outcome-item"
+                                    onClick={() => setExpandedCategory(expandedCategory === 'screening-reject' ? null : 'screening-reject')}
+                                >
+                                    <div className="an-outcome-row">
+                                        <span className="an-status-name" style={{ color: 'var(--danger-c)', fontWeight: 600 }}>
+                                            ❌ Rejected at CV / Screening
+                                        </span>
+                                        <div className="an-status-bar-bg">
+                                            <div 
+                                                className="an-status-bar-fill" 
+                                                style={{ width: `${companyMetrics.noInterview.rejected.rateOfNoInterview}%`, background: 'var(--danger-c)' }} 
+                                            />
+                                        </div>
+                                        <span className="an-status-meta">
+                                            {companyMetrics.noInterview.rejected.count} <span className="an-status-pct">({companyMetrics.noInterview.rejected.rateOfNoInterview}%)</span>
+                                        </span>
+                                    </div>
+                                    {companyMetrics.noInterview.rejected.companies.length > 0 && (
+                                        <div className="an-company-chips">
+                                            {companyMetrics.noInterview.rejected.companies.map((c, i) => (
+                                                <span key={i} className="an-company-chip chip-screening">{c}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Monthly bar chart ─────────────────────────────────── */}
-            <h3 className="subsection-title">Monthly Volume</h3>
+            <div className="an-chart-header" style={{ margin: '24px 22px 10px' }}>
+                <h3 className="subsection-title" style={{ margin: 0 }}>Monthly Volume</h3>
+                <div className="an-chart-legend">
+                    <span className="an-legend-item">
+                        <span className="an-legend-dot" style={{ background: 'var(--accent)' }}></span>
+                        Applications Applied
+                    </span>
+                    <span className="an-legend-item">
+                        <span className="an-legend-dot" style={{ background: '#d97706' }}></span>
+                        Companies Interviewed
+                    </span>
+                </div>
+            </div>
             <div className="card an-chart-card">
-                {an.months.length === 0 ? (
+                {monthlyData.months.length === 0 ? (
                     <div className="an-empty">No application data yet.</div>
                 ) : (
                     <div className="an-chart">
-                        {an.months.map((month, i) => {
-                            const count = an.monthlyGroups[month];
-                            const barPct = (count / an.maxMonth) * 100;
+                        {monthlyData.months.map((month, i) => {
+                            const applied = monthlyData.monthlyApplied[month] || 0;
+                            const interviewed = monthlyData.monthlyInterviewCounts[month] || 0;
+                            const appliedPct = (applied / monthlyData.maxVolume) * 100;
+                            const interviewedPct = (interviewed / monthlyData.maxVolume) * 100;
                             const isCurrentMonth = month === new Date().toISOString().substring(0, 7);
                             const [yr, mo] = month.split('-');
                             const label = new Date(+yr, +mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
+                            const interviewedCompaniesList = monthlyData.monthlyInterviewCompanies[month] || [];
+
                             return (
                                 <div key={month} className={`an-bar-item${isCurrentMonth ? ' an-bar-item--current' : ''}`}>
-                                    <div className="an-bar-track">
-                                        <div
-                                            className="an-bar-fill"
-                                            style={{
-                                                height: `${barPct}%`,
-                                                animationDelay: `${i * 60}ms`,
-                                            }}
-                                        />
+                                    <div className="an-bar-tooltip">
+                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{applied} applied</span>
+                                        <span style={{ color: '#d97706', fontWeight: 600 }}>{interviewed} interviewed</span>
                                     </div>
-                                    <div className="an-bar-count">{count}</div>
+                                    <div className="an-bar-pair">
+                                        {/* Applied Bar */}
+                                        <div className="an-bar-track--sm" title={`${applied} applied in ${label}`}>
+                                            <div
+                                                className="an-bar-fill an-bar-fill--applied"
+                                                style={{
+                                                    height: `${appliedPct}%`,
+                                                    animationDelay: `${i * 60}ms`,
+                                                }}
+                                            />
+                                        </div>
+                                        {/* Interviewed Companies Bar */}
+                                        <div 
+                                            className="an-bar-track--sm" 
+                                            title={`${interviewed} companies interviewed in ${label}${interviewedCompaniesList.length ? `: ${interviewedCompaniesList.join(', ')}` : ''}`}
+                                        >
+                                            <div
+                                                className="an-bar-fill an-bar-fill--interviewed"
+                                                style={{
+                                                    height: `${interviewedPct}%`,
+                                                    animationDelay: `${i * 60 + 30}ms`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="an-bar-label">{label}</div>
                                 </div>
                             );
@@ -402,6 +702,123 @@ const AnalyticsPage = () => {
                 </>
             )}
 
+            {/* ── Referral Impact ────────────────────────────────────── */}
+            {applications.length > 0 && (
+                <div className="an-referral-section">
+                    <h3 className="subsection-title" style={{ marginTop: '28px' }}>Referral Impact</h3>
+                    <p style={{ margin: '4px 0 16px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                        Comparing application success rates for roles with vs without referrals
+                    </p>
+
+                    <div className="an-kpi-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>👥</span>}
+                            label="Referred Interview Share"
+                            value={`${referralMetrics.refShareOfInterviews}%`}
+                            sub={`${referralMetrics.referred.interviewApps.length} of ${referralMetrics.totalInterviewedApps} interviewed applications`}
+                            accent="#8b5cf6"
+                        />
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>🚀</span>}
+                            label="Interview Rate (Ref vs Direct)"
+                            value={`${referralMetrics.refInterviewRate}% vs ${referralMetrics.directInterviewRate}%`}
+                            sub={`${referralMetrics.referred.interviewApps.length}/${referralMetrics.totalReferredCount} ref vs ${referralMetrics.direct.interviewApps.length}/${referralMetrics.totalDirectCount} direct`}
+                            accent="#10b981"
+                        />
+                        <KpiCard
+                            icon={<span style={{ fontSize: '18px' }}>🏆</span>}
+                            label="Referral Advantage"
+                            value={referralMetrics.lift !== null ? `${referralMetrics.lift}× Higher` : 'N/A'}
+                            sub={referralMetrics.lift !== null ? 'Higher interview conversion with referral' : 'Insufficient referral data'}
+                            accent="#f59e0b"
+                        />
+                    </div>
+
+                    <div className="an-referral-grid">
+                        {/* With Referral Cohort */}
+                        <div className="card an-status-card an-referral-cohort">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 600, color: '#8b5cf6', fontSize: '14px' }}>
+                                    With Referral ({referralMetrics.referred.interviewApps.length} applications)
+                                </span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    {referralMetrics.refShareOfInterviews}% of interviews
+                                </span>
+                            </div>
+                            <div className="an-status-bar-bg" style={{ height: '6px' }}>
+                                <div
+                                    className="an-status-bar-fill"
+                                    style={{ width: `${referralMetrics.refShareOfInterviews}%`, background: '#8b5cf6' }}
+                                />
+                            </div>
+
+                            <div className="an-cohort-stats-row">
+                                <span>
+                                    <strong>{referralMetrics.referred.outcomes.offers.count}</strong> Offers ({referralMetrics.referred.outcomes.offers.pct}%) •{' '}
+                                    <strong>{referralMetrics.referred.outcomes.active.count}</strong> Interviewing ({referralMetrics.referred.outcomes.active.pct}%) •{' '}
+                                    <strong>{referralMetrics.referred.outcomes.rejected.count}</strong> Rejected ({referralMetrics.referred.outcomes.rejected.pct}%)
+                                </span>
+                                <span>Avg. Fit: {referralMetrics.referred.avgFit !== null ? `${referralMetrics.referred.avgFit}%` : 'N/A'}</span>
+                            </div>
+
+                            <div className="an-company-chips" style={{ marginTop: '8px' }}>
+                                {referralMetrics.referred.interviewApps.length > 0 ? (
+                                    referralMetrics.referred.interviewApps.map((app, idx) => (
+                                        <span key={app.id || idx} className="an-company-chip chip-ref-app">
+                                            {app.label}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        No referred applications reached interviews
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Direct / No Referral Cohort */}
+                        <div className="card an-status-card an-referral-cohort">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '14px' }}>
+                                    Direct / No Referral ({referralMetrics.direct.interviewApps.length} applications)
+                                </span>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                    {referralMetrics.directShareOfInterviews}% of interviews
+                                </span>
+                            </div>
+                            <div className="an-status-bar-bg" style={{ height: '6px' }}>
+                                <div
+                                    className="an-status-bar-fill"
+                                    style={{ width: `${referralMetrics.directShareOfInterviews}%`, background: '#64748b' }}
+                                />
+                            </div>
+
+                            <div className="an-cohort-stats-row">
+                                <span>
+                                    <strong>{referralMetrics.direct.outcomes.offers.count}</strong> Offers ({referralMetrics.direct.outcomes.offers.pct}%) •{' '}
+                                    <strong>{referralMetrics.direct.outcomes.active.count}</strong> Interviewing ({referralMetrics.direct.outcomes.active.pct}%) •{' '}
+                                    <strong>{referralMetrics.direct.outcomes.rejected.count}</strong> Rejected ({referralMetrics.direct.outcomes.rejected.pct}%)
+                                </span>
+                                <span>Avg. Fit: {referralMetrics.direct.avgFit !== null ? `${referralMetrics.direct.avgFit}%` : 'N/A'}</span>
+                            </div>
+
+                            <div className="an-company-chips" style={{ marginTop: '8px' }}>
+                                {referralMetrics.direct.interviewApps.length > 0 ? (
+                                    referralMetrics.direct.interviewApps.map((app, idx) => (
+                                        <span key={app.id || idx} className="an-company-chip chip-direct-app">
+                                            {app.label}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        No direct applications reached interviews
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
