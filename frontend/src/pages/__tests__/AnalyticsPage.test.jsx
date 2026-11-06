@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AnalyticsPage from '../AnalyticsPage';
 import { useApplications } from '../../hooks/useApplications';
+import { useInterviews } from '../../hooks/useInterviews';
 
 vi.mock('@tanstack/react-query', () => ({
     useQuery: vi.fn().mockReturnValue({ data: {}, isLoading: false })
@@ -9,6 +10,10 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('../../hooks/useApplications', () => ({
     useApplications: vi.fn()
+}));
+
+vi.mock('../../hooks/useInterviews', () => ({
+    useInterviews: vi.fn().mockReturnValue({ interviews: [], loading: false })
 }));
 
 // Mock ResizeObserver for Recharts / D3 inside AnalyticsPage
@@ -21,6 +26,7 @@ global.ResizeObserver = class ResizeObserver {
 describe('AnalyticsPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        useInterviews.mockReturnValue({ interviews: [], loading: false });
     });
 
     it('renders loader when loading', () => {
@@ -60,5 +66,50 @@ describe('AnalyticsPage', () => {
         // Check for section headers
         expect(screen.getByText('Conversion Funnel')).toBeInTheDocument();
         expect(screen.getByText('Monthly Volume')).toBeInTheDocument();
+    });
+
+    it('renders overall company funnel with deduplication and interview outcomes', () => {
+        useApplications.mockReturnValue({
+            applications: [
+                // Google: 2 apps, 1 reached interview and is still interviewing
+                { id: '1', COMPANY: 'Google', ROLE_ID: 'FE', STATUS: 'Interviewing', STAGE: 'Technical Interview', DATE: '2023-01-01' },
+                { id: '2', COMPANY: 'Google', ROLE_ID: 'BE', STATUS: 'Rejected', STAGE: '', DATE: '2023-01-02' },
+                // Stripe: reached interview, got rejected after interview
+                { id: '3', COMPANY: 'Stripe', ROLE_ID: 'FS', STATUS: 'Rejected', STAGE: 'Recruiter / HR Screen', DATE: '2023-01-03' },
+                // Netflix: reached offer
+                { id: '4', COMPANY: 'Netflix', ROLE_ID: 'Mobile', STATUS: 'Offer', STAGE: 'Final', DATE: '2023-01-04' },
+                // Apple: rejected at screening
+                { id: '5', COMPANY: 'Apple', ROLE_ID: 'iOS', STATUS: 'Rejected', STAGE: '', DATE: '2023-01-05' },
+                // Amazon: awaiting reply
+                { id: '6', COMPANY: 'Amazon', ROLE_ID: 'DevOps', STATUS: 'Applied', STAGE: '', DATE: '2023-01-06' }
+            ],
+            loading: false,
+            stats: { total: 6, active: 3 }
+        });
+
+        render(<AnalyticsPage />);
+
+        // Toggles are visible
+        expect(screen.getByText('Overall (By Company)')).toBeInTheDocument();
+        expect(screen.getByText('Current Snapshot (By App)')).toBeInTheDocument();
+
+        // Check overall metric totals (5 unique companies: Google, Stripe, Netflix, Apple, Amazon)
+        expect(screen.getByText('5 companies')).toBeInTheDocument();
+        expect(screen.getByText('3 companies')).toBeInTheDocument(); // 3 interviewed (Google, Stripe, Netflix)
+        expect(screen.getByText('Companies Reached Interview (3)')).toBeInTheDocument();
+        expect(screen.getByText('No Interview Reached (2)')).toBeInTheDocument(); // Apple, Amazon
+
+        // Check company chips presence
+        expect(screen.getByText('Google')).toBeInTheDocument();
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+        expect(screen.getByText('Netflix')).toBeInTheDocument();
+        expect(screen.getByText('Apple')).toBeInTheDocument();
+        expect(screen.getByText('Amazon')).toBeInTheDocument();
+
+        // Switch to snapshot view
+        fireEvent.click(screen.getByText('Current Snapshot (By App)'));
+        expect(screen.getByText('Rejection Rate')).toBeInTheDocument();
+        expect(screen.getByText('Offer Rate')).toBeInTheDocument();
+        expect(screen.getByText('Awaiting Reply')).toBeInTheDocument();
     });
 });

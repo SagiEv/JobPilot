@@ -267,7 +267,8 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
             timeToInterview: { averageDays: 0, count: 0 },
             timeToOffer: { averageDays: 0, count: 0 },
             hrToTechnical: { averageDays: 0, count: 0 },
-            technicalToFinal: { averageDays: 0, count: 0 }
+            technicalToFinal: { averageDays: 0, count: 0 },
+            historicalInterviewAppIds: []
         };
     }
 
@@ -334,12 +335,24 @@ const getAnalyticsMetrics = async (userId, supabaseClient) => {
         count: metric.count
     });
 
+    const historicalInterviewAppIds = Array.from(new Set(
+        (history || [])
+            .filter(h => 
+                h.new_status?.toLowerCase() === 'interviewing' || 
+                h.event_type === 'Interview' || 
+                h.interview_id != null
+            )
+            .map(h => h.application_id)
+            .filter(Boolean)
+    ));
+
     return {
         timeToReject: formatMetric(metrics.timeToReject),
         timeToInterview: formatMetric(metrics.timeToInterview),
         timeToOffer: formatMetric(metrics.timeToOffer),
         hrToTechnical: formatMetric(metrics.hrToTechnical),
-        technicalToFinal: formatMetric(metrics.technicalToFinal)
+        technicalToFinal: formatMetric(metrics.technicalToFinal),
+        historicalInterviewAppIds
     };
 };
 

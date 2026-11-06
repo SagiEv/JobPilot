@@ -3389,6 +3389,138 @@ td:nth-child(3) {
 }
 
 /* Monthly Bar Chart */
+/* ── Overall Company Funnel Enhancements ───────────────────── */
+.an-funnel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 22px 14px;
+}
+
+.an-funnel-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+.an-toggle-group {
+  display: flex;
+  background: var(--bg2);
+  padding: 3px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+}
+
+.an-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.an-toggle-btn:hover {
+  color: var(--text-main);
+}
+
+.an-toggle-btn.active {
+  background: var(--bg-card);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.an-company-funnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.an-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  padding: 0 22px;
+}
+
+.an-breakdown-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.an-outcome-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--bg2);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.an-outcome-item:hover {
+  background: var(--bg3);
+}
+
+.an-outcome-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.an-company-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+
+.an-company-chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  line-height: 1.4;
+}
+
+.chip-active {
+  background: rgba(217, 119, 6, 0.15);
+  color: #d97706;
+}
+
+.chip-offer {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success-c);
+}
+
+.chip-rejected {
+  background: rgba(163, 45, 45, 0.15);
+  color: #a32d2d;
+}
+
+.chip-pending {
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+}
+
+.chip-screening {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger-c);
+}
+
+/* Monthly Bar Chart */
 .an-chart-card {
   margin: 0 22px 24px;
   padding: 30px 20px;

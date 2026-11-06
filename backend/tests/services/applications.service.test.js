@@ -5,6 +5,7 @@ process.env.SUPABASE_ANON_KEY = 'dummy';
 
 jest.mock('../../repositories/applications.repository');
 jest.mock('../../services/applicationHistory.service');
+jest.mock('../../repositories/applicationHistory.repository');
 jest.mock('../../supabaseClient', () => {
     const chain = {
         select: jest.fn().mockReturnThis(),
@@ -22,6 +23,7 @@ jest.mock('../../supabaseClient', () => {
 
 const applicationRepository = require('../../repositories/applications.repository');
 const applicationHistoryService = require('../../services/applicationHistory.service');
+const applicationHistoryRepo = require('../../repositories/applicationHistory.repository');
 const applicationService = require('../../services/applications.service');
 const supabaseClient = require('../../supabaseClient');
 const { buildApplication, buildHistoryEntry } = require('../helpers/factories');
@@ -29,6 +31,8 @@ const { buildApplication, buildHistoryEntry } = require('../helpers/factories');
 describe('applications.service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        applicationHistoryRepo.findLatestDatesByAppIds.mockResolvedValue({ data: [], error: null });
+        applicationHistoryRepo.findByAppIds.mockResolvedValue({ data: [], error: null });
     });
 
     describe('getAllApplications', () => {
@@ -233,6 +237,25 @@ describe('applications.service', () => {
     });
 
     describe('getAnalyticsMetrics', () => {
+        it('should extract historicalInterviewAppIds from history transitions', async () => {
+            applicationRepository.findAll.mockResolvedValue({
+                data: [{ id: 1 }, { id: 2 }, { id: 3 }],
+                error: null
+            });
+            applicationHistoryRepo.findByAppIds.mockResolvedValue({
+                data: [
+                    { application_id: 1, new_status: 'Interviewing', event_date: '2023-01-01' },
+                    { application_id: 1, new_status: 'Rejected', event_date: '2023-01-05' },
+                    { application_id: 2, event_type: 'Interview', event_date: '2023-01-02' },
+                    { application_id: 3, new_status: 'Rejected', event_date: '2023-01-03' }
+                ],
+                error: null
+            });
+
+            const result = await applicationService.getAnalyticsMetrics('user-123', supabaseClient);
+            expect(result.historicalInterviewAppIds).toEqual([1, 2]);
+        });
+
         it('should return zero metrics for empty apps', async () => {
             // Arrange
             applicationRepository.findAll.mockResolvedValue({ data: [], error: null });
@@ -247,6 +270,7 @@ describe('applications.service', () => {
                 timeToOffer: { averageDays: 0, count: 0 },
                 hrToTechnical: { averageDays: 0, count: 0 },
                 technicalToFinal: { averageDays: 0, count: 0 },
+                historicalInterviewAppIds: []
             });
         });
 
