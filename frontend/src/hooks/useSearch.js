@@ -196,7 +196,7 @@ export function useSearch() {
             const { data } = await apiClient.post('/api/search-settings/run-search');
             return data;
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['searchSettings'] });
             queryClient.invalidateQueries({ queryKey: ['scrapedJobs'] });
         }

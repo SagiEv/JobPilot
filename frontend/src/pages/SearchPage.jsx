@@ -309,7 +309,7 @@ const SearchPage = () => {
                                         try {
                                             await updateSettings('scheduleFrequency', newVal);
                                             addToast('Schedule setting updated', 'success');
-                                        } catch (err) {
+                                        } catch {
                                             addToast('Failed to update schedule', 'error');
                                         }
                                     }}

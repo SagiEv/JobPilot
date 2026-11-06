@@ -149,9 +149,9 @@ const DashboardPage = () => {
         try {
             const res = await revertNotification(update.id);
             const prevStatus = res.previousStatus || 'previous status';
-            let toastId = null;
+            const toastId = Date.now();
 
-            toastId = addToast(
+            addToast(
                 <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span>Status reverted to <strong>{prevStatus}</strong>.</span>
                     <button
@@ -175,7 +175,8 @@ const DashboardPage = () => {
                     </button>
                 </span>,
                 'info',
-                () => handleUndoRevert(update.id, toastId)
+                () => handleUndoRevert(update.id, toastId),
+                toastId
             );
         } catch (err) {
             console.error(err);
