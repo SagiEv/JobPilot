@@ -117,24 +117,28 @@ describe('AnalyticsPage', () => {
         expect(screen.getByText('Overall (By Company)')).toBeInTheDocument();
         expect(screen.getByText('Current Snapshot (By App)')).toBeInTheDocument();
 
+        // Default is Snapshot view
+        expect(screen.getByRole('button', { name: /Current Snapshot/i })).toHaveClass('active');
+        expect(screen.queryByText('Current status snapshot across all submitted applications')).not.toBeInTheDocument();
+        expect(screen.getByText('Offer Rate')).toBeInTheDocument();
+
+        // Switch to overall company view
+        fireEvent.click(screen.getByText('Overall (By Company)'));
+
         // Check overall metric totals (5 unique companies: Google, Stripe, Netflix, Apple, Amazon)
-        expect(screen.getByText('5 companies')).toBeInTheDocument();
-        expect(screen.getByText('3 companies')).toBeInTheDocument(); // 3 interviewed (Google, Stripe, Netflix)
         expect(screen.getByText('Companies Reached Interview (3)')).toBeInTheDocument();
         expect(screen.getByText('No Interview Reached (2)')).toBeInTheDocument(); // Apple, Amazon
+        expect(screen.getByText('Ghosted Rate')).toBeInTheDocument();
+        expect(screen.getByText('👻 Ghosted')).toBeInTheDocument();
 
-        // Check company chips presence
+        // Check interviewed company chips presence
         expect(screen.getByText('Google')).toBeInTheDocument();
         expect(screen.getByText('Stripe')).toBeInTheDocument();
         expect(screen.getByText('Netflix')).toBeInTheDocument();
-        expect(screen.getByText('Apple')).toBeInTheDocument();
-        expect(screen.getByText('Amazon')).toBeInTheDocument();
 
-        // Switch to snapshot view
-        fireEvent.click(screen.getByText('Current Snapshot (By App)'));
-        expect(screen.getByText('Rejection Rate')).toBeInTheDocument();
-        expect(screen.getByText('Offer Rate')).toBeInTheDocument();
-        expect(screen.getByText('Awaiting Reply')).toBeInTheDocument();
+        // In 'no interview reached', company names are NOT shown at all
+        expect(screen.queryByText('Apple')).not.toBeInTheDocument();
+        expect(screen.queryByText('Amazon')).not.toBeInTheDocument();
     });
     it('renders referral impact metrics with cohorts and application chips', () => {
         useApplications.mockReturnValue({

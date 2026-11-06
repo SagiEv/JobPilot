@@ -1,3 +1,5 @@
+import { GHOSTING_THRESHOLD_DAYS } from './constants';
+
 /**
  * Utility functions for calculating Performance Analytics conversion funnels.
  */
@@ -55,6 +57,21 @@ export const hasAppReachedInterview = (
  * @param {Array} interviews - List of interview records from the interviews table
  * @returns {Object} Comprehensive company funnel metrics
  */
+/**
+ * Helper to determine if an application is considered ghosted.
+ */
+export const isApplicationGhosted = (app, thresholdDays = GHOSTING_THRESHOLD_DAYS, now = new Date()) => {
+    if (!app) return false;
+    const s = (app.STATUS || app.status || '').toLowerCase();
+    if (s === 'ignored') return true;
+    const isAppActive = !s.includes('reject') && !s.includes('offer') && !s.includes('hired') && !s.includes('withdrawn');
+    if (!isAppActive) return false;
+    const lastDate = app.LAST_ACTIVITY_DATE || app.date || app.DATE;
+    if (!lastDate) return false;
+    const daysSince = Math.floor((new Date(now).getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24));
+    return daysSince >= thresholdDays;
+};
+
 export const calculateCompanyFunnelMetrics = (
     applications = [],
     interviews = [],
@@ -94,6 +111,7 @@ export const calculateCompanyFunnelMetrics = (
 
     const noInterview = {
         pending: [],
+        ghosted: [],
         rejected: []
     };
 
@@ -124,29 +142,48 @@ export const calculateCompanyFunnelMetrics = (
                 }
             }
         } else {
-            // Did not reach interview: Awaiting reply vs Screening rejection
+            // Did not reach interview: Awaiting reply vs Ghosted vs Screening rejection
             const allRejected = apps.length > 0 && apps.every(a => {
                 const s = (a.STATUS || a.status || '').toLowerCase();
-                return s.includes('reject') || s === 'ignored';
+                return s.includes('reject') || s.includes('withdrawn');
             });
 
             if (allRejected) {
                 noInterview.rejected.push(displayName);
             } else {
-                noInterview.pending.push(displayName);
+                const hasActivePending = apps.some(a => {
+                    const s = (a.STATUS || a.status || '').toLowerCase();
+                    const isNonRejected = !s.includes('reject') && !s.includes('withdrawn');
+                    return isNonRejected && !isApplicationGhosted(a);
+                });
+
+                if (hasActivePending) {
+                    noInterview.pending.push(displayName);
+                } else {
+                    noInterview.ghosted.push(displayName);
+                }
             }
         }
     }
 
     const interviewedCount = interviewed.offer.length + interviewed.active.length + interviewed.rejected.length;
-    const noInterviewCount = noInterview.pending.length + noInterview.rejected.length;
+    const noInterviewCount = noInterview.pending.length + noInterview.ghosted.length + noInterview.rejected.length;
     const safeInterviewed = interviewedCount || 1;
     const safeNoInterview = noInterviewCount || 1;
+
+    const totalRejectedCount = noInterview.rejected.length + interviewed.rejected.length;
+    const ghostedCount = noInterview.ghosted.length;
+    const rejectionRate = +((totalRejectedCount / safeTotal) * 100).toFixed(1);
+    const ghostedRate = +((ghostedCount / safeTotal) * 100).toFixed(1);
 
     return {
         totalCompanies,
         interviewedCount,
         noInterviewCount,
+        totalRejectedCount,
+        rejectionRate,
+        ghostedCount,
+        ghostedRate,
         interviewRate: +((interviewedCount / safeTotal) * 100).toFixed(1),
         noInterviewRate: +((noInterviewCount / safeTotal) * 100).toFixed(1),
         interviewed: {
@@ -177,6 +214,12 @@ export const calculateCompanyFunnelMetrics = (
                 rateOfNoInterview: +((noInterview.pending.length / safeNoInterview) * 100).toFixed(1),
                 rateOfTotal: +((noInterview.pending.length / safeTotal) * 100).toFixed(1),
                 companies: noInterview.pending
+            },
+            ghosted: {
+                count: noInterview.ghosted.length,
+                rateOfNoInterview: +((noInterview.ghosted.length / safeNoInterview) * 100).toFixed(1),
+                rateOfTotal: +((noInterview.ghosted.length / safeTotal) * 100).toFixed(1),
+                companies: noInterview.ghosted
             },
             rejected: {
                 count: noInterview.rejected.length,

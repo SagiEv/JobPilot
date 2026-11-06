@@ -51,7 +51,7 @@ const AnalyticsPage = () => {
     const { applications = [], loading: appLoading } = useApplications();
     const { interviews = [], loading: interviewsLoading } = useInterviews();
     const { events = [], loading: eventsLoading } = useEvents();
-    const [funnelView, setFunnelView] = useState('company');
+    const [funnelView, setFunnelView] = useState('snapshot');
     const [expandedCategory, setExpandedCategory] = useState(null);
     
     const { data: metrics, isLoading: metricsLoading } = useQuery({
@@ -235,7 +235,7 @@ const AnalyticsPage = () => {
                 />
             </div>
             
-            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+            <div className="an-kpi-row" style={{ marginTop: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                 <KpiCard
                     icon={<span style={{ fontSize: '18px' }}>⏱️</span>}
                     label="Time to 1st Interview"
@@ -260,7 +260,12 @@ const AnalyticsPage = () => {
                 <KpiCard
                     icon={<span style={{ fontSize: '18px' }}>🏢</span>}
                     label="Interviewed This Year"
-                    value={`${monthlyData.companiesInterviewedThisYear} companies`}
+                    value={
+                        <span>
+                            {monthlyData.companiesInterviewedThisYear}
+                            <span className="an-kpi-unit">companies</span>
+                        </span>
+                    }
                     sub={`in ${new Date().getFullYear()}`}
                     accent="#10b981"
                 />
@@ -275,14 +280,7 @@ const AnalyticsPage = () => {
 
             {/* ── Conversion funnel ─────────────────────────────────── */}
             <div className="an-funnel-header-row">
-                <div>
-                    <h3 className="subsection-title" style={{ margin: 0 }}>Conversion Funnel</h3>
-                    <p className="an-funnel-subtitle">
-                        {funnelView === 'company'
-                            ? 'Overall company progression across your entire search'
-                            : 'Current status snapshot across all submitted applications'}
-                    </p>
-                </div>
+                <h3 className="subsection-title" style={{ margin: 0 }}>Conversion Funnel</h3>
                 <div className="an-toggle-group">
                     <button
                         type="button"
@@ -301,7 +299,8 @@ const AnalyticsPage = () => {
                 </div>
             </div>
 
-            {funnelView === 'snapshot' ? (
+            <div className="an-funnel-view-content" key={funnelView}>
+                {funnelView === 'snapshot' ? (
                 <div className="an-funnel-row">
                     <div className="an-funnel-card">
                         <div className="an-ring-wrap">
@@ -350,17 +349,6 @@ const AnalyticsPage = () => {
                     <div className="an-funnel-row" style={{ paddingBottom: '16px' }}>
                         <div className="an-funnel-card">
                             <div className="an-ring-wrap">
-                                <RingMeter pct={100} color="#1a6cf5" />
-                                <span className="an-ring-pct">100%</span>
-                            </div>
-                            <div className="an-funnel-label">Total Applied</div>
-                            <div className="an-funnel-count">{companyMetrics.totalCompanies} companies</div>
-                        </div>
-
-                        <div className="an-funnel-sep">→</div>
-
-                        <div className="an-funnel-card">
-                            <div className="an-ring-wrap">
                                 <RingMeter pct={companyMetrics.interviewRate} color="#d97706" />
                                 <span className="an-ring-pct">{companyMetrics.interviewRate}%</span>
                             </div>
@@ -377,6 +365,28 @@ const AnalyticsPage = () => {
                             </div>
                             <div className="an-funnel-label">Offer Conversion</div>
                             <div className="an-funnel-count">{companyMetrics.interviewed.offer.count} of {companyMetrics.interviewedCount || 0} interviewed</div>
+                        </div>
+
+                        <div className="an-funnel-sep">·</div>
+
+                        <div className="an-funnel-card">
+                            <div className="an-ring-wrap">
+                                <RingMeter pct={companyMetrics.rejectionRate} color="#a32d2d" />
+                                <span className="an-ring-pct">{companyMetrics.rejectionRate}%</span>
+                            </div>
+                            <div className="an-funnel-label">Rejection Rate</div>
+                            <div className="an-funnel-count">{companyMetrics.totalRejectedCount} companies</div>
+                        </div>
+
+                        <div className="an-funnel-sep">·</div>
+
+                        <div className="an-funnel-card">
+                            <div className="an-ring-wrap">
+                                <RingMeter pct={companyMetrics.ghostedRate} color="#64748b" />
+                                <span className="an-ring-pct">{companyMetrics.ghostedRate}%</span>
+                            </div>
+                            <div className="an-funnel-label">Ghosted Rate</div>
+                            <div className="an-funnel-count">{companyMetrics.ghostedCount} companies</div>
                         </div>
                     </div>
 
@@ -502,10 +512,7 @@ const AnalyticsPage = () => {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
                                 {/* Awaiting Reply */}
-                                <div 
-                                    className="an-outcome-item"
-                                    onClick={() => setExpandedCategory(expandedCategory === 'pending' ? null : 'pending')}
-                                >
+                                <div className="an-outcome-item">
                                     <div className="an-outcome-row">
                                         <span className="an-status-name" style={{ color: '#64748b', fontWeight: 600 }}>
                                             ⏳ Awaiting Reply
@@ -520,20 +527,28 @@ const AnalyticsPage = () => {
                                             {companyMetrics.noInterview.pending.count} <span className="an-status-pct">({companyMetrics.noInterview.pending.rateOfNoInterview}%)</span>
                                         </span>
                                     </div>
-                                    {companyMetrics.noInterview.pending.companies.length > 0 && (
-                                        <div className="an-company-chips">
-                                            {companyMetrics.noInterview.pending.companies.map((c, i) => (
-                                                <span key={i} className="an-company-chip chip-pending">{c}</span>
-                                            ))}
+                                </div>
+
+                                {/* Ghosted */}
+                                <div className="an-outcome-item">
+                                    <div className="an-outcome-row">
+                                        <span className="an-status-name" style={{ color: '#64748b', fontWeight: 600 }}>
+                                            👻 Ghosted
+                                        </span>
+                                        <div className="an-status-bar-bg">
+                                            <div 
+                                                className="an-status-bar-fill" 
+                                                style={{ width: `${companyMetrics.noInterview.ghosted.rateOfNoInterview}%`, background: '#64748b' }} 
+                                            />
                                         </div>
-                                    )}
+                                        <span className="an-status-meta">
+                                            {companyMetrics.noInterview.ghosted.count} <span className="an-status-pct">({companyMetrics.noInterview.ghosted.rateOfNoInterview}%)</span>
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Screening Rejection */}
-                                <div 
-                                    className="an-outcome-item"
-                                    onClick={() => setExpandedCategory(expandedCategory === 'screening-reject' ? null : 'screening-reject')}
-                                >
+                                <div className="an-outcome-item">
                                     <div className="an-outcome-row">
                                         <span className="an-status-name" style={{ color: 'var(--danger-c)', fontWeight: 600 }}>
                                             ❌ Rejected at CV / Screening
@@ -548,19 +563,13 @@ const AnalyticsPage = () => {
                                             {companyMetrics.noInterview.rejected.count} <span className="an-status-pct">({companyMetrics.noInterview.rejected.rateOfNoInterview}%)</span>
                                         </span>
                                     </div>
-                                    {companyMetrics.noInterview.rejected.companies.length > 0 && (
-                                        <div className="an-company-chips">
-                                            {companyMetrics.noInterview.rejected.companies.map((c, i) => (
-                                                <span key={i} className="an-company-chip chip-screening">{c}</span>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
+            </div>
 
             {/* ── Monthly bar chart ─────────────────────────────────── */}
             <div className="an-chart-header" style={{ margin: '24px 22px 10px' }}>
@@ -693,9 +702,9 @@ const AnalyticsPage = () => {
                             <span className="an-status-meta">{an.fitStats.goodFitCount}</span>
                         </div>
                         <div className="an-status-row">
-                            <span className="an-status-name" style={{ color: 'var(--warning-c)', fontWeight: 600 }}>Partial Fit (50-79%)</span>
+                            <span className="an-status-name" style={{ color: 'var(--warning-c, #d97706)', fontWeight: 600 }}>Partial Fit (50-79%)</span>
                             <div className="an-status-bar-bg">
-                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.partialFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--warning-c)' }} />
+                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.partialFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--warning-c, #d97706)' }} />
                             </div>
                             <span className="an-status-meta">{an.fitStats.partialFitCount}</span>
                         </div>
@@ -713,10 +722,7 @@ const AnalyticsPage = () => {
             {/* ── Referral Impact ────────────────────────────────────── */}
             {applications.length > 0 && (
                 <div className="an-referral-section">
-                    <h3 className="subsection-title" style={{ marginTop: '28px' }}>Referral Impact</h3>
-                    <p style={{ margin: '4px 0 16px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                        Comparing application success rates for roles with vs without referrals
-                    </p>
+                    <h3 className="subsection-title" style={{ marginTop: '28px', marginBottom: '16px' }}>Referral Impact</h3>
 
                     <div className="an-kpi-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                         <KpiCard

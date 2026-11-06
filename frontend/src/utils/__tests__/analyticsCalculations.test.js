@@ -3,7 +3,8 @@ import {
     calculateCompanyFunnelMetrics,
     hasAppReachedInterview,
     calculateMonthlyVolume,
-    calculateReferralMetrics
+    calculateReferralMetrics,
+    isApplicationGhosted
 } from '../analyticsCalculations';
 
 describe('analyticsCalculations', () => {
@@ -110,6 +111,39 @@ describe('analyticsCalculations', () => {
             expect(res.noInterview.rejected.count).toBe(1);
             expect(res.noInterview.rejected.companies).toEqual(['Apple']);
         });
+
+        it('classifies old applications as ghosted and calculates rejection and ghosted rates', () => {
+            const apps = [
+                { id: 1, COMPANY: 'ActiveRecent', STATUS: 'Applied', DATE: '2026-11-01T12:00:00Z' }, // 5 days -> pending
+                { id: 2, COMPANY: 'GhostedOld', STATUS: 'Applied', DATE: '2026-09-01T12:00:00Z' },    // 66 days -> ghosted
+                { id: 3, COMPANY: 'GhostedIgnored', STATUS: 'Ignored', DATE: '2026-11-04T12:00:00Z' }, // ignored -> ghosted
+                { id: 4, COMPANY: 'ScreeningReject', STATUS: 'Rejected', STAGE: '' },                  // rejected -> rejected
+                { id: 5, COMPANY: 'InterviewedReject', STATUS: 'Rejected', STAGE: 'Technical Interview' } // post-interview -> interviewed rejected
+            ];
+
+            const res = calculateCompanyFunnelMetrics(apps, []);
+            expect(res.totalCompanies).toBe(5);
+            expect(res.interviewedCount).toBe(1);
+            expect(res.noInterviewCount).toBe(4);
+            expect(res.noInterview.pending.count).toBe(1);
+            expect(res.noInterview.ghosted.count).toBe(2);
+            expect(res.noInterview.rejected.count).toBe(1);
+            // Total rejected companies: ScreeningReject (1) + InterviewedReject (1) = 2
+            expect(res.totalRejectedCount).toBe(2);
+            expect(res.rejectionRate).toBe(40.0);
+            expect(res.ghostedCount).toBe(2);
+            expect(res.ghostedRate).toBe(40.0);
+        });
+
+        it('tests isApplicationGhosted logic', () => {
+            const now = new Date('2026-11-06T12:00:00Z');
+            expect(isApplicationGhosted({ STATUS: 'Ignored' })).toBe(true);
+            expect(isApplicationGhosted({ STATUS: 'Applied', DATE: '2026-09-01T12:00:00Z' }, 28, now)).toBe(true);
+            expect(isApplicationGhosted({ STATUS: 'Applied', DATE: '2026-11-04T12:00:00Z' }, 28, now)).toBe(false);
+            expect(isApplicationGhosted({ STATUS: 'Rejected', DATE: '2026-09-01T12:00:00Z' }, 28, now)).toBe(false);
+            expect(isApplicationGhosted({ STATUS: 'Offer', DATE: '2026-09-01T12:00:00Z' }, 28, now)).toBe(false);
+        });
+
     });
 
     describe('calculateMonthlyVolume', () => {
