@@ -5,6 +5,7 @@ import { useSettings } from '../hooks/useSettings';
 import ApplicationDetailPage from './ApplicationDetailPage';
 import { statusBadgeClass, formatDate } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
+import RejectModal from '../components/RejectModal';
 import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
 
 const ConflictModal = ({ conflict, onResolve }) => (
@@ -49,8 +50,8 @@ const ApplicationsPage = () => {
     const [filterType, setFilterType] = useState('active'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [rejectModalApp, setRejectModalApp] = useState(null);
-    const [rejectReason, setRejectReason] = useState('');
-    const [autoReject, setAutoReject] = useState(false);
+
+
     const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
 
     // Sorting State
@@ -226,8 +227,8 @@ const ApplicationsPage = () => {
                                             const newStatus = e.target.value;
                                             if (newStatus === 'Rejected') {
                                                 setRejectModalApp(app);
-                                                setRejectReason('');
-                                                setAutoReject(false);
+
+
                                             } else {
                                                 updateApplication(app.id, newStatus, app.STAGE);
                                             }
@@ -277,8 +278,8 @@ const ApplicationsPage = () => {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setRejectModalApp(app);
-                                                setRejectReason('');
-                                                setAutoReject(false);
+
+
                                             }}
                                             style={{ 
                                                 background: 'var(--danger-c)', 
@@ -508,58 +509,22 @@ const ApplicationsPage = () => {
             )}
 
             {/* Reject Application Modal */}
-            {rejectModalApp && (
-                <div className="modal-overlay" onClick={() => setRejectModalApp(null)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>Reject Application: {rejectModalApp.COMPANY}</h2>
-                            <button className="modal-close" onClick={() => setRejectModalApp(null)}>✕</button>
-                        </div>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            updateApplication(
-                                rejectModalApp.id, 
-                                'Rejected', 
-                                rejectModalApp.STAGE, 
-                                null, 
-                                rejectReason, 
-                                autoReject
-                            );
-                            setRejectModalApp(null);
-                        }}>
-                            <div className="modal-body">
-                                <div className="modal-section">
-                                    <label>Rejection Reason / Comments <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
-                                    <textarea
-                                        className="textarea"
-                                        style={{ minHeight: '80px' }}
-                                        value={rejectReason}
-                                        onChange={e => setRejectReason(e.target.value)}
-                                        placeholder="e.g. They went with an internal candidate"
-                                        dir="auto"
-                                    />
-                                </div>
-                                <div className="modal-section" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        id="autoRejectCheck"
-                                        checked={autoReject} 
-                                        onChange={e => setAutoReject(e.target.checked)} 
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                                    />
-                                    <label htmlFor="autoRejectCheck" style={{ margin: 0, cursor: 'pointer' }}>Automatically rejected (e.g. CV screening failed without call)</label>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn" onClick={() => setRejectModalApp(null)}>Cancel</button>
-                                <button type="submit" className="btn" style={{ background: 'var(--danger-c)', color: 'white', border: 'none' }}>
-                                    Confirm Rejection
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <RejectModal
+                isOpen={!!rejectModalApp}
+                companyName={rejectModalApp?.COMPANY}
+                onClose={() => setRejectModalApp(null)}
+                onConfirm={({ reason, autoReject }) => {
+                    updateApplication(
+                        rejectModalApp.id,
+                        'Rejected',
+                        rejectModalApp.STAGE,
+                        null,
+                        reason,
+                        autoReject
+                    );
+                    setRejectModalApp(null);
+                }}
+            />
             {conflict && <ConflictModal conflict={conflict} onResolve={handleConflictResolution} />}
         </div>
     );
