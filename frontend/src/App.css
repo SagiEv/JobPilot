@@ -3417,21 +3417,6 @@ td:nth-child(3) {
   margin: 4px 0 0 0;
 }
 
-.an-funnel-view-content {
-  animation: anFadeSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes anFadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .an-toggle-group {
   display: flex;
   background: var(--bg2);
@@ -3694,7 +3679,8 @@ td:nth-child(3) {
   font-weight: 400;
   font-size: 12px;
 }
-
+
+
 
 /* Settings Tabs */
 .settings-tabs-container {
