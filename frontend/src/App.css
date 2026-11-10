@@ -24,6 +24,8 @@
   --success-c: #0f6e56;
   --warn-bg: #fff3cd;
   --warn-c: #7d5a00;
+  --warning-bg: #fef3c7;
+  --warning-c: #d97706;
   --danger-bg: #fce8e8;
   --danger-c: #a32d2d;
   --info-bg: #e8f0fe;
@@ -3313,6 +3315,8 @@ td:nth-child(3) {
 .an-kpi-body {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .an-kpi-value {
@@ -3321,6 +3325,14 @@ td:nth-child(3) {
   color: var(--t1);
   line-height: 1.1;
   margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.an-kpi-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  margin-left: 6px;
 }
 
 .an-kpi-label {
@@ -3667,7 +3679,8 @@ td:nth-child(3) {
   font-weight: 400;
   font-size: 12px;
 }
-
+
+
 
 /* Settings Tabs */
 .settings-tabs-container {

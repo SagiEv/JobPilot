@@ -685,9 +685,9 @@ const AnalyticsPage = () => {
                             <span className="an-status-meta">{an.fitStats.goodFitCount}</span>
                         </div>
                         <div className="an-status-row">
-                            <span className="an-status-name" style={{ color: 'var(--warning-c)', fontWeight: 600 }}>Partial Fit (50-79%)</span>
+                            <span className="an-status-name" style={{ color: 'var(--warning-c, #d97706)', fontWeight: 600 }}>Partial Fit (50-79%)</span>
                             <div className="an-status-bar-bg">
-                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.partialFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--warning-c)' }} />
+                                <div className="an-status-bar-fill" style={{ width: `${(an.fitStats.partialFitCount / an.fitStats.totalFitCount) * 100}%`, background: 'var(--warning-c, #d97706)' }} />
                             </div>
                             <span className="an-status-meta">{an.fitStats.partialFitCount}</span>
                         </div>
