@@ -3,7 +3,8 @@ import {
     calculateCompanyFunnelMetrics,
     hasAppReachedInterview,
     calculateMonthlyVolume,
-    calculateReferralMetrics
+    calculateReferralMetrics,
+    isApplicationGhosted
 } from '../analyticsCalculations';
 
 describe('analyticsCalculations', () => {
@@ -31,9 +32,19 @@ describe('analyticsCalculations', () => {
             expect(hasAppReachedInterview({ id: 202, STATUS: 'Rejected', STAGE: '' }, null, null, historyAppIds)).toBe(true);
         });
 
-        it('returns true if company is in interviewCompanies', () => {
+        it('returns true if company is in interviewCompanies and allowCompanyFallback is true', () => {
             const companies = new Set(['google']);
-            expect(hasAppReachedInterview({ COMPANY: 'Google', STATUS: 'Rejected' }, null, companies)).toBe(true);
+            expect(hasAppReachedInterview({ COMPANY: 'Google', STATUS: 'Rejected' }, null, companies, null, null, true)).toBe(true);
+        });
+
+        it('returns false if company is in interviewCompanies but allowCompanyFallback is false', () => {
+            const companies = new Set(['google']);
+            expect(hasAppReachedInterview({ COMPANY: 'Google', STATUS: 'Rejected' }, null, companies, null, null, false)).toBe(false);
+        });
+
+        it('returns true if application ID is in eventInterviewAppIds', () => {
+            const eventAppIds = new Set([359]);
+            expect(hasAppReachedInterview({ id: 359, STATUS: 'Rejected' }, null, null, null, eventAppIds)).toBe(true);
         });
 
         it('returns false for plain applied or rejected without interview', () => {
@@ -100,6 +111,39 @@ describe('analyticsCalculations', () => {
             expect(res.noInterview.rejected.count).toBe(1);
             expect(res.noInterview.rejected.companies).toEqual(['Apple']);
         });
+
+        it('classifies old applications as ghosted and calculates rejection and ghosted rates', () => {
+            const apps = [
+                { id: 1, COMPANY: 'ActiveRecent', STATUS: 'Applied', DATE: '2026-11-01T12:00:00Z' }, // 5 days -> pending
+                { id: 2, COMPANY: 'GhostedOld', STATUS: 'Applied', DATE: '2026-09-01T12:00:00Z' },    // 66 days -> ghosted
+                { id: 3, COMPANY: 'GhostedIgnored', STATUS: 'Ignored', DATE: '2026-11-04T12:00:00Z' }, // ignored -> ghosted
+                { id: 4, COMPANY: 'ScreeningReject', STATUS: 'Rejected', STAGE: '' },                  // rejected -> rejected
+                { id: 5, COMPANY: 'InterviewedReject', STATUS: 'Rejected', STAGE: 'Technical Interview' } // post-interview -> interviewed rejected
+            ];
+
+            const res = calculateCompanyFunnelMetrics(apps, []);
+            expect(res.totalCompanies).toBe(5);
+            expect(res.interviewedCount).toBe(1);
+            expect(res.noInterviewCount).toBe(4);
+            expect(res.noInterview.pending.count).toBe(1);
+            expect(res.noInterview.ghosted.count).toBe(2);
+            expect(res.noInterview.rejected.count).toBe(1);
+            // Total rejected companies: ScreeningReject (1) + InterviewedReject (1) = 2
+            expect(res.totalRejectedCount).toBe(2);
+            expect(res.rejectionRate).toBe(40.0);
+            expect(res.ghostedCount).toBe(2);
+            expect(res.ghostedRate).toBe(40.0);
+        });
+
+        it('tests isApplicationGhosted logic', () => {
+            const now = new Date('2026-11-06T12:00:00Z');
+            expect(isApplicationGhosted({ STATUS: 'Ignored' })).toBe(true);
+            expect(isApplicationGhosted({ STATUS: 'Applied', DATE: '2026-09-01T12:00:00Z' }, 28, now)).toBe(true);
+            expect(isApplicationGhosted({ STATUS: 'Applied', DATE: '2026-11-04T12:00:00Z' }, 28, now)).toBe(false);
+            expect(isApplicationGhosted({ STATUS: 'Rejected', DATE: '2026-09-01T12:00:00Z' }, 28, now)).toBe(false);
+            expect(isApplicationGhosted({ STATUS: 'Offer', DATE: '2026-09-01T12:00:00Z' }, 28, now)).toBe(false);
+        });
+
     });
 
     describe('calculateMonthlyVolume', () => {
@@ -187,6 +231,36 @@ describe('analyticsCalculations', () => {
 
             // Lift: 100 / 33.3 = 3.0x
             expect(res.lift).toBe(3.0);
+        });
+
+        it('does not falsely mark direct sibling roles as interviewed when an unlinked company interview exists', () => {
+            const apps = [
+                { id: 26, COMPANY: 'JFrog', ROLE_ID: 'Junior Software Engineer', REFERAL: 'Oren', STATUS: 'Applied', STAGE: '' },
+                { id: 8, COMPANY: 'JFrog', ROLE_ID: 'automation', REFERAL: '', STATUS: 'Rejected', STAGE: '' }
+            ];
+            // Interview linked to App 26
+            const interviews = [
+                { id: 5, company: 'JFrog', application_id: 26 }
+            ];
+
+            const res = calculateReferralMetrics(apps, interviews, []);
+            expect(res.referred.interviewApps.length).toBe(1);
+            expect(res.referred.interviewApps[0].role).toBe('Junior Software Engineer');
+
+            // Automation never interviewed, must NOT appear in direct interviewApps
+            expect(res.direct.interviewApps.length).toBe(0);
+        });
+
+        it('includes referred applications that reached interview via events table', () => {
+            const apps = [
+                { id: 359, COMPANY: 'Upwind', ROLE_ID: 'Junior Software Engineer', REFERAL: 'Eden', STATUS: 'Rejected', STAGE: '' }
+            ];
+            const eventInterviewAppIds = [359];
+
+            const res = calculateReferralMetrics(apps, [], [], eventInterviewAppIds);
+            expect(res.referred.interviewApps.length).toBe(1);
+            expect(res.referred.interviewApps[0].company).toBe('Upwind');
+            expect(res.refInterviewRate).toBe(100.0);
         });
     });
 });
