@@ -513,12 +513,12 @@ const ApplicationsPage = () => {
                 isOpen={!!rejectModalApp}
                 companyName={rejectModalApp?.COMPANY}
                 onClose={() => setRejectModalApp(null)}
-                onConfirm={({ reason, autoReject }) => {
+                onConfirm={({ reason, autoReject, date }) => {
                     updateApplication(
                         rejectModalApp.id,
                         'Rejected',
                         rejectModalApp.STAGE,
-                        null,
+                        date,
                         reason,
                         autoReject
                     );
