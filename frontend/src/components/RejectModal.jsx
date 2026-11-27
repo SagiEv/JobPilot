@@ -1,22 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+const getTodayDate = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 const RejectModal = ({ isOpen, companyName, onClose, onConfirm }) => {
+    const [rejectDate, setRejectDate] = useState(getTodayDate);
     const [rejectReason, setRejectReason] = useState('');
     const [autoReject, setAutoReject] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setRejectDate(getTodayDate());
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     const handleClose = () => {
         setRejectReason('');
         setAutoReject(false);
+        setRejectDate(getTodayDate());
         onClose();
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onConfirm({ reason: rejectReason, autoReject });
+        onConfirm({ reason: rejectReason, autoReject, date: rejectDate });
         setRejectReason('');
         setAutoReject(false);
+        setRejectDate(getTodayDate());
     };
 
     return (
@@ -28,6 +45,17 @@ const RejectModal = ({ isOpen, companyName, onClose, onConfirm }) => {
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
+                        <div className="modal-section">
+                            <label htmlFor="rejectDate">Date</label>
+                            <input
+                                type="date"
+                                id="rejectDate"
+                                className="field-input"
+                                value={rejectDate}
+                                onChange={e => setRejectDate(e.target.value)}
+                                required
+                            />
+                        </div>
                         <div className="modal-section">
                             <label>Rejection Reason / Comments <span style={{ opacity: 0.5, fontWeight: 400 }}>(optional)</span></label>
                             <textarea
