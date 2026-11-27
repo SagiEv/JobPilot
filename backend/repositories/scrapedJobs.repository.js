@@ -58,6 +58,15 @@ const deleteJob = async (userId, id, client) => {
         .eq('user_id', userId);
 };
 
+const deleteJobsBatch = async (userId, ids, client) => {
+    if (!Array.isArray(ids) || ids.length === 0) return { error: null };
+    return await (client || adminSupabase)
+        .from('scraped_jobs')
+        .delete()
+        .in('id', ids)
+        .eq('user_id', userId);
+};
+
 // ── Cleanup ──────────────────────────────────────────────────────
 
 const deleteOlderThan = async (daysAgo, client) => {
@@ -125,6 +134,7 @@ module.exports = {
     createJobsBatch,
     updateJob,
     deleteJob,
+    deleteJobsBatch,
     deleteOlderThan,
     deleteSeenOlderThan,
     findUsersDueForScrape,

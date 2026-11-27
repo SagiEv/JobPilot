@@ -1,16 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { QUERY_KEYS, eventsQuery } from '../queries/queryDefinitions';
 
 export function useEvents() {
     const queryClient = useQueryClient();
 
     const { data: events = [], isLoading: loading, refetch } = useQuery({
+        ...eventsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['events'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/api/events');
-            return data || [];
-        }
     });
 
     const addEventMutation = useMutation({
@@ -19,7 +16,7 @@ export function useEvents() {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['events'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EVENTS });
         }
     });
 
@@ -29,7 +26,7 @@ export function useEvents() {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['events'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EVENTS });
         }
     });
 
@@ -38,7 +35,7 @@ export function useEvents() {
             await apiClient.delete(`/api/events/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['events'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EVENTS });
         }
     });
 

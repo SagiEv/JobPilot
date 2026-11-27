@@ -14,6 +14,7 @@ router.post('/run-search', authenticate, asyncHandler(ctrl.runSearch));
 
 // Scraped Jobs
 router.get('/scraped-jobs', authenticate, asyncHandler(ctrl.getScrapedJobs));
+router.post('/scraped-jobs/bulk-delete', authenticate, asyncHandler(ctrl.bulkDeleteScrapedJobs));
 router.patch('/scraped-jobs/:id', authenticate, asyncHandler(ctrl.updateScrapedJob));
 router.delete('/scraped-jobs/:id', authenticate, asyncHandler(ctrl.deleteScrapedJob));
 

@@ -1,16 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { QUERY_KEYS, skillsQuery } from '../queries/queryDefinitions';
 
 export function useSkills() {
     const queryClient = useQueryClient();
 
     const { data: skills = [], isLoading: loading } = useQuery({
+        ...skillsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['skills'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/api/skills');
-            return data || [];
-        }
     });
 
     const addSkillMutation = useMutation({
@@ -19,7 +16,7 @@ export function useSkills() {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['skills'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SKILLS });
         }
     });
 
@@ -28,7 +25,7 @@ export function useSkills() {
             await apiClient.delete(`/api/skills/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['skills'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SKILLS });
         }
     });
 

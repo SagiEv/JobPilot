@@ -2,18 +2,15 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
+import { QUERY_KEYS, contactsQuery } from '../queries/queryDefinitions';
 
 export function useContacts() {
     const queryClient = useQueryClient();
     const [uploadStatus, setUploadStatus] = useState('');
 
     const { data: contacts = [], isLoading: loading } = useQuery({
+        ...contactsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['contacts'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/api/contacts');
-            return data || [];
-        }
     });
 
     const addContactMutation = useMutation({
@@ -22,7 +19,7 @@ export function useContacts() {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTACTS });
         }
     });
 
@@ -32,7 +29,7 @@ export function useContacts() {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTACTS });
         }
     });
 
@@ -41,7 +38,7 @@ export function useContacts() {
             await apiClient.delete(`/api/contacts/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTACTS });
         }
     });
 
@@ -50,7 +47,7 @@ export function useContacts() {
             await apiClient.post('/api/contacts/bulk', { contacts: dbData });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTACTS });
         }
     });
 
@@ -94,7 +91,7 @@ export function useContacts() {
     };
 
     const deleteContact = async (id) => {
-        queryClient.setQueryData(['contacts'], (old) => old ? old.filter(c => c.id !== id) : []);
+        queryClient.setQueryData(QUERY_KEYS.CONTACTS, (old) => old ? old.filter(c => c.id !== id) : []);
         return deleteContactMutation.mutateAsync(id);
     };
 

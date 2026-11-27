@@ -2,22 +2,83 @@ import { useToast } from '../components/ToastProvider';
 import { useConfirm } from '../components/ConfirmProvider';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useInterviews } from '../hooks/useInterviews';
+import { useApplications } from '../hooks/useApplications';
+import { useSettings } from '../hooks/useSettings';
+import { formatDate, getTextDirection, statusBadgeClass } from '../utils/helpers';
+import ApplicationSearchPicker from '../components/ApplicationSearchPicker';
 import PageLoader from '../components/PageLoader';
 import ProviderBadge from '../components/ProviderBadge';
 
-const InterviewInsightsPage = () => {
+const InterviewInsightsPage = ({ initialInsightId = null, onInitialInsightConsumed }) => {
     const { addToast } = useToast();
     const confirm = useConfirm();
     const { 
         interviews, loading, addInterview, updateInterview, deleteInterview,
         aiReports, loadingReports, generateAiReport, isGeneratingReport
     } = useInterviews();
+    const { applications = [] } = useApplications();
+    const { settings } = useSettings();
     
     const [viewMode, setViewMode] = useState('all'); // all, keep, improve
     const [sortOrder, setSortOrder] = useState('desc'); // desc, asc
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [formData, setFormData] = useState({ company: '', date: '', keep: '', improve: '' });
+    const [formData, setFormData] = useState({ company: '', date: '', keep: '', improve: '', application_id: null });
+    const [highlightedInsightId, setHighlightedInsightId] = useState(null);
+    const [consumedInitialId, setConsumedInitialId] = useState(null);
+
+    const hasPendingInsight =
+        initialInsightId != null &&
+        !loading &&
+        initialInsightId !== consumedInitialId &&
+        interviews.some(i => Number(i.id) === Number(initialInsightId));
+
+    if (hasPendingInsight) {
+        const targetId = Number(initialInsightId);
+        setConsumedInitialId(initialInsightId);
+        setViewMode('all');
+        setHighlightedInsightId(targetId);
+    }
+
+    useEffect(() => {
+        if (initialInsightId != null && consumedInitialId === initialInsightId) {
+            onInitialInsightConsumed?.();
+        }
+    }, [initialInsightId, consumedInitialId, onInitialInsightConsumed]);
+
+    useEffect(() => {
+        if (highlightedInsightId == null) return;
+
+        const rafId = window.requestAnimationFrame(() => {
+            const el = document.getElementById(`insight-card-${highlightedInsightId}`);
+            if (!el) return;
+            const scrollContainer = el.closest('.content');
+            if (scrollContainer && typeof scrollContainer.scrollTo === 'function') {
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const elRect = el.getBoundingClientRect();
+                const targetTop = scrollContainer.scrollTop + (elRect.top - containerRect.top) - 16;
+                scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            } else {
+                el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+            }
+        });
+
+        const clearTimer = setTimeout(() => {
+            setHighlightedInsightId(prev => (prev === highlightedInsightId ? null : prev));
+        }, 2500);
+
+        return () => {
+            window.cancelAnimationFrame(rafId);
+            clearTimeout(clearTimer);
+        };
+    }, [highlightedInsightId]);
+
+    const appById = useMemo(
+        () => new Map((applications || []).map(a => [Number(a.id), a])),
+        [applications]
+    );
+
+    const linkedModalApp = formData.application_id ? appById.get(Number(formData.application_id)) : null;
 
     // AI Reports state
     const [showAiModal, setShowAiModal] = useState(false);
@@ -54,12 +115,16 @@ const InterviewInsightsPage = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        const payload = {
+            ...formData,
+            application_id: formData.application_id ? Number(formData.application_id) : null
+        };
         if (editingId) {
-            updateInterview(editingId, formData);
+            updateInterview(editingId, payload);
         } else {
-            addInterview(formData);
+            addInterview(payload);
         }
-        setFormData({ company: '', date: '', keep: '', improve: '' });
+        setFormData({ company: '', date: '', keep: '', improve: '', application_id: null });
         setShowModal(false);
         setEditingId(null);
     };
@@ -69,10 +134,23 @@ const InterviewInsightsPage = () => {
             company: int.company || '',
             date: int.date ? new Date(int.date).toISOString().split('T')[0] : '',
             keep: Array.isArray(int.keep) ? int.keep.join('\n') : '',
-            improve: Array.isArray(int.improve) ? int.improve.join('\n') : ''
+            improve: Array.isArray(int.improve) ? int.improve.join('\n') : '',
+            application_id: int.application_id ? Number(int.application_id) : null
         });
         setEditingId(int.id);
         setShowModal(true);
+    };
+
+    const handleSelectApplication = (app) => {
+        setFormData(prev => ({
+            ...prev,
+            application_id: Number(app.id),
+            company: prev.company.trim() ? prev.company : (app.COMPANY || '')
+        }));
+    };
+
+    const handleUnlinkApplication = () => {
+        setFormData(prev => ({ ...prev, application_id: null }));
     };
 
     const handleDelete = async (id) => {
@@ -147,7 +225,7 @@ const InterviewInsightsPage = () => {
                         Flashcards
                     </button>
                     <button className="btn btn-primary" onClick={() => {
-                        setFormData({ company: '', date: '', keep: '', improve: '' });
+                        setFormData({ company: '', date: '', keep: '', improve: '', application_id: null });
                         setEditingId(null);
                         setShowModal(true);
                     }}>
@@ -171,62 +249,104 @@ const InterviewInsightsPage = () => {
 
             {/* Insight Entries List */}
             <div className="insights-list">
-                {sortedInterviews.map((int) => (
-                    <div key={int.id} className="card insight-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                {sortedInterviews.map((int) => {
+                    const linkedApp = int.application_id ? appById.get(Number(int.application_id)) : null;
+                    return (
+                    <div
+                        key={int.id}
+                        id={`insight-card-${int.id}`}
+                        className={`card insight-card${Number(highlightedInsightId) === Number(int.id) ? ' insight-card--highlighted' : ''}`}
+                    >
+                        <div className="insight-card__header">
                             {viewMode === 'all' ? (
-                                <div className="insight-header" style={{ flex: 1, paddingRight: '15px' }}>
-                                    <h3 dir="auto" style={{ margin: 0 }}>{int.company}</h3>
-                                    <span className="insight-date" style={{ color: 'var(--text-muted)' }}>{int.date ? new Date(int.date).toLocaleDateString() : ''}</span>
+                                <div className="insight-card__identity">
+                                    <div className="insight-card__title-row">
+                                        <h3 className="insight-card__company" dir={getTextDirection(int.company)}>{int.company}</h3>
+                                        {int.date && (
+                                            <span className="insight-card__date-pill">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                </svg>
+                                                {formatDate(int.date, settings?.timezone) || new Date(int.date).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {linkedApp && (
+                                        <button
+                                            type="button"
+                                            className="insight-linked-app-chip"
+                                            onClick={() => window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: { tab: 'applications', appId: linkedApp.id } }))}
+                                            title={`Open linked application: ${linkedApp.COMPANY}${linkedApp.ROLE_ID ? ` - ${linkedApp.ROLE_ID}` : ''}`}
+                                        >
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            <span className="insight-linked-app-chip__label">
+                                                {linkedApp.COMPANY}{linkedApp.ROLE_ID ? ` — ${linkedApp.ROLE_ID}` : ''}
+                                            </span>
+                                            {linkedApp.STATUS && (
+                                                <span className={`badge ${statusBadgeClass(linkedApp.STATUS)}`}>
+                                                    {linkedApp.STATUS}
+                                                </span>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             ) : <div style={{ flex: 1 }}></div>}
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn" onClick={() => handleEdit(int)} title="Edit" style={{ padding: '4px 12px', fontSize: '13px', background: 'transparent', color: 'var(--text-color)', border: '1px solid var(--border-color)', borderRadius: '6px' }}>Edit</button>
-                                <button className="btn" onClick={() => handleDelete(int.id)} title="Delete" style={{ padding: '4px 12px', fontSize: '13px', background: 'transparent', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.5)', borderRadius: '6px' }}>Delete</button>
+                            <div className="insight-card__actions">
+                                <button className="insight-card__btn-edit" onClick={() => handleEdit(int)} title="Edit">Edit</button>
+                                <button className="insight-card__btn-delete" onClick={() => handleDelete(int.id)} title="Delete">Delete</button>
                             </div>
                         </div>
                         <div className="insight-body">
                             {(viewMode === 'all' || viewMode === 'keep') && (
                                 <div className="insight-section keep">
                                     {viewMode === 'all' && <h4 style={{ color: 'var(--success-color, #28a745)' }}>Good Points</h4>}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-                                        {(Array.isArray(int.keep) ? int.keep : []).map((pt, i) => (
-                                            <div key={i} dir="auto" style={{
-                                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                                                borderLeft: '4px solid #28a745',
-                                                padding: '12px 16px',
-                                                borderRadius: '6px',
-                                                color: 'var(--text-color)',
-                                                lineHeight: '1.5'
-                                            }}>
-                                                {pt}
-                                            </div>
-                                        ))}
+                                    <div className="insight-points-list">
+                                        {(Array.isArray(int.keep) ? int.keep : []).map((pt, i) => {
+                                            const ptDir = getTextDirection(pt);
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    dir={ptDir}
+                                                    className="insight-point insight-point--keep"
+                                                    style={{ textAlign: ptDir === 'rtl' ? 'right' : 'left' }}
+                                                >
+                                                    {pt}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
                             {(viewMode === 'all' || viewMode === 'improve') && (
-                                <div className="insight-section improve" style={{ marginTop: viewMode === 'all' ? '24px' : '0' }}>
+                                <div className="insight-section improve">
                                     {viewMode === 'all' && <h4 style={{ color: 'var(--danger-color, #dc3545)' }}>To Improve</h4>}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-                                        {(Array.isArray(int.improve) ? int.improve : []).map((pt, i) => (
-                                            <div key={i} dir="auto" style={{
-                                                backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                                                borderLeft: '4px solid #dc3545',
-                                                padding: '12px 16px',
-                                                borderRadius: '6px',
-                                                color: 'var(--text-color)',
-                                                lineHeight: '1.5'
-                                            }}>
-                                                {pt}
-                                            </div>
-                                        ))}
+                                    <div className="insight-points-list">
+                                        {(Array.isArray(int.improve) ? int.improve : []).map((pt, i) => {
+                                            const ptDir = getTextDirection(pt);
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    dir={ptDir}
+                                                    className="insight-point insight-point--improve"
+                                                    style={{ textAlign: ptDir === 'rtl' ? 'right' : 'left' }}
+                                                >
+                                                    {pt}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
                 {sortedInterviews.length === 0 && (
                     <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
                         No interview insights found. Add one to get started!
@@ -306,6 +426,20 @@ const InterviewInsightsPage = () => {
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
+                                <div className="modal-section">
+                                    <label htmlFor="insight-link-application">Link to Application (Optional)</label>
+                                    <ApplicationSearchPicker
+                                        variant="modal"
+                                        id="insight-link-application"
+                                        applications={applications}
+                                        selectedApp={linkedModalApp}
+                                        onSelect={handleSelectApplication}
+                                        onClearSelection={handleUnlinkApplication}
+                                        maxResults={20}
+                                        emptySearchText="No matching applications"
+                                        emptyListText="No matching applications"
+                                    />
+                                </div>
                                 <div className="modal-section">
                                     <label>Company Name</label>
                                     <input

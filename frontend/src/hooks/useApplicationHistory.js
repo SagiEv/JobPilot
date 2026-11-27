@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { useToast } from '../components/ToastProvider';
 
 export function useApplicationHistory(applicationId) {
     const queryClient = useQueryClient();
+    const { addToast } = useToast() || {};
 
     const { data: history = [], isLoading } = useQuery({
         enabled: !!getAccessToken() && !!applicationId,
@@ -22,6 +24,10 @@ export function useApplicationHistory(applicationId) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['applicationHistory', applicationId] });
+            addToast?.('Note added to activity log', 'success');
+        },
+        onError: (err) => {
+            addToast?.(`Failed to add note: ${err.response?.data?.error || err.message || 'Unknown error'}`, 'error');
         }
     });
 

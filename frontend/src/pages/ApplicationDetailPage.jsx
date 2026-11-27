@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import RejectModal from '../components/RejectModal';
 import { useToast } from '../components/ToastProvider';
-import { statusBadgeClass, formatDate } from '../utils/helpers';
+import { statusBadgeClass, formatDate, isActiveStatus, isArchivedStatus, getTextDirection } from '../utils/helpers';
 import { useSettings } from '../hooks/useSettings';
 import { useApplicationHistory } from '../hooks/useApplicationHistory';
 import { useEvents } from '../hooks/useEvents';
-import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
+import { useInterviews } from '../hooks/useInterviews';
+import { GHOSTING_THRESHOLD_DAYS, INTERVIEW_STAGES as STAGES } from '../utils/constants';
 import RoleFitAnalysis from '../components/RoleFitAnalysis';
 
 // ── Status pipeline order ─────────────────────────────────────────────────────
@@ -23,22 +24,6 @@ const ALL_STATUSES = [
     { label: 'Rejected', icon: '✕' },
     { label: 'Withdrawn', icon: '↩️' },
     { label: 'Ignored', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg> }
-];
-
-const STAGES = [
-    "Recruiter / HR Screen",
-    "Introduction Interview",
-    "Online Test",
-    "Home Assignment",
-    "Technical Interview",
-    "Coding Interview",
-    "System Design Interview",
-    "Behavioral / Culture Interview",
-    "Hiring Manager Interview",
-    "Final Interview / On-site",
-    "Team Matching",
-    "Reference Check",
-    "Background Check"
 ];
 
 // ── Tiny icon helpers ─────────────────────────────────────────────────────────
@@ -159,11 +144,23 @@ function calculateDaysDifference(date1, date2) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {}, dismissGhosting = () => {} }) => {
+const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {}, dismissGhosting = () => {}, backLabel = 'Back to Tracker' }) => {
     const { addToast } = useToast();
     const { settings } = useSettings();
     const { history, isLoading: historyLoading, addNote } = useApplicationHistory(app.id);
     const { events } = useEvents();
+    const { interviews = [] } = useInterviews();
+    const linkedInsights = useMemo(
+        () => (interviews || []).filter(i => i.application_id != null && Number(i.application_id) === Number(app.id)),
+        [interviews, app.id]
+    );
+
+    useEffect(() => {
+        const scrollContainer = document.querySelector('.content');
+        if (scrollContainer) {
+            scrollContainer.scrollTop = 0;
+        }
+    }, [app.id]);
     const [isEditing, setIsEditing] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
 
@@ -203,7 +200,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
 
     const handleAddNote = async (e) => {
         e.preventDefault();
-        if (!newNote) return;
+        if (!newNote.trim()) return;
         await addNote(newNote, withWho);
         setNewNote('');
         setWithWho('');
@@ -213,7 +210,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
         ? (app.LINK.startsWith('http') ? app.LINK : `https://${app.LINK}`)
         : null;
 
-    const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
+    const isAppActive = isActiveStatus(app.STATUS);
     const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
     const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
 
@@ -225,13 +222,34 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
                         <path d="M13 4l-6 6 6 6"/>
                     </svg>
-                    Back to Tracker
+                    {backLabel}
                 </button>
-                {jobLink && (
-                    <a href={jobLink} target="_blank" rel="noopener noreferrer" className="adp-btn-job-link">
-                        <IconLink /> View Job Posting
-                    </a>
-                )}
+                <div className="adp-nav__actions">
+                    {linkedInsights.length > 0 && (
+                        <button
+                            type="button"
+                            className="adp-btn-insight-link"
+                            onClick={() => window.dispatchEvent(new CustomEvent('jobpilot:navigate', {
+                                detail: { tab: 'interview', insightId: linkedInsights[0].id }
+                            }))}
+                            title={linkedInsights.length === 1
+                                ? 'Open linked interview insight'
+                                : `Open ${linkedInsights.length} linked interview insights`}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" aria-hidden="true">
+                                <path d="M9 18h6" />
+                                <path d="M10 22h4" />
+                                <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                            </svg>
+                            {linkedInsights.length === 1 ? 'View Insight' : `View Insights (${linkedInsights.length})`}
+                        </button>
+                    )}
+                    {jobLink && (
+                        <a href={jobLink} target="_blank" rel="noopener noreferrer" className="adp-btn-job-link">
+                            <IconLink /> View Job Posting
+                        </a>
+                    )}
+                </div>
             </div>
 
             {/* ── Hero header ── */}
@@ -255,7 +273,7 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                         {app.STAGE}
                                     </span>
                                 )}
-                                {app.STATUS?.toLowerCase() !== 'rejected' && app.STATUS?.toLowerCase() !== 'ignored' && (
+                                {!isArchivedStatus(app.STATUS) && (
                                     <button 
                                         title="Quick Reject"
                                         onClick={() => setIsRejectModalOpen(true)}
@@ -353,26 +371,9 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                             placeholder="Topics discussed, salary expectations, next steps..." 
                             value={tempNotes}
                             onChange={e => setTempNotes(e.target.value)}
-                            style={{ minHeight: '44px', margin: 0, fontSize: '12px', padding: '8px', flex: 1 }}
+                            dir={getTextDirection(tempNotes)}
+                            style={{ minHeight: '44px', margin: 0, fontSize: '12px', padding: '8px', flex: 1, textAlign: getTextDirection(tempNotes) === 'rtl' ? 'right' : 'left' }}
                         />
-                    </div>
-                </div>
-            )}
-
-            {/* ── Ghosting Suggestion Banner ── */}
-            {isGhosting && (
-                <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-card-alt)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ display: 'flex' }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg></span> No updates in a while
-                        </h4>
-                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-                            It's been {daysSinceActivity} days since the last activity on this application. Would you like to mark it as Ignored/Ghosting to keep your active list clean?
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', marginLeft: '20px' }}>
-                        <button className="btn btn-sm" style={{ border: '1px solid var(--border-color)', background: 'transparent' }} onClick={() => dismissGhosting(app.id)}>Dismiss</button>
-                        <button className="btn btn-sm btn-primary" onClick={() => onUpdate(app.id, 'Ignored', app.STAGE)}>Mark as Ignored</button>
                     </div>
                 </div>
             )}
@@ -501,11 +502,28 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                                                     </div>
                                                                     {isExpanded && (
                                                                         <div style={{ marginTop: '4px' }}>
-                                                                            {evt.notes && !evt.notes.includes('Migrated to new status') && !evt.notes.includes('Application created') && (
-                                                                                <div style={{ fontSize: '11px', padding: '6px', background: 'var(--bg-card-alt)', borderRadius: '6px', border: '1px solid var(--border-color)', marginBottom: '4px' }}>
-                                                                                    {evt.notes}
-                                                                                </div>
-                                                                            )}
+                                                                            {evt.notes && !evt.notes.includes('Migrated to new status') && !evt.notes.includes('Application created') && (() => {
+                                                                                const noteDir = getTextDirection(evt.notes);
+                                                                                return (
+                                                                                    <div
+                                                                                        dir={noteDir}
+                                                                                        style={{
+                                                                                            fontSize: '11px',
+                                                                                            padding: '6px 8px',
+                                                                                            background: 'var(--bg-card-alt)',
+                                                                                            borderRadius: '6px',
+                                                                                            border: '1px solid var(--border-color)',
+                                                                                            marginBottom: '4px',
+                                                                                            whiteSpace: 'pre-wrap',
+                                                                                            wordBreak: 'break-word',
+                                                                                            textAlign: noteDir === 'rtl' ? 'right' : 'left',
+                                                                                            lineHeight: '1.5'
+                                                                                        }}
+                                                                                    >
+                                                                                        {evt.notes}
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
                                                                             {evt.with_who && (
                                                                                 <div style={{ fontSize: '11px', color: 'var(--accent)' }}>
                                                                                     👤 Interviewer(s): {evt.with_who}
@@ -538,14 +556,28 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                 })()}
                             </div>
                             <form onSubmit={handleAddNote} style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                    <input 
-                                        type="text" 
-                                        className="field-input" 
-                                        placeholder="Add a note..." 
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'flex-start' }}>
+                                    <textarea
+                                        className="textarea"
+                                        placeholder="Add a note..."
                                         value={newNote}
                                         onChange={e => setNewNote(e.target.value)}
-                                        style={{ flex: 2, margin: 0, fontSize: '12px', padding: '6px' }}
+                                        onKeyDown={(e) => {
+                                            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && newNote.trim()) {
+                                                handleAddNote(e);
+                                            }
+                                        }}
+                                        rows={2}
+                                        dir={getTextDirection(newNote)}
+                                        style={{
+                                            flex: 2,
+                                            margin: 0,
+                                            minHeight: '52px',
+                                            fontSize: '12px',
+                                            padding: '6px 8px',
+                                            textAlign: getTextDirection(newNote) === 'rtl' ? 'right' : 'left',
+                                            lineHeight: '1.5'
+                                        }}
                                         required
                                     />
                                     <input 
@@ -554,10 +586,11 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                                         placeholder="With who? (optional)" 
                                         value={withWho}
                                         onChange={e => setWithWho(e.target.value)}
+                                        dir={getTextDirection(withWho)}
                                         style={{ flex: 1, margin: 0, fontSize: '12px', padding: '6px' }}
                                     />
                                 </div>
-                                <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote}>
+                                <button type="submit" className="btn btn-primary btn-sm" disabled={!newNote.trim()}>
                                     Add Note
                                 </button>
                             </form>
@@ -592,13 +625,44 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                     </div>
                     <div className="adp-notes-body">
                         {app.INFO
-                            ? <p className="adp-notes-text">{app.INFO}</p>
+                            ? (
+                                <p
+                                    className="adp-notes-text"
+                                    dir={getTextDirection(app.INFO)}
+                                    style={{ textAlign: getTextDirection(app.INFO) === 'rtl' ? 'right' : 'left' }}
+                                >
+                                    {app.INFO}
+                                </p>
+                            )
                             : <p className="adp-notes-empty">No description provided for this job.</p>
                         }
                     </div>
                 </div>
 
             </div>
+
+            {/* ── Sticky Bottom Ghosting Suggestion Bar ── */}
+            {isGhosting && (
+                <div className="adp-ghosting-bar" role="status" aria-live="polite">
+                    <div className="adp-ghosting-bar__content">
+                        <span className="adp-ghosting-bar__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                                <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+                            </svg>
+                        </span>
+                        <div className="adp-ghosting-bar__text">
+                            <h4 className="adp-ghosting-bar__title">No updates in a while</h4>
+                            <p className="adp-ghosting-bar__desc">
+                                It's been {daysSinceActivity} days since the last activity on this application. Would you like to mark it as Ignored/Ghosting to keep your active list clean?
+                            </p>
+                        </div>
+                    </div>
+                    <div className="adp-ghosting-bar__actions">
+                        <button className="btn btn-sm" onClick={() => dismissGhosting(app.id)}>Dismiss</button>
+                        <button className="btn btn-sm btn-primary" onClick={() => onUpdate(app.id, 'Ignored', app.STAGE)}>Mark as Ignored</button>
+                    </div>
+                </div>
+            )}
 
             <RejectModal
                 isOpen={isRejectModalOpen}

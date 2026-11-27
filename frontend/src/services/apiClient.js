@@ -26,7 +26,9 @@ const processQueue = (error, token = null) => {
 
 export const setAccessToken = (token) => {
     accessToken = token;
-    window.accessToken = token; // For console debugging
+    if (import.meta.env.DEV) {
+        window.accessToken = token; // Dev-only console debugging
+    }
 };
 
 export const getAccessToken = () => accessToken;

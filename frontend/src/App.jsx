@@ -13,15 +13,14 @@ import SkillsPage from './pages/SkillsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import { checkBackendHealth } from './services/apiService';
-import { restoreSession } from './services/authService';
-import { supabase } from './supabaseClient';
-import { setAccessToken } from './services/apiClient';
+import { useAuthSession } from './hooks/useAuthSession';
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [pendingAppId, setPendingAppId] = useState(null);
+    const [pendingInsightId, setPendingInsightId] = useState(null);
     const [backendStatus, setBackendStatus] = useState('checking');
-    const [isInitialising, setIsInitialising] = useState(true);
+    const { isAuthenticated, setIsAuthenticated, isInitialising } = useAuthSession();
 
     // 1. Check Backend Health
     useEffect(() => {
@@ -30,46 +29,24 @@ function App() {
             .catch(() => setBackendStatus('disconnected'));
     }, []);
 
-    // 2. Restore Session on Load + keep tokens synced via auth listener
-    useEffect(() => {
-        const initAuth = async () => {
-            const session = await restoreSession();
-            if (session) {
-                setIsAuthenticated(true);
-            }
-            setIsInitialising(false);
-        };
-        initAuth();
-
-        // Keep in-memory token synced with Supabase's auto-refresh
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                if (event === 'TOKEN_REFRESHED' && session) {
-                    setAccessToken(session.access_token);
-                    localStorage.setItem('refresh_token', session.refresh_token);
-                } else if (event === 'SIGNED_OUT') {
-                    setAccessToken(null);
-                    localStorage.removeItem('refresh_token');
-                    setIsAuthenticated(false);
-                }
-            }
-        );
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    // 3. Listen for Navigation/Login Events
+    // 2. Listen for Navigation/Login Events
     useEffect(() => {
         const handler = (e) => {
-            setActiveTab(e.detail);
-            // If we navigate to anything other than login, we assume authenticated
-            if (e.detail !== 'login') {
+            const detail = e.detail;
+            const nextTab = typeof detail === 'string' ? detail : detail?.tab;
+            const nextAppId = typeof detail === 'object' ? (detail?.appId ?? null) : null;
+            const nextInsightId = typeof detail === 'object' ? (detail?.insightId ?? null) : null;
+            if (!nextTab) return;
+            setActiveTab(nextTab);
+            setPendingAppId(nextAppId);
+            setPendingInsightId(nextInsightId);
+            if (nextTab !== 'login') {
                 setIsAuthenticated(true);
             }
         };
         window.addEventListener('jobpilot:navigate', handler);
         return () => window.removeEventListener('jobpilot:navigate', handler);
-    }, []);
+    }, [setIsAuthenticated]);
 
     if (isInitialising) {
         return (
@@ -84,11 +61,23 @@ function App() {
         switch (activeTab) {
             case 'dashboard': return <DashboardPage key={contentKey} />;
             case 'profile': return <ProfilePage key={contentKey} />;
-            case 'applications': return <ApplicationsPage key={contentKey} />;
+            case 'applications': return (
+                <ApplicationsPage
+                    key={contentKey}
+                    initialAppId={pendingAppId}
+                    onInitialAppConsumed={() => setPendingAppId(null)}
+                />
+            );
             case 'network': return <NetworkPage key={contentKey} />;
             case 'search': return <SearchPage key={contentKey} />;
             case 'tailor': return <TailorPage key={contentKey} />;
-            case 'interview': return <InterviewInsightsPage key={contentKey} />;
+            case 'interview': return (
+                <InterviewInsightsPage
+                    key={contentKey}
+                    initialInsightId={pendingInsightId}
+                    onInitialInsightConsumed={() => setPendingInsightId(null)}
+                />
+            );
             case 'projects': return <ExperiencePage key={contentKey} />;
             case 'skills-matrix': return <SkillsPage key={contentKey} />;
             case 'analytics': return <AnalyticsPage key={contentKey} />;

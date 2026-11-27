@@ -9,6 +9,23 @@ export const getInitials = (name) => {
     return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 };
 
+export const isArchivedStatus = (status) => {
+    const v = (status || '').toLowerCase();
+    return v === 'rejected' || v === 'ignored' || v === 'withdrawn';
+};
+
+export const isActiveStatus = (status) => {
+    const v = (status || '').toLowerCase();
+    return !v.includes('reject') && !v.includes('offer') && !v.includes('hired') && !v.includes('ignored') && !v.includes('withdrawn');
+};
+
+export const getTextDirection = (text) => {
+    if (!text) return 'ltr';
+    const rtlChars = (String(text).match(/[\u0590-\u05FF\u0600-\u06FF]/g) || []).length;
+    const ltrChars = (String(text).match(/[A-Za-z]/g) || []).length;
+    return rtlChars > ltrChars ? 'rtl' : 'ltr';
+};
+
 export const statusBadgeClass = (status) => {
     const v = (status || '').toLowerCase();
     if (v.includes('offer')) return 'badge-offer';

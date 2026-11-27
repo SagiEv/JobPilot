@@ -1,7 +1,10 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '../../hooks/useNotifications';
+import { prefetchTabData } from '../../services/prefetchService';
 
 const Sidebar = ({ activeTab, setActiveTab, backendStatus, isOpen, onClose }) => {
+    const queryClient = useQueryClient();
     const { unreadCount } = useNotifications(0);
     const tabs = [
         { id: 'dashboard', label: 'Dashboard' },
@@ -39,6 +42,8 @@ const Sidebar = ({ activeTab, setActiveTab, backendStatus, isOpen, onClose }) =>
                         key={tab.id}
                         className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
                         onClick={() => setActiveTab(tab.id)}
+                        onMouseEnter={() => prefetchTabData(queryClient, tab.id)}
+                        onFocus={() => prefetchTabData(queryClient, tab.id)}
                     >
                         <span>{tab.label}</span>
                         {tab.id === 'dashboard' && unreadCount > 0 && (
@@ -58,6 +63,8 @@ const Sidebar = ({ activeTab, setActiveTab, backendStatus, isOpen, onClose }) =>
                         key={tab.id}
                         className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
                         onClick={() => setActiveTab(tab.id)}
+                        onMouseEnter={() => prefetchTabData(queryClient, tab.id)}
+                        onFocus={() => prefetchTabData(queryClient, tab.id)}
                     >
                         <span>{tab.label}</span>
                     </div>

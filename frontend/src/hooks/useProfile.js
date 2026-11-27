@@ -2,6 +2,7 @@ import { useToast } from '../components/ToastProvider';
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { QUERY_KEYS, profileQuery } from '../queries/queryDefinitions';
 
 export function useProfile() {
     const { addToast } = useToast();
@@ -9,12 +10,8 @@ export function useProfile() {
     const [isGeneratingCV, setIsGeneratingCV] = useState(false);
 
     const { data: profile = {}, isLoading: loading, error: queryError } = useQuery({
+        ...profileQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['profile'],
-        queryFn: async () => {
-            const response = await apiClient.get('/api/profile/');
-            return response.data || {};
-        }
     });
 
     const error = queryError ? 'Failed to load profile data.' : null;
@@ -24,12 +21,12 @@ export function useProfile() {
     });
 
     const setProfile = useCallback((updater) => {
-        queryClient.setQueryData(['profile'], updater);
+        queryClient.setQueryData(QUERY_KEYS.PROFILE, updater);
     }, [queryClient]);
 
     const handleProfileChange = useCallback((field, value) => {
         let updated;
-        queryClient.setQueryData(['profile'], (prev = {}) => {
+        queryClient.setQueryData(QUERY_KEYS.PROFILE, (prev = {}) => {
             updated = { ...prev };
             if (field.includes('.')) {
                 const [parent, child] = field.split('.');
@@ -158,4 +155,4 @@ export function useProfile() {
         handleDownloadJSONResumeCV,
         isGeneratingCV
     };
-}
+}

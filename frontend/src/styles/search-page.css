@@ -1,0 +1,600 @@
+/* ════════════════════════════════════════════════════════════════
+   Auto Search Page Redesign (SearchPage, ScrapedJobsQueue, NetworkSiteSuggestions)
+   ════════════════════════════════════════════════════════════════ */
+.sp-root {
+  padding: 20px 22px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Top Command Bar ──────────────────────────────────────────── */
+.sp-command-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.sp-command-bar__left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-metrics-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sp-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--t2);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.sp-metric-chip--accent {
+  background: var(--accent-light);
+  border-color: rgba(26, 108, 245, 0.25);
+  color: var(--accent);
+}
+
+.sp-command-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sp-schedule-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.sp-schedule-select {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.sp-run-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Workspace Tabs ───────────────────────────────────────────── */
+.sp-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.sp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s ease;
+}
+
+.sp-tab:hover {
+  background: var(--bg2);
+  color: var(--t1);
+}
+
+.sp-tab--active {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  color: #fff;
+}
+
+.sp-tab--active:hover {
+  background: var(--accent-dark);
+  color: #fff;
+}
+
+.sp-tab-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.sp-tab--active .sp-tab-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* ── Scraped Jobs Queue ───────────────────────────────────────── */
+.sp-queue-card {
+  margin-bottom: 0;
+  padding: 18px 20px;
+}
+
+.sp-queue-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.sp-queue-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.sp-status-pills {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg2);
+  padding: 3px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+
+.sp-pill {
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s;
+}
+
+.sp-pill:hover {
+  color: var(--t1);
+}
+
+.sp-pill--active {
+  background: var(--bg);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.sp-queue-search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+}
+
+.sp-queue-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sp-queue-select {
+  width: auto;
+  min-width: 145px;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.sp-sort-dir-btn {
+  white-space: nowrap;
+  padding: 6px 11px;
+}
+
+/* Bulk Selection Bar */
+.sp-bulk-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  transition: background .15s, border-color .15s;
+}
+
+.sp-bulk-bar--active {
+  background: var(--accent-light);
+  border-color: rgba(26, 108, 245, 0.3);
+}
+
+.sp-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sp-bulk-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sp-bulk-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.sp-queue-showing {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.sp-btn-danger {
+  color: var(--danger-c);
+  border-color: rgba(163, 45, 45, 0.35);
+}
+
+.sp-btn-danger:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-c);
+}
+
+/* Jobs Grid & Cards */
+.sp-jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 14px;
+}
+
+.sp-job-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+.sp-job-card:hover {
+  border-color: var(--border2);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.sp-job-card--unseen {
+  border-left: 3px solid var(--accent);
+}
+
+.sp-job-card--selected {
+  background: #f5f9ff;
+  border-color: var(--accent);
+}
+
+.sp-job-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.sp-job-card__check {
+  padding-top: 3px;
+  cursor: pointer;
+  display: flex;
+}
+
+.sp-job-card__heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.sp-job-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+  line-height: 1.35;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-unseen-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.sp-job-card__company-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sp-job-card__company {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.sp-referral-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--success-bg);
+  color: var(--success-c);
+  white-space: nowrap;
+}
+
+.sp-bookmark-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--t3);
+  padding: 0 2px;
+  transition: transform .12s, color .12s;
+}
+
+.sp-bookmark-btn:hover {
+  transform: scale(1.12);
+}
+
+.sp-bookmark-btn--active {
+  color: #eab308;
+}
+
+.sp-job-card__location {
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.sp-job-card__footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-job-card__date {
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.sp-job-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-queue-empty {
+  text-align: center;
+  padding: 36px 20px;
+  color: var(--t2);
+  font-size: 13px;
+}
+
+/* ── Configuration Tab Layout ─────────────────────────────────── */
+.sp-config-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sp-keywords-grid,
+.sp-secondary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.sp-config-card {
+  margin-bottom: 0;
+  padding: 18px 20px;
+}
+
+.sp-card-header {
+  margin-bottom: 10px;
+}
+
+.sp-card-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.sp-site-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sp-site-item--disabled {
+  background: var(--bg2);
+}
+
+/* ── Network Careers Suggestions ──────────────────────────────── */
+.sp-network-suggestions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border2);
+}
+
+.sp-network-suggestions__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sp-network-suggestions__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  font-family: inherit;
+}
+
+.sp-network-suggestions__chevron {
+  color: var(--t3);
+  font-size: 12px;
+}
+
+.sp-network-suggestions__list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.sp-network-suggestions__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+
+.sp-network-suggestions__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.sp-network-suggestions__name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-network-suggestions__info .site-url {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── RSS Help & Run History ───────────────────────────────────── */
+.sp-rss-help {
+  background: var(--success-bg);
+  padding: 12px 14px;
+  border-radius: var(--r);
+  margin-bottom: 12px;
+  border-left: 4px solid var(--success-c);
+  font-size: 12px;
+  color: var(--t1);
+}
+
+.sp-rss-help strong {
+  color: var(--success-c);
+}
+
+.sp-rss-help ol {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sp-run-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.sp-run-history__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-size: 12px;
+}
+
+.sp-run-history__date {
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.sp-run-history__summary {
+  color: var(--t2);
+}
+
+@media (max-width: 820px) {
+  .sp-keywords-grid,
+  .sp-secondary-grid {
+    grid-template-columns: 1fr;
+  }
+  .sp-queue-search {
+    max-width: none;
+  }
+}
