@@ -1,16 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { QUERY_KEYS, experienceQuery } from '../queries/queryDefinitions';
 
 export function useExperience() {
     const queryClient = useQueryClient();
 
     const { data: { projects = [] } = {}, isLoading: loading } = useQuery({
+        ...experienceQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['experience'],
-        queryFn: async () => {
-            const projRes = await apiClient.get('/api/experience/projects');
-            return { projects: projRes.data || [] };
-        }
     });
 
     const addProjectMutation = useMutation({
@@ -21,7 +18,7 @@ export function useExperience() {
             return res.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['experience'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXPERIENCE });
         }
     });
 
@@ -33,7 +30,7 @@ export function useExperience() {
             await apiClient.put(`/api/experience/projects/${id}`, payload);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['experience'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXPERIENCE });
         }
     });
 
@@ -42,7 +39,7 @@ export function useExperience() {
             await apiClient.delete(`/api/experience/projects/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['experience'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EXPERIENCE });
         }
     });
 

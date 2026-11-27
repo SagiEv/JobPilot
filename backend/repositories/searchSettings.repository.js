@@ -20,7 +20,11 @@ const upsertSettings = async (userId, id, updateData, client) => {
 
 // Sites
 const findAllSites = async (userId, client) => {
-    return await client.from('search_sites').select('*').eq('user_id', userId);
+    return await client
+        .from('search_sites')
+        .select('*')
+        .eq('user_id', userId)
+        .order('id', { ascending: true });
 };
 
 const createSite = async (userId, siteData, client) => {

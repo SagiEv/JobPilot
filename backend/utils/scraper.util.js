@@ -22,11 +22,18 @@ const scrapeCareerLinks = async (url) => {
 
         if (jinaRes.status === 200) {
             const markdown = jinaRes.data;
-            const mdLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+            const mdLinkRegex = /(!?)\[([^\]]+)\]\(([^)]+)\)/g;
             let match;
             while ((match = mdLinkRegex.exec(markdown)) !== null) {
-                const text = match[1].replace(/\s*(Read More|Apply Now|Apply|View Details|Learn More|Details)\b/gi, '').trim();
-                const href = match[2].trim();
+                // Ignore markdown image embeds ![alt](src)
+                if (match[1] === '!') continue;
+
+                const text = match[2]
+                    .replace(/[*_`~#]+/g, ' ')
+                    .replace(/\s*(Read More|Apply Now|Apply|View Details|Learn More|Details)\b/gi, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                const href = match[3].trim();
                 
                 // Construct absolute URL
                 let absoluteUrl = href;

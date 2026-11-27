@@ -49,6 +49,21 @@ describe('interviews.service', () => {
             );
         });
 
+        it('should log fallback note when application_id is present without stage', async () => {
+            const interview = buildInterview({ id: 12, application_id: 7, stage: null, company: 'Acme' });
+            interviewRepository.create.mockResolvedValue({ data: interview, error: null });
+            applicationHistoryService.logChange.mockResolvedValue({});
+
+            const mockClient = {};
+            await interviewService.createInterview('user-123', { application_id: 7, company: 'Acme' }, mockClient);
+
+            expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
+                7, 'Interview', null, null, null, null,
+                'Interview insight added',
+                'Acme', 12, null, mockClient
+            );
+        });
+
         it('should skip history logging when no application_id', async () => {
             // Arrange
             const interview = buildInterview({ id: 11, application_id: null });
@@ -73,6 +88,39 @@ describe('interviews.service', () => {
             interviewRepository.update.mockResolvedValue({ data: updated, error: null });
             const result = await interviewService.updateInterview('user-123', 1, {});
             expect(result.stage).toBe('Final');
+        });
+
+        it('should sync application_history when application_id is linked on update', async () => {
+            const updated = buildInterview({ id: 1, application_id: 9, stage: null, company: 'Stripe' });
+            interviewRepository.update.mockResolvedValue({ data: updated, error: null });
+            applicationHistoryService.logChange.mockResolvedValue({});
+            const eqMock = jest.fn().mockResolvedValue({ error: null });
+            const deleteMock = jest.fn(() => ({ eq: eqMock }));
+            const mockClient = { from: jest.fn(() => ({ delete: deleteMock })) };
+
+            const result = await interviewService.updateInterview('user-123', 1, { application_id: 9 }, mockClient);
+
+            expect(result.application_id).toBe(9);
+            expect(mockClient.from).toHaveBeenCalledWith('application_history');
+            expect(eqMock).toHaveBeenCalledWith('interview_id', 1);
+            expect(applicationHistoryService.logChange).toHaveBeenCalledWith(
+                9, 'Interview', null, null, null, null,
+                'Interview insight added',
+                'Stripe', 1, null, mockClient
+            );
+        });
+
+        it('should remove history link when application_id is unlinked on update', async () => {
+            const updated = buildInterview({ id: 1, application_id: null, company: 'Stripe' });
+            interviewRepository.update.mockResolvedValue({ data: updated, error: null });
+            const eqMock = jest.fn().mockResolvedValue({ error: null });
+            const deleteMock = jest.fn(() => ({ eq: eqMock }));
+            const mockClient = { from: jest.fn(() => ({ delete: deleteMock })) };
+
+            await interviewService.updateInterview('user-123', 1, { application_id: null }, mockClient);
+
+            expect(eqMock).toHaveBeenCalledWith('interview_id', 1);
+            expect(applicationHistoryService.logChange).not.toHaveBeenCalled();
         });
 
         it('should throw on error', async () => {

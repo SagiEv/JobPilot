@@ -1,7 +1,7 @@
 const { adminSupabase } = require('../supabaseClient');
 
 const findAllFeeds = async (client) => {
-    return await adminSupabase.from('rss_feeds').select('*');
+    return await adminSupabase.from('rss_feeds').select('*').order('id', { ascending: true });
 };
 
 const createFeed = async (feedData, client) => {

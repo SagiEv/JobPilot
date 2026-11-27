@@ -4,25 +4,85 @@ const searchSettingsRepo = require('../repositories/searchSettings.repository');
 const { scrapeCareerLinks } = require('../utils/scraper.util');
 const AppError = require('../utils/AppError');
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
- * Filter jobs based on keywords and exclude keywords.
+ * Normalizes text for flexible role/tech matching (hyphen/underscore/slash -> space).
  */
-const filterByKeywords = (jobs, keywords = [], excludeKeywords = []) => {
-    return jobs.filter(job => {
-        const titleLower = job.title.toLowerCase();
-        
-        // If exclude keywords exist, reject matches
-        if (excludeKeywords.length > 0) {
-            if (excludeKeywords.some(kw => titleLower.includes(kw.toLowerCase()))) {
-                return false;
+const normalizeForMatch = (text = '') =>
+    String(text)
+        .toLowerCase()
+        .replace(/[-_/]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const extractUrlSlugText = (url = '') => {
+    try {
+        const { pathname } = new URL(url);
+        return decodeURIComponent(pathname).replace(/\//g, ' ');
+    } catch {
+        return '';
+    }
+};
+
+/**
+ * Boundary-aware keyword matcher that handles punctuation/hyphenation variants
+ * ("Full Stack" <-> "Full-Stack" <-> "Fullstack", "Node.js" <-> "NodeJS", "C++")
+ * while avoiding false positives ("Java" vs "JavaScript", "AI" vs "Maintain", "Intern" vs "Internal").
+ */
+const matchesKeyword = (haystackRaw, keywordRaw) => {
+    const kw = normalizeForMatch(keywordRaw);
+    if (!kw) return false;
+    const haystack = normalizeForMatch(haystackRaw);
+    if (!haystack) return false;
+
+    const startsAlnum = /^[a-z0-9]/.test(kw);
+    const endsAlnum = /[a-z0-9]$/.test(kw);
+    const pattern = `${startsAlnum ? '(?<![a-z0-9])' : ''}${escapeRegex(kw)}${endsAlnum ? '(?![a-z0-9])' : ''}`;
+    if (new RegExp(pattern, 'i').test(haystack)) {
+        return true;
+    }
+
+    // Multi-word or dotted keyword (e.g. "Full Stack" -> "fullstack", "Node.js" -> "nodejs")
+    if (/[\s.]/.test(kw)) {
+        const compactKw = kw.replace(/[\s.]+/g, '');
+        if (compactKw.length >= 4) {
+            const compactPattern = `(?<![a-z0-9])${escapeRegex(compactKw)}(?![a-z0-9])`;
+            if (new RegExp(compactPattern, 'i').test(haystack)) {
+                return true;
             }
         }
-        
-        // If search keywords exist, require at least one match
-        if (keywords.length > 0) {
-            return keywords.some(kw => titleLower.includes(kw.toLowerCase()));
+    }
+
+    // Single-word keyword matching hyphenated/underscored/dotted title ("Fullstack" -> "Full-Stack", "NodeJS" -> "Node.js")
+    const sepCollapsed = String(haystackRaw).toLowerCase().replace(/[-_.]+/g, '');
+    if (new RegExp(pattern, 'i').test(sepCollapsed)) {
+        return true;
+    }
+
+    return false;
+};
+
+/**
+ * Filter jobs based on search keywords and exclude keywords.
+ */
+const filterByKeywords = (jobs, keywords = [], excludeKeywords = []) => {
+    const cleanKeywords = (keywords || []).map(k => String(k || '').trim()).filter(Boolean);
+    const cleanExcludes = (excludeKeywords || []).map(k => String(k || '').trim()).filter(Boolean);
+
+    return (jobs || []).filter(job => {
+        const searchable = [job.title || '', extractUrlSlugText(job.url)].join(' ');
+
+        // Reject if any exclude keyword matches
+        if (cleanExcludes.length > 0 && cleanExcludes.some(kw => matchesKeyword(searchable, kw))) {
+            return false;
         }
-        
+
+        // Require at least one search keyword match when keywords are configured
+        if (cleanKeywords.length > 0) {
+            return cleanKeywords.some(kw => matchesKeyword(searchable, kw));
+        }
+
         // No keywords = include everything
         return true;
     });
@@ -32,7 +92,7 @@ const filterByKeywords = (jobs, keywords = [], excludeKeywords = []) => {
 /**
  * Scrape a specific site for a user, filter, and save to DB.
  */
-const scrapeAndSaveForUser = async (userId, site, settings) => {
+const scrapeAndSaveForUser = async (userId, site, settings = {}) => {
     console.log(`[Scraper] Scraping site ${site.name} for user ${userId}`);
     
     const { links: allLinks } = await scrapeCareerLinks(site.url);
@@ -42,7 +102,7 @@ const scrapeAndSaveForUser = async (userId, site, settings) => {
     }
 
     const keywords = settings.keywords || [];
-    const excludeKeywords = settings.exclude_keywords || [];
+    const excludeKeywords = settings.exclude_keywords || settings.excludeKeywords || [];
     
     const filteredLinks = filterByKeywords(allLinks, keywords, excludeKeywords);
     console.log(`[Scraper] Site ${site.name}: found ${allLinks.length}, filtered to ${filteredLinks.length}`);
@@ -116,5 +176,8 @@ const runSearchForUser = async (userId, supabaseClient) => {
 
 module.exports = {
     runSearchForUser,
-    scrapeAndSaveForUser
+    scrapeAndSaveForUser,
+    filterByKeywords,
+    normalizeForMatch,
+    matchesKeyword
 };

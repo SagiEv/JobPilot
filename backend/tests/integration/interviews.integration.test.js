@@ -65,4 +65,28 @@ describe('Integration: Interviews API ↔ Database', () => {
         expect(res.body.keep).toBe('Clear communication');
         expect(res.body.improve).toBe('Deeper system design');
     });
+
+    it('should update interview application_id link and unlink cleanly', async () => {
+        const linked = buildInterview({ id: 1, application_id: 42, company: 'Stripe', keep: ['Good'], improve: ['Pacing'] });
+        sandbox.onTable('interviews').forUpdate({ data: linked, error: null });
+
+        const resLink = await request(app)
+            .put('/api/interviews/1')
+            .set('Authorization', AUTH_HEADER)
+            .send({ company: 'Stripe', date: '2026-06-01', keep: ['Good'], improve: ['Pacing'], application_id: 42 })
+            .expect(200);
+
+        expect(resLink.body.application_id).toBe(42);
+
+        const unlinked = buildInterview({ id: 1, application_id: null, company: 'Stripe' });
+        sandbox.onTable('interviews').forUpdate({ data: unlinked, error: null });
+
+        const resUnlink = await request(app)
+            .put('/api/interviews/1')
+            .set('Authorization', AUTH_HEADER)
+            .send({ application_id: null })
+            .expect(200);
+
+        expect(resUnlink.body.application_id).toBeNull();
+    });
 });

@@ -19,4 +19,17 @@ const deleteJob = async (userId, jobId) => {
     return { message: 'Job deleted successfully' };
 };
 
-module.exports = { getJobsByUser, updateJob, deleteJob };
+const deleteJobsBatch = async (userId, ids) => {
+    if (!Array.isArray(ids) || ids.length === 0) {
+        throw new AppError('ids must be a non-empty array', 400);
+    }
+    const cleanIds = ids.map(Number).filter(n => Number.isInteger(n) && n > 0);
+    if (cleanIds.length === 0) {
+        throw new AppError('No valid job IDs provided', 400);
+    }
+    const { error } = await scrapedJobsRepo.deleteJobsBatch(userId, cleanIds);
+    if (error) throw new AppError(error.message, error.status || 400, error.code);
+    return { message: 'Jobs deleted successfully', deletedCount: cleanIds.length };
+};
+
+module.exports = { getJobsByUser, updateJob, deleteJob, deleteJobsBatch };

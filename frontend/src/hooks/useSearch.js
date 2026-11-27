@@ -37,7 +37,7 @@ export function useSearch() {
                     scheduleFrequency: 'Manual only',
                     lastResults: []
                 }),
-                targetSites: sitesRes.data || []
+                targetSites: [...(sitesRes.data || [])].sort((a, b) => (a.id || 0) - (b.id || 0))
             };
         }
     });
@@ -152,7 +152,7 @@ export function useSearch() {
 
     const addSite = async (name, url) => {
         if (!name || !url) return;
-        addSiteMutation.mutate({ name, url });
+        return addSiteMutation.mutateAsync({ name, url });
     };
 
     const removeSite = async (id) => {

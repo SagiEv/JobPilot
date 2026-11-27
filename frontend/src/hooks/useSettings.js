@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { QUERY_KEYS, settingsQuery } from '../queries/queryDefinitions';
 
 const DEFAULT_SETTINGS = {
     groq_token_set: false,
@@ -28,12 +29,8 @@ export function useSettings() {
     const [testing, setTesting] = useState(false);
 
     const { data: settings = DEFAULT_SETTINGS, isLoading: loading, error: queryError } = useQuery({
+        ...settingsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['settings'],
-        queryFn: async () => {
-            const res = await apiClient.get('/api/settings');
-            return res.data;
-        }
     });
 
     const error = queryError ? 'Failed to load settings.' : null;
@@ -44,7 +41,7 @@ export function useSettings() {
             return res.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['settings'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
         },
         onError: (err) => {
             console.error('Failed to save settings:', err);

@@ -1,9 +1,12 @@
 import { useToast } from '../components/ToastProvider';
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authService, handleRedirectSession } from '../services/authService';
+import { prefetchInitialData } from '../services/prefetchService';
 
 const LoginPage = () => {
+    const queryClient = useQueryClient();
     const { addToast } = useToast();
     const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
@@ -17,13 +20,14 @@ const LoginPage = () => {
         const checkSession = async () => {
             const user = await handleRedirectSession();
             if (user && isMounted) {
+                await prefetchInitialData(queryClient);
                 // Signal App.jsx to unlock and go to dashboard
                 window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'dashboard' }));
             }
         };
         checkSession();
         return () => { isMounted = false; };
-    }, []);
+    }, [queryClient]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -36,6 +40,7 @@ const LoginPage = () => {
                 addToast("Check your email for verification!", 'info');
             } else {
                 await authService.login(email, password);
+                await prefetchInitialData(queryClient);
                 // Signal App.jsx to unlock and go to dashboard
                 window.dispatchEvent(new CustomEvent('jobpilot:navigate', { detail: 'dashboard' }));
             }

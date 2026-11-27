@@ -53,3 +53,8 @@ exports.deleteScrapedJob = async (req, res) => {
     const result = await scrapedJobsService.deleteJob(req.user.id, req.params.id);
     res.status(200).json(result);
 };
+
+exports.bulkDeleteScrapedJobs = async (req, res) => {
+    const result = await scrapedJobsService.deleteJobsBatch(req.user.id, req.body?.ids);
+    res.status(200).json(result);
+};

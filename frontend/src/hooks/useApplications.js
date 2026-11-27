@@ -3,26 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
 import { uploadCSV } from '../services/dataService';
 import { useToast } from '../components/ToastProvider';
+import { isActiveStatus, isArchivedStatus } from '../utils/helpers';
+import {
+    QUERY_KEYS,
+    applicationsQuery,
+    fromDbApplication as fromDb,
+} from '../queries/queryDefinitions';
 
-// Map between DB schema and frontend state
-const fromDb = (row) => ({
-    id: row.id,
-    COMPANY: row.company || '',
-    ROLE_ID: row.role_id || '',
-    DATE: row.date || '',
-    STATUS: row.status || '',
-    STAGE: row.stage || '',
-    LOCATION: row.location || '',
-    INFO: row.info || '',
-    REFERAL: row.referal || '',
-    LINK: row.link || '',
-    CV_FILE: row.cv_file || '',
-    LAST_ACTIVITY_DATE: row.last_activity_date || row.date || '',
-    REJECTION_REASON: row.rejection_reason || '',
-    AUTOMATIC_REJECTION: row.automatic_rejection || false,
-    fit_score_deterministic: row.fit_score_deterministic,
-    fit_analysis_ai: row.fit_analysis_ai
-});
+export { fromDb };
+export const fetchApplications = applicationsQuery.queryFn;
 
 const toDb = (app) => {
     const data = {
@@ -45,7 +34,7 @@ const toDb = (app) => {
 
 export function useApplications() {
     const queryClient = useQueryClient();
-    const { addToast } = useToast();
+    const { addToast } = useToast() || {};
     const [status, setStatus] = useState('');
     const [conflict, setConflict] = useState(null);
     const [dismissedGhostings, setDismissedGhostings] = useState(() => {
@@ -62,15 +51,12 @@ export function useApplications() {
             localStorage.setItem('dismissedGhostings', JSON.stringify(next));
             return next;
         });
+        addToast?.('Reminder dismissed for this application', 'info');
     };
 
     const { data: applications = [], isLoading: loading } = useQuery({
+        ...applicationsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['applications'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/api/applications');
-            return (data || []).map(fromDb);
-        }
     });
 
     const updateApplicationMutation = useMutation({
@@ -89,10 +75,10 @@ export function useApplications() {
             return data;
         },
         onMutate: async (newApp) => {
-            await queryClient.cancelQueries({ queryKey: ['applications'] });
-            await queryClient.cancelQueries({ queryKey: ['dailyStats'] });
-            const previousApps = queryClient.getQueryData(['applications']);
-            queryClient.setQueryData(['applications'], (old) => 
+            await queryClient.cancelQueries({ queryKey: QUERY_KEYS.APPLICATIONS });
+            await queryClient.cancelQueries({ queryKey: QUERY_KEYS.DAILY_STATS });
+            const previousApps = queryClient.getQueryData(QUERY_KEYS.APPLICATIONS);
+            queryClient.setQueryData(QUERY_KEYS.APPLICATIONS, (old) => 
                 old?.map(app => app.id === newApp.id ? { 
                     ...app, 
                     ...(newApp.newStatus !== undefined && !newApp.eventDate ? { STATUS: newApp.newStatus } : {}),
@@ -101,8 +87,14 @@ export function useApplications() {
             );
             return { previousApps };
         },
-        onSuccess: (updatedApp, variables) => {
-            queryClient.setQueryData(['applications'], (old) => 
+        onSuccess: (updatedApp, variables, context) => {
+            const prevApp = context?.previousApps?.find(a => a.id === variables.id);
+            const company = updatedApp?.company || prevApp?.COMPANY || 'Application';
+            const finalStatus = updatedApp?.status || variables.newStatus;
+            const finalStage = updatedApp?.stage ?? variables.newStage;
+            const statusLower = (finalStatus || '').toLowerCase();
+
+            queryClient.setQueryData(QUERY_KEYS.APPLICATIONS, (old) => 
                 old?.map(app => app.id === variables.id ? { 
                     ...app, 
                     STATUS: updatedApp.status, 
@@ -111,10 +103,22 @@ export function useApplications() {
                     REJECTION_REASON: updatedApp.rejection_reason
                 } : app)
             );
+
+            if (statusLower === 'rejected' || statusLower === 'ignored' || statusLower === 'withdrawn') {
+                addToast?.(`Marked ${company} as ${finalStatus}`, 'info');
+            } else if (prevApp && prevApp.STATUS === finalStatus && finalStage && prevApp.STAGE !== finalStage) {
+                addToast?.(`Updated ${company} stage to ${finalStage}`, 'success');
+            } else if (finalStatus && finalStage && statusLower === 'interviewing') {
+                addToast?.(`Updated ${company} to ${finalStatus} (${finalStage})`, 'success');
+            } else if (finalStatus) {
+                addToast?.(`Updated ${company} status to ${finalStatus}`, 'success');
+            } else {
+                addToast?.(`Updated ${company}`, 'success');
+            }
         },
         onError: (err, newApp, context) => {
             if (context?.previousApps) {
-                queryClient.setQueryData(['applications'], context.previousApps);
+                queryClient.setQueryData(QUERY_KEYS.APPLICATIONS, context.previousApps);
             }
             if (err.response?.data?.code === 'CONFLICTING_EVENT') {
                 setConflict({
@@ -129,12 +133,13 @@ export function useApplications() {
                     conflictData: err.response.data.conflictData
                 });
             } else {
-                addToast(`Failed to update application: ${err.response?.data?.error || err.message || 'Unknown error'}`, 'error');
+                addToast?.(`Failed to update application: ${err.response?.data?.error || err.message || 'Unknown error'}`, 'error');
             }
         },
         onSettled: (data, error, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['applications'] });
-            queryClient.invalidateQueries({ queryKey: ['applicationHistory', variables.id] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATIONS });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DAILY_STATS });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATION_HISTORY(variables.id) });
         }
     });
 
@@ -144,9 +149,11 @@ export function useApplications() {
             const { data } = await apiClient.post('/api/applications', dbData);
             return data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['applications'] });
-            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
+        onSuccess: (createdApp, newApp) => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATIONS });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DAILY_STATS });
+            const company = createdApp?.company || newApp?.COMPANY || 'Application';
+            addToast?.(`Added application for ${company}`, 'success');
         }
     });
 
@@ -155,8 +162,8 @@ export function useApplications() {
             await apiClient.post('/api/applications/bulk', { applications: dbData });
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['applications'] });
-            queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATIONS });
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DAILY_STATS });
         }
     });
 
@@ -179,6 +186,7 @@ export function useApplications() {
         if (!conflict) return;
         if (resolution === 'abort') {
             setConflict(null);
+            addToast?.('Update cancelled', 'info');
             return;
         }
         updateApplicationMutation.mutate({
@@ -209,7 +217,8 @@ export function useApplications() {
 
     const stats = useMemo(() => ({
         total: applications.length,
-        active: applications.filter(a => !a.STATUS?.toLowerCase().includes('reject') && !a.STATUS?.toLowerCase().includes('offer') && !a.STATUS?.toLowerCase().includes('ignored')).length,
+        active: applications.filter(a => isActiveStatus(a.STATUS)).length,
+        archived: applications.filter(a => isArchivedStatus(a.STATUS)).length,
         interview: applications.filter(a => a.STATUS?.toLowerCase().includes('interview') || a.STATUS?.toLowerCase().includes('phone')).length,
         offer: applications.filter(a => a.STATUS?.toLowerCase().includes('offer')).length
     }), [applications]);
@@ -240,9 +249,11 @@ export function useApplications() {
             await bulkAddMutation.mutateAsync(dbData);
 
             setStatus(`✓ Loaded successfully`);
+            addToast?.(`Imported ${normalized.length} application${normalized.length === 1 ? '' : 's'} from CSV`, 'success');
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || err.message;
             setStatus(`✗ Error: ${msg}`);
+            addToast?.(`CSV import failed: ${msg}`, 'error');
         } finally {
             e.target.value = null;
         }

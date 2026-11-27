@@ -1,27 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient, { getAccessToken } from '../services/apiClient';
+import { QUERY_KEYS, rssFeedsQuery, rssJobsQuery } from '../queries/queryDefinitions';
 
 export function useRss() {
     const queryClient = useQueryClient();
 
     // Fetch Feeds
     const { data: feeds = [], isLoading: feedsLoading } = useQuery({
+        ...rssFeedsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['rssFeeds'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/api/rss-feeds/feeds');
-            return data || [];
-        }
     });
 
     // Fetch Jobs
     const { data: jobs = [], isLoading: jobsLoading } = useQuery({
+        ...rssJobsQuery,
         enabled: !!getAccessToken(),
-        queryKey: ['rssJobs'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/api/rss-feeds/jobs');
-            return data || [];
-        }
     });
 
     // Add Feed
@@ -30,7 +23,7 @@ export function useRss() {
             const { data } = await apiClient.post('/api/rss-feeds/feeds', { url, category, enabled: true });
             return data;
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rssFeeds'] })
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RSS_FEEDS })
     });
 
     // Update Feed
@@ -39,7 +32,7 @@ export function useRss() {
             const { data } = await apiClient.put(`/api/rss-feeds/feeds/${id}`, payload);
             return data;
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rssFeeds'] })
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RSS_FEEDS })
     });
 
     // Delete Feed
@@ -47,7 +40,7 @@ export function useRss() {
         mutationFn: async (id) => {
             await apiClient.delete(`/api/rss-feeds/feeds/${id}`);
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rssFeeds'] })
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RSS_FEEDS })
     });
 
     const addFeed = async (url, category = 'General') => {

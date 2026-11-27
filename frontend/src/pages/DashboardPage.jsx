@@ -6,11 +6,13 @@ import { useEvents } from '../hooks/useEvents';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRss } from '../hooks/useRss';
 import { useScrapedJobs } from '../hooks/useScrapedJobs';
-import PageLoader from '../components/PageLoader';
 import apiClient from '../services/apiClient';
 import ProviderBadge from '../components/ProviderBadge';
+import ConflictModal from '../components/ConflictModal';
+import ApplicationSearchPicker from '../components/ApplicationSearchPicker';
+import ApplicationDetailPage from './ApplicationDetailPage';
 import { useSettings } from '../hooks/useSettings';
-import { formatDate } from '../utils/helpers';
+import { formatDate, isActiveStatus } from '../utils/helpers';
 
 const stripEmojis = (str) => {
     if (!str) return str;
@@ -20,7 +22,15 @@ const stripEmojis = (str) => {
 const DashboardPage = () => {
     const { addToast, removeToast } = useToast();
     const { settings } = useSettings();
-    const { applications, loading: appsLoading } = useApplications();
+    const {
+        applications,
+        loading: appsLoading,
+        updateApplication,
+        conflict,
+        handleConflictResolution,
+        dismissedGhostings,
+        dismissGhosting
+    } = useApplications();
     const { data: dailyStats } = useDailyStats();
     const { events, loading: eventsLoading, addEvent } = useEvents();
     const { jobs: rssJobs, jobsLoading: rssLoading } = useRss();
@@ -50,12 +60,15 @@ const DashboardPage = () => {
         if (appsLoading || !applications) return { active: 0, rejected: 0, appliedToday: 0, rejectedToday: 0 };
         const apps = applications;
         return {
-            active: apps.filter(a => a.STATUS !== 'Rejected' && a.STATUS !== 'Offer').length,
+            active: apps.filter(a => isActiveStatus(a.STATUS)).length,
             rejected: apps.filter(a => a.STATUS === 'Rejected').length,
             appliedToday: dailyStats?.appliedToday || 0,
             rejectedToday: dailyStats?.rejectedToday || 0
         };
     }, [applications, appsLoading, dailyStats]);
+
+    // Quick Application View state
+    const [viewingAppId, setViewingAppId] = useState(null);
     const { notifications, isLoading: notifLoading, markAllRead, markRead, revertNotification, unrevertNotification } = useNotifications();
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -273,15 +286,46 @@ const DashboardPage = () => {
         }
     };
 
-    if (appsLoading || eventsLoading) return <PageLoader />;
+    const selectedQuickApp = viewingAppId ? (applications || []).find(a => a.id === viewingAppId) : null;
+    if (viewingAppId && selectedQuickApp) {
+        return (
+            <>
+                <ApplicationDetailPage
+                    app={selectedQuickApp}
+                    onBack={() => setViewingAppId(null)}
+                    onUpdate={updateApplication}
+                    dismissedGhostings={dismissedGhostings}
+                    dismissGhosting={dismissGhosting}
+                    backLabel="Back to Dashboard"
+                />
+                {conflict && <ConflictModal conflict={conflict} onResolve={handleConflictResolution} />}
+            </>
+        );
+    }
 
     return (
         <div className="section dashboard-page" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <div className="desktop-only">
                     <h1 style={{ fontSize: '2rem', fontWeight: 600, color: '#1a1a1a', margin: 0 }}>Welcome back, Job Hunter!</h1>
-                    <p style={{ color: '#666', marginTop: '0.5rem' }}>Here is your career command center overview.</p>
+                    <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>Here is your career command center overview.</p>
                 </div>
+
+                {/* Quick Application Search */}
+                <ApplicationSearchPicker
+                    variant="dashboard"
+                    applications={applications}
+                    loading={appsLoading}
+                    timezone={settings?.timezone}
+                    placeholder="Quick search applications..."
+                    ariaLabel="Quick search applications"
+                    showRecentOnFocus
+                    showDate
+                    showStage
+                    emptyListText="No applications tracked yet."
+                    onSelect={(app) => setViewingAppId(app.id)}
+                />
+
                 <div style={{ display: 'flex', gap: '1.5rem', backgroundColor: '#fff', padding: '1rem', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f6e56' }}>{stats.appliedToday}</div>
@@ -537,7 +581,11 @@ const DashboardPage = () => {
                         <button className="btn btn-sm btn-primary" onClick={() => setIsInterviewModalOpen(true)}>+ Add Interview</button>
                     </div>
 
-                    {upcomingInterviews.slice(0,3).length > 0 ? (
+                    {eventsLoading ? (
+                        <div style={{ textAlign: 'center', padding: '1rem 0', color: '#888' }}>
+                            <p>Loading interviews…</p>
+                        </div>
+                    ) : upcomingInterviews.slice(0,3).length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {upcomingInterviews.slice(0,3).map((interview, idx) => (
                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #eaeaea', borderRadius: '8px' }}>

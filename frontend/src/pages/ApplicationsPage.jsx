@@ -1,55 +1,37 @@
 import { useToast } from '../components/ToastProvider';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApplications } from '../hooks/useApplications';
 import { useSettings } from '../hooks/useSettings';
 import ApplicationDetailPage from './ApplicationDetailPage';
-import { statusBadgeClass, formatDate } from '../utils/helpers';
+import { statusBadgeClass, formatDate, isActiveStatus, isArchivedStatus } from '../utils/helpers';
 import PageLoader from '../components/PageLoader';
 import RejectModal from '../components/RejectModal';
-import { GHOSTING_THRESHOLD_DAYS } from '../utils/constants';
+import ConflictModal from '../components/ConflictModal';
+import { GHOSTING_THRESHOLD_DAYS, APPLICATION_STATUSES, INTERVIEW_STAGES } from '../utils/constants';
 
-const ConflictModal = ({ conflict, onResolve }) => (
-    <div className="modal-overlay" onClick={() => onResolve('abort')}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-                <h2>Event Conflict Detected</h2>
-                <button className="modal-close" onClick={() => onResolve('abort')}>✕</button>
-            </div>
-            <div className="modal-body">
-                <p>An event already exists on <strong>{conflict.conflictData.targetDate}</strong>:</p>
-                <div style={{ padding: '10px', background: 'var(--bg-card-alt)', borderRadius: '6px', margin: '10px 0' }}>
-                    <strong>Existing Event:</strong> {conflict.conflictData.existingEvent.event_type}
-                    <br />
-                    Status: {conflict.conflictData.existingEvent.new_status}
-                    {conflict.conflictData.existingEvent.new_stage && ` (${conflict.conflictData.existingEvent.new_stage})`}
-                </div>
-                <p>You are trying to set:</p>
-                <div style={{ padding: '10px', background: 'var(--bg-card-alt)', borderRadius: '6px', margin: '10px 0' }}>
-                    Status: {conflict.newStatus}
-                    {conflict.newStage && ` (${conflict.newStage})`}
-                </div>
-                <p>How would you like to handle this conflict?</p>
-            </div>
-            <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '10px' }}>
-                <button className="btn btn-primary" onClick={() => onResolve('overwrite')}>Overwrite</button>
-                <button className="btn" style={{ background: 'var(--bg-card-alt)', border: '1px solid var(--border-color)', color: 'var(--text-main)' }} onClick={() => onResolve('keep_both')}>Keep Both</button>
-                <button className="btn" onClick={() => onResolve('abort')}>Abort</button>
-            </div>
-        </div>
-    </div>
-);
-
-const ApplicationsPage = () => {
+const ApplicationsPage = ({ initialAppId = null, onInitialAppConsumed }) => {
     const { addToast } = useToast();
     const { applications, stats, status, handleUpload, updateApplication, addApplication, isAdding, loading, conflict, handleConflictResolution, dismissedGhostings, dismissGhosting } = useApplications();
     const { settings } = useSettings();
 
     // UI State
-    const [viewingAppId, setViewingAppId] = useState(null);
+    const [viewingAppId, setViewingAppId] = useState(initialAppId);
+    const [prevInitialAppId, setPrevInitialAppId] = useState(initialAppId);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('active'); // 'all' | 'active' | 'interview' | 'archived'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [rejectModalApp, setRejectModalApp] = useState(null);
+
+    if (initialAppId != null && initialAppId !== prevInitialAppId) {
+        setPrevInitialAppId(initialAppId);
+        setViewingAppId(initialAppId);
+    }
+
+    useEffect(() => {
+        if (initialAppId != null) {
+            onInitialAppConsumed?.();
+        }
+    }, [initialAppId, onInitialAppConsumed]);
 
 
     const [newAppForm, setNewAppForm] = useState({ COMPANY: '', ROLE_ID: '', STATUS: 'Applied', STAGE: '', LINK: '', INFO: '', DATE: new Date().toISOString().split('T')[0], CV_FILE: '', REFERAL: '', LOCATION: '' });
@@ -59,6 +41,8 @@ const ApplicationsPage = () => {
     const [sortOrder, setSortOrder] = useState('desc'); // 'desc' (Newest) or 'asc' (Oldest)
 
     const currentApp = applications.find(a => a.id === viewingAppId);
+
+    const getFitScore = (app) => app.fit_analysis_ai?.ai_score ?? app.fit_score_deterministic ?? null;
 
     // Filtering & Sorting Logic
     const filteredApplications = useMemo(() => {
@@ -72,11 +56,11 @@ const ApplicationsPage = () => {
 
                 switch (filterType) {
                     case 'active':
-                        return !status.includes('reject') && !status.includes('offer') && !status.includes('ignored');
+                        return isActiveStatus(app.STATUS);
                     case 'interview':
                         return status.includes('interview') || status.includes('phone') || status.includes('tech');
                     case 'archived':
-                        return status === 'rejected' || status === 'ignored';
+                        return isArchivedStatus(app.STATUS);
                     case 'all':
                     default:
                         // 'all' view shows everything including rejected
@@ -84,6 +68,18 @@ const ApplicationsPage = () => {
                 }
             })
             .sort((a, b) => {
+                if (sortBy === 'fit') {
+                    const scoreA = getFitScore(a);
+                    const scoreB = getFitScore(b);
+                    if (scoreA == null && scoreB == null) {
+                        return new Date(b.DATE || 0) - new Date(a.DATE || 0);
+                    }
+                    if (scoreA == null) return 1;
+                    if (scoreB == null) return -1;
+                    const diff = sortOrder === 'desc' ? scoreB - scoreA : scoreA - scoreB;
+                    if (diff !== 0) return diff;
+                    return new Date(b.DATE || 0) - new Date(a.DATE || 0);
+                }
                 let comparison = 0;
                 if (sortBy === 'date') {
                     comparison = new Date(b.DATE || 0) - new Date(a.DATE || 0);
@@ -136,7 +132,7 @@ const ApplicationsPage = () => {
                     onClick={() => setFilterType('archived')}
                 >
                     <div className="stat-num" style={{ color: 'var(--danger-c)' }}>
-                        {applications.filter(a => a.STATUS?.toLowerCase() === 'rejected' || a.STATUS?.toLowerCase() === 'ignored').length}
+                        {stats.archived}
                     </div>
                     <div className="stat-lbl">Archived</div>
                 </div>
@@ -164,12 +160,17 @@ const ApplicationsPage = () => {
                     <select className="sort-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                         <option value="date">Sort by Date</option>
                         <option value="status">Sort by Status</option>
+                        <option value="fit">Sort by Fit Score</option>
                     </select>
                     <button
                         className="btn-sort-dir"
                         onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                     >
-                        {sortOrder === 'desc' ? '↓ Newest' : '↑ Oldest'}
+                        {sortBy === 'fit'
+                            ? (sortOrder === 'desc' ? '↓ Highest' : '↑ Lowest')
+                            : sortBy === 'status'
+                                ? (sortOrder === 'desc' ? '↓ A–Z' : '↑ Z–A')
+                                : (sortOrder === 'desc' ? '↓ Newest' : '↑ Oldest')}
                     </button>
                 </div>
 
@@ -201,10 +202,10 @@ const ApplicationsPage = () => {
                     </thead>
                     <tbody>
                         {filteredApplications.map((app) => {
-                            const isAppActive = !app.STATUS?.toLowerCase().includes('reject') && !app.STATUS?.toLowerCase().includes('offer') && !app.STATUS?.toLowerCase().includes('ignored');
+                            const isAppActive = isActiveStatus(app.STATUS);
                             const daysSinceActivity = app.LAST_ACTIVITY_DATE ? Math.floor((new Date() - new Date(app.LAST_ACTIVITY_DATE)) / (1000 * 60 * 60 * 24)) : 0;
                             const isGhosting = isAppActive && daysSinceActivity >= GHOSTING_THRESHOLD_DAYS && !dismissedGhostings[app.id];
-                            const fitScore = app.fit_analysis_ai?.ai_score ?? app.fit_score_deterministic;
+                            const fitScore = getFitScore(app);
 
                             return (
                             <tr 
@@ -220,7 +221,7 @@ const ApplicationsPage = () => {
                                     <select
                                         className={`status-select-table ${statusBadgeClass(app.STATUS)}`}
                                         value={
-                                            ['Applied', 'Screening', 'Assessment', 'Interviewing', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Ignored']
+                                            APPLICATION_STATUSES
                                                 .find(opt => opt.toLowerCase() === app.STATUS?.toLowerCase()) || app.STATUS || 'Applied'
                                         }
                                         onChange={(e) => {
@@ -236,15 +237,9 @@ const ApplicationsPage = () => {
                                         onClick={(e) => e.stopPropagation()}
                                         style={{ margin: 0, width: '130px' }}
                                     >
-                                        <option value="Applied">Applied</option>
-                                        <option value="Screening">Screening</option>
-                                        <option value="Assessment">Assessment</option>
-                                        <option value="Interviewing">Interviewing</option>
-                                        <option value="Offer">Offer</option>
-                                        <option value="Hired">Hired</option>
-                                        <option value="Rejected">Rejected</option>
-                                        <option value="Withdrawn">Withdrawn</option>
-                                        <option value="Ignored">Ignored</option>
+                                        {APPLICATION_STATUSES.map(statusOpt => (
+                                            <option key={statusOpt} value={statusOpt}>{statusOpt}</option>
+                                        ))}
                                     </select>
                                     {isGhosting && (
                                         <button 
@@ -272,7 +267,7 @@ const ApplicationsPage = () => {
                                             </svg>
                                         </button>
                                     )}
-                                    {app.STATUS?.toLowerCase() !== 'rejected' && app.STATUS?.toLowerCase() !== 'ignored' && (
+                                    {!isArchivedStatus(app.STATUS) && (
                                         <button 
                                             title="Quick Reject"
                                             onClick={(e) => {
@@ -312,19 +307,9 @@ const ApplicationsPage = () => {
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 <option value="">- No Stage -</option>
-                                                <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
-                                                <option value="Introduction Interview">Introduction Interview</option>
-                                                <option value="Online Test">Online Test</option>
-                                                <option value="Home Assignment">Home Assignment</option>
-                                                <option value="Technical Interview">Technical Interview</option>
-                                                <option value="Coding Interview">Coding Interview</option>
-                                                <option value="System Design Interview">System Design Interview</option>
-                                                <option value="Behavioral / Culture Interview">Behavioral / Culture</option>
-                                                <option value="Hiring Manager Interview">Hiring Manager</option>
-                                                <option value="Final Interview / On-site">Final / On-site</option>
-                                                <option value="Team Matching">Team Matching</option>
-                                                <option value="Reference Check">Reference Check</option>
-                                                <option value="Background Check">Background Check</option>
+                                                {INTERVIEW_STAGES.map(stageOpt => (
+                                                    <option key={stageOpt} value={stageOpt}>{stageOpt}</option>
+                                                ))}
                                             </select>
                                         ) : (
                                             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>-</span>
@@ -411,15 +396,9 @@ const ApplicationsPage = () => {
                                         value={newAppForm.STATUS}
                                         onChange={e => setNewAppForm({...newAppForm, STATUS: e.target.value})}
                                     >
-                                        <option value="Applied">Applied</option>
-                                        <option value="Screening">Screening</option>
-                                        <option value="Assessment">Assessment</option>
-                                        <option value="Interviewing">Interviewing</option>
-                                        <option value="Offer">Offer</option>
-                                        <option value="Hired">Hired</option>
-                                        <option value="Rejected">Rejected</option>
-                                        <option value="Withdrawn">Withdrawn</option>
-                                        <option value="Ignored">Ignored</option>
+                                        {APPLICATION_STATUSES.map(statusOpt => (
+                                            <option key={statusOpt} value={statusOpt}>{statusOpt}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="modal-section">
@@ -430,19 +409,9 @@ const ApplicationsPage = () => {
                                         onChange={e => setNewAppForm({...newAppForm, STAGE: e.target.value})}
                                     >
                                         <option value="">- No Stage -</option>
-                                        <option value="Recruiter / HR Screen">Recruiter / HR Screen</option>
-                                        <option value="Introduction Interview">Introduction Interview</option>
-                                        <option value="Online Test">Online Test</option>
-                                        <option value="Home Assignment">Home Assignment</option>
-                                        <option value="Technical Interview">Technical Interview</option>
-                                        <option value="Coding Interview">Coding Interview</option>
-                                        <option value="System Design Interview">System Design Interview</option>
-                                        <option value="Behavioral / Culture Interview">Behavioral / Culture Interview</option>
-                                        <option value="Hiring Manager Interview">Hiring Manager Interview</option>
-                                        <option value="Final Interview / On-site">Final Interview / On-site</option>
-                                        <option value="Team Matching">Team Matching</option>
-                                        <option value="Reference Check">Reference Check</option>
-                                        <option value="Background Check">Background Check</option>
+                                        {INTERVIEW_STAGES.map(stageOpt => (
+                                            <option key={stageOpt} value={stageOpt}>{stageOpt}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="modal-section">

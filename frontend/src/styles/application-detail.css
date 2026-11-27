@@ -1,0 +1,119 @@
+/* Prevent .app min-height: 600px from overflowing 100vh and clipping sticky bottom bars on shorter viewports */
+.app {
+  min-height: 0;
+}
+
+/* ── Top nav right-side actions (Insight link + Job Posting) ── */
+.adp-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adp-btn-insight-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6d28d9;
+  background: #f3e8ff;
+  border: 1px solid rgba(109, 40, 217, 0.25);
+  border-radius: var(--r);
+  padding: 6px 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, box-shadow .15s;
+}
+
+.adp-btn-insight-link:hover {
+  background: #e9d5ff;
+  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.18);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Sticky Bottom Ghosting Suggestion Bar (ApplicationDetailPage)
+   ════════════════════════════════════════════════════════════════ */
+.adp-ghosting-bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 40;
+  margin-top: 24px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border2);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--r-lg);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  animation: adpStickySlideUp .25s ease;
+}
+
+@keyframes adpStickySlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.adp-ghosting-bar__content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.adp-ghosting-bar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-light);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.adp-ghosting-bar__text {
+  min-width: 0;
+}
+
+.adp-ghosting-bar__title {
+  margin: 0 0 2px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.adp-ghosting-bar__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--t2);
+  line-height: 1.4;
+}
+
+.adp-ghosting-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .adp-ghosting-bar {
+    flex-direction: column;
+    align-items: stretch;
+    bottom: 10px;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .adp-ghosting-bar__actions {
+    justify-content: flex-end;
+  }
+}
