@@ -115,9 +115,31 @@ describe('ApplicationDetailPage', () => {
             '1',
             'Rejected',
             '',
-            null,
+            expect.any(String),
             'Position closed',
             true
+        );
+    });
+
+    it('submits rejection modal with custom date when changed by user', () => {
+        render(<ApplicationDetailPage app={mockApp} onBack={mockOnBack} onUpdate={mockOnUpdate} />);
+
+        const quickRejectBtn = screen.getByTitle('Quick Reject');
+        fireEvent.click(quickRejectBtn);
+
+        const dateInput = screen.getByLabelText('Date');
+        fireEvent.change(dateInput, { target: { value: '2026-05-15' } });
+
+        const confirmBtn = screen.getByText('Confirm Rejection');
+        fireEvent.click(confirmBtn);
+
+        expect(mockOnUpdate).toHaveBeenCalledWith(
+            '1',
+            'Rejected',
+            '',
+            '2026-05-15',
+            '',
+            false
         );
     });
 

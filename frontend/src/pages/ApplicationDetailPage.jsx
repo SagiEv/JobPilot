@@ -668,12 +668,12 @@ const ApplicationDetailPage = ({ app, onBack, onUpdate, dismissedGhostings = {},
                 isOpen={isRejectModalOpen}
                 companyName={app.COMPANY}
                 onClose={() => setIsRejectModalOpen(false)}
-                onConfirm={({ reason, autoReject }) => {
+                onConfirm={({ reason, autoReject, date }) => {
                     onUpdate(
                         app.id,
                         'Rejected',
                         app.STAGE,
-                        null,
+                        date,
                         reason,
                         autoReject
                     );
